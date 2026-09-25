@@ -13,22 +13,9 @@ Provide a clear and concise description of the requested feature or story.
 -->
 
 ## Acceptance Criteria (required)
-## Acceptance Criteria (required)
 
 - [ ] Clear success criteria for the story
 - [ ] Any constraints or compatibility notes
-
-## Motivation
-
-<!--
-Why is this feature needed and what problem does it solve?
--->
-
-## Proposed solution (optional)
-
-<!--
-Describe an approach or API sketch.
--->
 
 ## Additional context
 
