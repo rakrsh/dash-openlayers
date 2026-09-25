@@ -20,14 +20,15 @@ If this PR fixes a bug, include a `Fixed in:` line with the release/branch/commi
 - [ ] I have added necessary documentation (if appropriate)
 - [ ] I have linked the related issue (if any)
 
-## Testing instructions
+## Related Tickets
+* Related Issue: #
+
 ## Testing instructions
 
 <!--
 Describe how to run and verify the changes.
 -->
 
-## Additional notes
 ## Additional notes
 
 <!--
