@@ -5,8 +5,7 @@
   "main": "dash_openlayers/dash_openlayers.umd.js",
   "module": "dash_openlayers/dash_openlayers.esm.js",
   "scripts": {
-    "build": "rollup -c",
-    "build:legacy": "node scripts/build.js"
+    "build": "rollup -c"
   },
   "dependencies": {
     "ol": "^9.0.0",

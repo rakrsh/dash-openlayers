@@ -224,3 +224,7 @@ __marimo__/
 # node_modules
 node_modules/
 node_modules/*
+
+# Cookiecutter scaffold artifacts (should never be committed)
+.cookiecutter_out/
+.cookiecutter_tmp/
