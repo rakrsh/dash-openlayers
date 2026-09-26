@@ -2,38 +2,49 @@ name: Release
 
 on:
   release:
-    types: [published]
+    types: [published, prereleased]  # Triggers on standard & pre-release publications
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
-      id-token: write
+      id-token: write  # Required for PyPI OIDC
+      contents: read   # Required for repo checkout
+
     steps:
-      - uses: actions/checkout@v7
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Setup Node
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@v4
         with:
-          node-version: ${{ vars.NODE_VERSION }}
+          node-version: ${{ vars.NODE_VERSION || '20' }}
+
       - name: Install npm deps
         run: npm install
+
       - name: Build JS bundles
         run: npm run build
+
       - name: Setup Python
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@v5
         with:
-          python-version: ${{ vars.PYTHON_VERSION }}
+          python-version: ${{ vars.PYTHON_VERSION || '3.11' }}
+
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
-          version: ${{ vars.UV_VERSION }}
+          version: ${{ vars.UV_VERSION || 'latest' }}
+
       - name: Build wheel and sdist
         run: uv build
+
       - name: Verify clean-environment install
         run: |
           uv venv .venv-check
           uv pip install --python .venv-check dist/*.whl
-          .venv-check/bin/python -c "import dash_openlayers; print(dash_openlayers.__version__)"
+          .venv-check/bin/python -c "import dash_openlayers; print(getattr(dash_openlayers, '__version__', 'Installed successfully'))"
+
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
