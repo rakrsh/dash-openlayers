@@ -19,6 +19,15 @@ classifiers = [
 Homepage = "https://github.com/rakrsh/dash-openlayers"
 Issues = "https://github.com/rakrsh/dash-openlayers/issues"
 
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0",
+    "build>=1.0.0",
+]
+
+[tool.uv]
+default-groups = ["dev"]
+
 [build-system]
 requires = ["setuptools>=68", "wheel"]
 build-backend = "setuptools.build_meta"
