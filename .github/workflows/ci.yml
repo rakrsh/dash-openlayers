@@ -8,6 +8,22 @@ on:
     branches: [ main ]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ vars.NODE_VERSION }}
+      - name: Install npm deps
+        run: npm install
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ vars.PYTHON_VERSION }}
+      - uses: pre-commit/action@v3.0.1
+
   build:
     runs-on: ubuntu-latest
     steps:
