@@ -3,7 +3,7 @@ site_description: OpenLayers components for Plotly Dash
 site_url: https://rakrsh.github.io/dash-openlayers
 repo_url: https://github.com/rakrsh/dash-openlayers
 theme:
-  name: material
+  name: readthedocs
 nav:
   - Home: index.md
   - Usage: usage.md
@@ -12,7 +12,11 @@ nav:
   - Architecture: architecture.md
 plugins:
   - search
+  - mermaid2
 extra_javascript:
   - assets/javascripts/version-switcher.js
 extra:
   repo_name: dash-openlayers
+markdown_extensions:
+  - pymdownx.superfences
+  - pymdownx.highlight
