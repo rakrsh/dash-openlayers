@@ -1,0 +1,58 @@
+# AUTO GENERATED FILE - DO NOT EDIT
+
+import typing  # noqa: F401
+from typing_extensions import TypedDict, NotRequired, Literal # noqa: F401
+from dash.development.base_component import Component, _explicitize_args
+try:
+    from dash.types import NumberType  # noqa: F401
+except ImportError:
+    # Backwards compatibility for dash<=4.1.0
+    if typing.TYPE_CHECKING:
+        raise
+    NumberType = typing.Union[  # noqa: F401
+        typing.SupportsFloat, typing.SupportsInt, typing.SupportsComplex
+    ]
+
+ComponentSingleType = typing.Union[str, int, float, Component, None]
+ComponentType = typing.Union[
+    ComponentSingleType,
+    typing.Sequence[ComponentSingleType],
+]
+
+
+class DrawInteraction(Component):
+    """A DrawInteraction component.
+
+
+Keyword arguments:
+
+- id (string; optional)
+
+- drawnGeoJSON (dict; optional)
+
+- geometryType (a value equal to: 'Point', 'LineString', 'Polygon', 'Circle'; default 'Polygon')"""
+    _children_props: typing.List[str] = []
+    _base_nodes = ['children']
+    _namespace = 'dash_openlayers'
+    _type = 'DrawInteraction'
+
+
+    def __init__(
+        self,
+        id: typing.Optional[typing.Union[str, dict]] = None,
+        geometryType: typing.Optional[Literal["Point", "LineString", "Polygon", "Circle"]] = None,
+        drawnGeoJSON: typing.Optional[dict] = None,
+        **kwargs
+    ):
+        self._prop_names = ['id', 'drawnGeoJSON', 'geometryType']
+        self._valid_wildcard_attributes =            []
+        self.available_properties = ['id', 'drawnGeoJSON', 'geometryType']
+        self.available_wildcard_properties =            []
+        _explicit_args = kwargs.pop('_explicit_args')
+        _locals = locals()
+        _locals.update(kwargs)  # For wildcard attrs and excess named props
+        args = {k: _locals[k] for k in _explicit_args}
+
+        super(DrawInteraction, self).__init__(**args)
+
+setattr(DrawInteraction, "__init__", _explicitize_args(DrawInteraction.__init__))

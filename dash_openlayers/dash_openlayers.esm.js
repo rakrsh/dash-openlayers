@@ -60807,7 +60807,11 @@ const DrawInteraction = ({
       map.removeLayer(vector);
     };
   }, [map, geometryType]);
-  return null;
+  return /*#__PURE__*/jsxRuntimeExports.jsx("div", {
+    style: {
+      display: 'none'
+    }
+  });
 };
 DrawInteraction.defaultProps = {
   geometryType: 'Polygon'
