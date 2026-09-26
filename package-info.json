@@ -1,0 +1,7 @@
+{
+  "name": "dash_openlayers",
+  "version": "0.0.1",
+  "description": "Dash components for OpenLayers",
+  "main": "dash_openlayers/dash_openlayers.umd.js",
+  "module": "dash_openlayers/dash_openlayers.esm.js"
+}
