@@ -1,0 +1,54 @@
+name: Build and deploy versioned documentation
+
+on:
+  push:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ vars.PYTHON_VERSION }}
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install mkdocs mkdocs-material mike
+
+      - name: Configure git remote for pushing
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+
+      - name: Deploy docs (dev on main, versioned on release)
+        env:
+          REPO: ${{ github.repository }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          if [ "${{ github.event_name }}" = "push" ]; then
+            echo "Deploying dev docs"
+            mike deploy dev --push --branch=gh-pages
+          fi
+
+          if [ "${{ github.event_name }}" = "release" ]; then
+            TAG_REF=${{ github.ref }}
+            TAG_NAME=${TAG_REF#refs/tags/}
+            VERSION=${TAG_NAME#v}
+            MAJMIN=$(echo "$VERSION" | awk -F. '{print $1"."$2}')
+
+            echo "Deploying version: $VERSION and major.minor alias: $MAJMIN"
+            mike deploy "$VERSION" --push --branch=gh-pages
+            mike alias "$VERSION" "$MAJMIN" --push --branch=gh-pages || true
+          fi

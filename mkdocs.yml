@@ -1,0 +1,18 @@
+site_name: dash-openlayers
+site_description: OpenLayers components for Plotly Dash
+site_url: https://rakrsh.github.io/dash-openlayers
+repo_url: https://github.com/rakrsh/dash-openlayers
+theme:
+  name: material
+nav:
+  - Home: index.md
+  - Usage: usage.md
+  - Quickstart: quickstart.md
+  - API: api.md
+  - Architecture: architecture.md
+plugins:
+  - search
+extra_javascript:
+  - assets/javascripts/version-switcher.js
+extra:
+  repo_name: dash-openlayers
