@@ -4,6 +4,23 @@ site_url: https://rakrsh.github.io/dash-openlayers
 repo_url: https://github.com/rakrsh/dash-openlayers
 theme:
   name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/white-balance-sunny
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - content.tooling
 nav:
   - Home: index.md
   - Usage: usage.md
@@ -12,7 +29,14 @@ nav:
   - Architecture: architecture.md
 plugins:
   - search
+  - mermaid2
+  - mike
 extra_javascript:
   - assets/javascripts/version-switcher.js
 extra:
   repo_name: dash-openlayers
+markdown_extensions:
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - attr_list

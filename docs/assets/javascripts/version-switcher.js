@@ -23,9 +23,29 @@
   function normalizeVersions(data) {
     // Accept multiple shapes (array, object, {versions: [...]}, {aliases: {...}})
     if (!data) return [];
-    if (Array.isArray(data)) return data;
-    if (data.versions && Array.isArray(data.versions)) return data.versions;
-    if (typeof data === 'object') return Object.keys(data);
+    // If it's an array of primitives/strings
+    if (Array.isArray(data)) return data.map(String);
+
+    // mike may output { versions: ["1.0.0", ...], aliases: {...} }
+    if (data.versions && Array.isArray(data.versions)) return data.versions.map(String);
+
+    // Sometimes entries are objects like {name: '1.2.3', path: '...'} or {version:'1.2.3', url:'...'}
+    if (Array.isArray(data.entries)) {
+      return data.entries.map(e => (typeof e === 'object' ? (e.name || e.version || e.label || e.id || JSON.stringify(e)) : String(e)));
+    }
+
+    if (typeof data === 'object') {
+      // If object maps version->url or alias->version
+      const keys = Object.keys(data);
+      // If values are objects containing name/url, map accordingly to name strings
+      if (keys.length > 0 && typeof data[keys[0]] === 'object') {
+        return keys.map(k => {
+          const v = data[k];
+          return v && (v.name || v.version || v.label) ? (v.name || v.version || v.label) : k;
+        });
+      }
+      return keys;
+    }
     return [];
   }
 
@@ -44,9 +64,13 @@
 
     versions.forEach(v => {
       const opt = document.createElement('option');
-      opt.textContent = v;
-      // Build target URL: prefer repo-root path
-      opt.value = `${origin}/dash-openlayers/${v}/`;
+      // If v looks like JSON string from earlier fallback, try to parse or use as label
+      let label = '' + v;
+      let path = `${origin}/dash-openlayers/${encodeURIComponent(label)}/`;
+
+      // If version is an object-like stringified JSON, keep label but fallback path
+      opt.textContent = label;
+      opt.value = path;
       select.appendChild(opt);
     });
 
