@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "dash-openlayers-gis-inspector": {
+      "command": "node",
+      "args": ["mcp/gis-data-inspector.js"],
+      "description": "Parses and validates local GeoJSON/KML spatial test fixtures (structure + [lon, lat] axis order) before they are used in tests or demos.",
+      "tools": ["validate_spatial_file"]
+    },
+    "dash-openlayers-build-validator": {
+      "command": "node",
+      "args": ["mcp/dash-build-validator.js"],
+      "description": "Runs `npm run build` and inspects dash_openlayers/metadata.json to verify Python prop/docstring generation without hallucinating.",
+      "tools": ["run_dash_build", "inspect_metadata"]
+    }
+  }
+}
