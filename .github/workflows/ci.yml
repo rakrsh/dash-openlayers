@@ -15,7 +15,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v7
         with:
-          node-version: '18'
+          node-version: ${{ vars.NODE_VERSION}}
       - name: Install npm deps
         run: npm install
       - name: Build JS bundles
@@ -23,7 +23,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.12'
+          python-version: ${{ vars.PYTHON_VERSION}}
       - name: Install Python deps
         run: |
           python -m pip install --upgrade pip
