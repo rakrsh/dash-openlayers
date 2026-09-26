@@ -23,10 +23,14 @@ jobs:
         with:
           python-version: ${{ vars.PYTHON_VERSION }}
 
-      - name: Install build dependencies
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: ${{ vars.UV_VERSION }}
+
+      - name: Install docs dependencies from pyproject
         run: |
-          python -m pip install --upgrade pip
-          pip install mkdocs mkdocs-material mike
+          uv sync docs
 
       - name: Configure git remote for pushing
         run: |
@@ -42,7 +46,7 @@ jobs:
           set -e
           if [ "${{ github.event_name }}" = "push" ]; then
             echo "Deploying dev docs"
-            mike deploy dev --push --branch=gh-pages
+            uv run mike deploy dev --push --branch=gh-pages
           fi
 
           if [ "${{ github.event_name }}" = "release" ]; then
@@ -52,6 +56,6 @@ jobs:
             MAJMIN=$(echo "$VERSION" | awk -F. '{print $1"."$2}')
 
             echo "Deploying version: $VERSION and major.minor alias: $MAJMIN"
-            mike deploy "$VERSION" --push --branch=gh-pages
-            mike alias "$VERSION" "$MAJMIN" --push --branch=gh-pages || true
+            uv run mike deploy "$VERSION" --push --branch=gh-pages
+            uv run mike alias "$VERSION" "$MAJMIN" --push --branch=gh-pages || true
           fi
