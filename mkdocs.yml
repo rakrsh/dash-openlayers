@@ -9,5 +9,6 @@ nav:
   - Usage: usage.md
   - Quickstart: quickstart.md
   - API: api.md
+  - Architecture: architecture.md
 plugins:
   - search
