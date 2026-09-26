@@ -154,6 +154,9 @@ activemq-data/
 env/
 venv/
 ENV/
+*.pyc
+*.egg-info
+
 env.bak/
 venv.bak/
 
@@ -216,3 +219,7 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# node_modules
+node_modules/
+node_modules/*
