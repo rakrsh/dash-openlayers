@@ -8,51 +8,51 @@ import GeoJSON from 'ol/format/GeoJSON';
 import { useMap } from '../context/OLContext';
 
 const DrawInteraction = ({ id, geometryType, setProps }) => {
-    const map = useMap();
+  const map = useMap();
 
-    useEffect(() => {
-        if (!map) return;
+  useEffect(() => {
+    if (!map) return;
 
-        const source = new VectorSource();
-        const vector = new VectorLayer({ source });
-        map.addLayer(vector);
+    const source = new VectorSource();
+    const vector = new VectorLayer({ source });
+    map.addLayer(vector);
 
-        const draw = new Draw({
-            source: source,
-            type: geometryType,
+    const draw = new Draw({
+      source: source,
+      type: geometryType,
+    });
+
+    map.addInteraction(draw);
+
+    draw.on('drawend', (evt) => {
+      const writer = new GeoJSON();
+      const geojson = writer.writeFeatureObject(evt.feature);
+
+      if (setProps) {
+        setProps({
+          drawnGeoJSON: geojson,
         });
+      }
+    });
 
-        map.addInteraction(draw);
+    return () => {
+      map.removeInteraction(draw);
+      map.removeLayer(vector);
+    };
+  }, [map, geometryType]);
 
-        draw.on('drawend', (evt) => {
-            const writer = new GeoJSON();
-            const geojson = writer.writeFeatureObject(evt.feature);
-
-            if (setProps) {
-                setProps({
-                    drawnGeoJSON: geojson,
-                });
-            }
-        });
-
-        return () => {
-            map.removeInteraction(draw);
-            map.removeLayer(vector);
-        };
-    }, [map, geometryType]);
-
-    return <div style={{ display: 'none' }} />;
+  return <div style={{ display: 'none' }} />;
 };
 
 DrawInteraction.defaultProps = {
-    geometryType: 'Polygon',
+  geometryType: 'Polygon',
 };
 
 DrawInteraction.propTypes = {
-    id: PropTypes.string,
-    geometryType: PropTypes.oneOf(['Point', 'LineString', 'Polygon', 'Circle']),
-    drawnGeoJSON: PropTypes.object,
-    setProps: PropTypes.func,
+  id: PropTypes.string,
+  geometryType: PropTypes.oneOf(['Point', 'LineString', 'Polygon', 'Circle']),
+  drawnGeoJSON: PropTypes.object,
+  setProps: PropTypes.func,
 };
 
 export default DrawInteraction;

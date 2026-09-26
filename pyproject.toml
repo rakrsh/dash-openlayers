@@ -20,13 +20,25 @@ Homepage = "https://github.com/rakrsh/dash-openlayers"
 Issues = "https://github.com/rakrsh/dash-openlayers/issues"
 
 [dependency-groups]
+test = ["pytest>=8.0.0"]
+build = ["build>=1.0.0"]
+lint = ["ruff>=0.6.0", "pre-commit>=3.8.0; python_version >= '3.9'"]
 dev = [
-    "pytest>=8.0.0",
-    "build>=1.0.0",
+    { include-group = "test" },
+    { include-group = "build" },
+    { include-group = "lint" },
 ]
 
 [tool.uv]
 default-groups = ["dev"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+extend-exclude = ["dash_openlayers", "dash_openlayers.egg-info"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
 
 [build-system]
 requires = ["setuptools>=68", "wheel"]

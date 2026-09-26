@@ -5,8 +5,13 @@ import postcss from 'rollup-plugin-postcss';
 import path from 'path';
 import { babel } from '@rollup/plugin-babel';
 
-const jsx = babel({ babelHelpers: 'bundled', presets: [], plugins: [['@babel/plugin-transform-react-jsx', { runtime: 'automatic' }]], extensions: ['.js'], exclude: 'node_modules/**' });
-
+const jsx = babel({
+  babelHelpers: 'bundled',
+  presets: [],
+  plugins: [['@babel/plugin-transform-react-jsx', { runtime: 'automatic' }]],
+  extensions: ['.js'],
+  exclude: 'node_modules/**',
+});
 
 export default [
   // ESM build
@@ -31,8 +36,3 @@ export default [
     plugins: [jsx, resolve(), commonjs(), postcss({ extract: false }), terser()],
   },
 ];
-
-
-
-
-
