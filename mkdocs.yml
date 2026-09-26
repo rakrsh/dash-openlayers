@@ -12,3 +12,7 @@ nav:
   - Architecture: architecture.md
 plugins:
   - search
+extra_javascript:
+  - assets/javascripts/version-switcher.js
+extra:
+  repo_name: dash-openlayers
