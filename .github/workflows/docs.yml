@@ -30,7 +30,7 @@ jobs:
 
       - name: Install docs dependencies from pyproject
         run: |
-          uv sync docs
+          uv sync --groups docs
 
       - name: Configure git remote for pushing
         run: |
