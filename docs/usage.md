@@ -1,0 +1,39 @@
+# Usage
+
+Example usage (from the repository `usage.py`) — draw polygons and capture GeoJSON:
+
+```python
+import dash
+from dash import html, Output, Input, json
+import dash_openlayers as dol
+
+app = dash.Dash(__name__)
+
+BNG_PROJ = [
+    {
+        "code": "EPSG:27700",
+        "def": "+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +datum=OSGB36 +units=m +no_defs",
+    }
+]
+
+app.layout = html.Div(
+    [
+        dol.Map(
+            id="map",
+            projection="EPSG:27700",
+            proj4Defs=BNG_PROJ,
+            center=[530000, 180000],
+            zoom=10,
+            children=[
+                dol.TileLayer(source="OSM"),
+                dol.DrawInteraction(id="draw-tool", geometryType="Polygon"),
+            ],
+            style={"height": "600px", "width": "100%"},
+        ),
+        html.Pre(id="geojson-output"),
+    ]
+)
+
+if __name__ == "__main__":
+    app.run_server(debug=True)
+```
