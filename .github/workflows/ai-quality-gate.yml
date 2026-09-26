@@ -1,0 +1,39 @@
+name: AI Quality Gate
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  ai-invariants:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ vars.NODE_VERSION }}
+      - name: Install npm deps
+        run: npm install
+      - name: JSDoc/PropTypes + memory-leak cleanup AST gate
+        run: node scripts/check-ai-invariants.js
+
+  python-api-drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ vars.NODE_VERSION }}
+      - name: Install npm deps
+        run: npm install
+      - name: Build JS bundles + Python wrappers
+        run: npm run build
+      - name: Fail on uncommitted dash_openlayers/ generator drift
+        run: |
+          if ! git diff --exit-code -- dash_openlayers; then
+            echo "::error::npm run build produced changes under dash_openlayers/ that are not committed. Run 'npm run build' locally and commit the regenerated output."
+            exit 1
+          fi
