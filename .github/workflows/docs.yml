@@ -1,6 +1,9 @@
 name: Build and deploy versioned documentation
+permissions:
+  contents: write
 
 on:
+  workflow_dispatch:
   push:
     branches: [ main ]
   release:
