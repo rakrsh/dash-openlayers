@@ -1,3 +1,20 @@
+## Summary
+
+Initial repository scaffold for `dash-openlayers` based on the dash component boilerplate.
+
+## What I changed
+- Added minimal JS/React sources and a placeholder build script.
+- Added Python package stub and placeholder JS asset.
+- Updated `.gitignore`.
+
+## Linked issue
+- Closes/relates to: #1
+
+## Checklist
+- [ ] Build assets with a real bundler and replace placeholder bundle.
+- [ ] Run `npm install` without peer dependency errors.
+- [ ] Generate Python component wrappers and tests.
+- [ ] Add CI for build/test/package.
 ## Description
 
 <!--
