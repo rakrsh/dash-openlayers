@@ -7,7 +7,10 @@
   "scripts": {
     "build": "rollup -c",
     "lint": "eslint src",
-    "format": "prettier --write src *.js *.json"
+    "format": "prettier --write src *.js *.json",
+    "check-ai-invariants": "node scripts/check-ai-invariants.js",
+    "mcp-inspect-metadata": "node mcp/dash-build-validator.js",
+    "mcp-validate-spatial": "node mcp/gis-data-inspector.js"
   },
   "dependencies": {
     "ol": "^9.0.0",

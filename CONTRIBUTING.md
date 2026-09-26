@@ -108,6 +108,45 @@ uv sync
 uv run pre-commit install
 ```
 
+## AI-Assisted Development Guide
+
+This repository provides a curated, safe workflow for using AI/code-assistant tools
+to author components and tests while avoiding common OpenLayers/Dash pitfalls.
+
+- Follow the repository invariants in `.cursorrules` (lifecycle, docstring, coordinate order).
+- Run the AI quality gate locally before opening a PR:
+
+```bash
+# run static invariants (JSDoc + cleanup hooks)
+npm run check-ai-invariants
+
+# regenerate bundles + python wrappers and verify no generator drift
+npm run build
+git diff -- dash_openlayers
+```
+
+- Quick helpers (available as npm scripts):
+
+```bash
+npm run check-ai-invariants     # run the AST-based JSDoc & cleanup checks
+npm run mcp-inspect-metadata    # (advanced) start the MCP validator helper
+npm run mcp-validate-spatial    # (advanced) run the local GIS inspector
+```
+
+- Skills and local agent tools:
+  - Use the `.agent/skills/scaffold-dash-ol-component` skill to scaffold new components that already follow JSDoc and cleanup rules.
+  - Use `.agent/skills/gis-projection-validator` when adding new projections or coordinate-heavy code.
+  - Use `.agent/skills/dash-duo-test-generator` to produce end-to-end `dash_duo` tests for interactive components.
+
+- MCP tools: see `.mcp/config.json` and the `mcp/` helpers for programmatic checks
+  (these are intended for AI agents and maintainers who want deterministic evidence
+  from `dash_openlayers/metadata.json` or to pre-validate spatial fixtures).
+
+If you are using an AI assistant, always run `npm run check-ai-invariants` and `npm run build`
+and inspect the generated `dash_openlayers/` diff before committing — failing to do so makes
+CI likely to reject the PR.
+
+
 ## Code style
 
 - **Python**: [ruff](https://docs.astral.sh/ruff/) for linting and formatting
