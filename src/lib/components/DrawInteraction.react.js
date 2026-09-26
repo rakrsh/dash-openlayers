@@ -49,9 +49,13 @@ DrawInteraction.defaultProps = {
 };
 
 DrawInteraction.propTypes = {
+  /** The ID used to identify this component in Dash callbacks. */
   id: PropTypes.string,
+  /** Geometry type drawn by this interaction. */
   geometryType: PropTypes.oneOf(['Point', 'LineString', 'Polygon', 'Circle']),
+  /** Read-only: GeoJSON Feature emitted on `drawend`, set via `setProps`. */
   drawnGeoJSON: PropTypes.object,
+  /** Dash-supplied prop setter; internal, do not set from Python. */
   setProps: PropTypes.func,
 };
 

@@ -79,19 +79,32 @@ MapComponent.defaultProps = {
 };
 
 MapComponent.propTypes = {
+  /** The ID used to identify this component in Dash callbacks. */
   id: PropTypes.string,
+  /** OpenLayers layer/interaction components (e.g. TileLayer, DrawInteraction) rendered inside this map. */
   children: PropTypes.node,
+  /**
+   * Map view center as [x, y] in `projection`'s units (e.g. [lon, lat] for
+   * EPSG:4326, [x, y] in meters for EPSG:3857/projected CRSs). Bidirectional:
+   * updates on `moveend` and can be set from Python.
+   */
   center: PropTypes.arrayOf(PropTypes.number),
+  /** Map zoom level. Bidirectional: updates on `moveend` and can be set from Python. */
   zoom: PropTypes.number,
+  /** EPSG code the view is rendered in, e.g. 'EPSG:3857' or a custom code registered via `proj4Defs`. */
   projection: PropTypes.string,
+  /** Custom proj4 projection definitions to register before the view is constructed, e.g. [{ code: 'EPSG:27700', def: '+proj=tmerc ...' }]. */
   proj4Defs: PropTypes.arrayOf(
     PropTypes.shape({
       code: PropTypes.string.isRequired,
       def: PropTypes.string.isRequired,
     }),
   ),
+  /** Inline CSS style object applied to the map container div. */
   style: PropTypes.object,
+  /** Read-only: set on `singleclick` with `{ coordinate: [x, y], latLon: [lat, lon] }`. */
   clickData: PropTypes.object,
+  /** Dash-supplied prop setter; internal, do not set from Python. */
   setProps: PropTypes.func,
 };
 
