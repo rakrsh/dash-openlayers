@@ -31,3 +31,35 @@ jobs:
           pip install -e .
       - name: Run tests
         run: pytest -q
+
+  package:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ vars.NODE_VERSION }}
+      - name: Install npm deps
+        run: npm install
+      - name: Build JS bundles
+        run: npm run build
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ vars.PYTHON_VERSION }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+      - name: Build wheel and sdist
+        run: uv build
+      - name: Verify clean-environment install
+        run: |
+          uv venv .venv-check
+          uv pip install --python .venv-check dist/*.whl
+          .venv-check/bin/python -c "import dash_openlayers; print(dash_openlayers.__version__)"
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: dash-openlayers-dist
+          path: dist/
