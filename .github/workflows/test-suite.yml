@@ -59,14 +59,41 @@ jobs:
         run: |
           uv sync --groups test || uv sync test || true
 
-      - name: Run unit tests
-        run: uv run pytest -q tests/unit
+      - name: Run unit tests with coverage
+        run: |
+          uv run pytest -q tests/unit --cov=dash_openlayers --cov-report=term
 
-      - name: Run integration tests (Linux uses xvfb)
+      - name: Run integration tests with coverage (Linux uses xvfb)
         if: startsWith(runner.os, 'Linux')
-        run: xvfb-run -s "-screen 0 1280x1024x24" uv run pytest -q tests/integration
+        run: |
+          xvfb-run -s "-screen 0 1280x1024x24" uv run pytest -q tests/integration --cov=dash_openlayers --cov-append --cov-report=term
 
-      - name: Run integration tests (Windows)
+      - name: Run integration tests with coverage (Windows)
         if: startsWith(runner.os, 'Windows')
         shell: pwsh
-        run: uv run pytest -q tests/integration
+        run: |
+          uv run pytest -q tests/integration --cov=dash_openlayers --cov-append --cov-report=term
+
+      - name: Generate combined coverage reports
+        run: |
+          # produce XML and HTML reports from combined coverage data
+          coverage xml -o coverage.xml || true
+          coverage html -d coverage/html || true
+
+      - name: Upload coverage XML
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-xml
+          path: coverage.xml
+
+      - name: Upload coverage HTML
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-html
+          path: coverage/html
+
+      - name: Upload raw coverage data
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-dot-coverage
+          path: .coverage
