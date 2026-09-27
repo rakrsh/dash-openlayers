@@ -74,6 +74,10 @@ already compliant with the invariants above.
 For projection/coordinate work, use the `gis-projection-validator` skill.
 For Selenium-based Dash integration tests, use the `dash-duo-test-generator`
 skill.
+For writing or running tests across all layers (unit, integration, demos),
+coverage commands, and debugging failed browser tests, use the
+`dash-ol-test-runner` skill
+([.agent/skills/dash-ol-test-runner/SKILL.md](../.agent/skills/dash-ol-test-runner/SKILL.md)).
 
 ## Architecture reference
 

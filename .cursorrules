@@ -146,3 +146,15 @@ only the intended prop surface before committing.
   UMD bundle embeds a second copy of React, and once it runs alongside
   Dash's own React instance, hooks like `useRef` fail at runtime
   (`Cannot read properties of null (reading 'useRef')`) and nothing renders.
+
+## 9. Agent Skills
+
+Executable skill recipes live under `.agent/skills/`. Prefer using them over
+hand-writing boilerplate:
+
+| Skill | When to use |
+| --- | --- |
+| `scaffold-dash-ol-component` ([SKILL.md](.agent/skills/scaffold-dash-ol-component/SKILL.md)) | Adding a new component — produces the React file, `src/index.js` export, Python test draft, and usage demo in one pass |
+| `gis-projection-validator` ([SKILL.md](.agent/skills/gis-projection-validator/SKILL.md)) | Auditing or adding coordinate/projection code (`fromLonLat`, `proj4Defs`, custom EPSG) |
+| `dash-duo-test-generator` ([SKILL.md](.agent/skills/dash-duo-test-generator/SKILL.md)) | Adding Selenium-based `dash_duo` integration tests for interactive map behavior |
+| `dash-ol-test-runner` ([SKILL.md](.agent/skills/dash-ol-test-runner/SKILL.md)) | Writing and running tests across all layers (unit, integration, demos), coverage commands, CI alignment, and debugging failing browser tests |
