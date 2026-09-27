@@ -24,6 +24,7 @@ def test_draw_interaction(dash_duo):
     )
 
     dash_duo.start_server(app)
-    el = dash_duo.wait_for_element("#map", timeout=10)
+    # Wait for OpenLayers map viewport to appear (created by the client-side JS)
+    el = dash_duo.wait_for_element("div.ol-viewport", timeout=15)
     assert el is not None
     time.sleep(1)
