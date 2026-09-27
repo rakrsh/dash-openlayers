@@ -77,8 +77,8 @@ jobs:
       - name: Generate combined coverage reports
         run: |
           # produce XML and HTML reports from combined coverage data
-          coverage xml -o coverage.xml || true
-          coverage html -d coverage/html || true
+          uv run coverage xml -o coverage.xml || true
+          uv run coverage html -d coverage/html || true
 
       - name: Upload coverage XML
         uses: actions/upload-artifact@v7
