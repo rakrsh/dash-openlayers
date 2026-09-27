@@ -1,0 +1,99 @@
+name: Test Suite (reusable)
+
+on:
+  workflow_call:
+    inputs:
+      os:
+        required: true
+        type: string
+      python-version:
+        required: true
+        type: string
+      node-version:
+        required: true
+        type: string
+      uv-version:
+        required: true
+        type: string
+
+jobs:
+  run-tests:
+    runs-on: ${{ inputs.os }}
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Install npm deps
+        run: npm install
+
+      - name: Build JS bundles
+        run: npm run build
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: ${{ inputs.uv-version }}
+
+      - name: Install browser & chromedriver (Linux)
+        if: startsWith(runner.os, 'Linux')
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y chromium-browser chromium-chromedriver
+
+      - name: Install browser & chromedriver (Windows)
+        if: startsWith(runner.os, 'Windows')
+        shell: pwsh
+        run: |
+          choco install -y googlechrome chromedriver
+
+      - name: Install Python deps for tests
+        run: |
+          uv sync --groups test || uv sync test || true
+
+      - name: Run unit tests with coverage
+        run: |
+          uv run pytest -q tests/unit --cov=dash_openlayers --cov-report=term
+
+      - name: Run integration tests with coverage (Linux uses xvfb)
+        if: startsWith(runner.os, 'Linux')
+        run: |
+          xvfb-run -s "-screen 0 1280x1024x24" uv run pytest -q tests/integration --cov=dash_openlayers --cov-append --cov-report=term
+
+      - name: Run integration tests with coverage (Windows)
+        if: startsWith(runner.os, 'Windows')
+        shell: pwsh
+        run: |
+          uv run pytest -q tests/integration --cov=dash_openlayers --cov-append --cov-report=term
+
+      - name: Generate combined coverage reports
+        run: |
+          # produce XML and HTML reports from combined coverage data
+          uv run coverage xml -o coverage.xml || true
+          uv run coverage html -d coverage/html || true
+
+      - name: Upload coverage XML
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-xml-${{ inputs.os }}-py${{ inputs.python-version }}
+          path: coverage.xml
+
+      - name: Upload coverage HTML
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-html-${{ inputs.os }}-py${{ inputs.python-version }}
+          path: coverage/html
+
+      - name: Upload raw coverage data
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage-dot-coverage-${{ inputs.os }}-py${{ inputs.python-version }}
+          path: .coverage

@@ -72,10 +72,12 @@ DOM/map event handler → `setProps` → Dash renderer → Python callback `Inpu
 | 4 | Calling `setProps(...)` without checking it exists | `if (setProps) { setProps({...}); }` — `setProps` is undefined outside a live Dash renderer |
 | 5 | `propTypes` entries with a `//` comment or no comment | `/** JSDoc */` immediately above every `propTypes` key |
 | 6 | Re-creating a `VectorSource`/`GeoJSON` reader inside a `useEffect` with a dependency that changes every render (e.g. an inline object/array literal prop), causing an add/remove/re-render loop | Memoize the input (stable prop reference from Python, or `useMemo`) and only rebuild the source when the actual GeoJSON data changes, not on every render |
-| 7 | Adding a new component but forgetting to export it from `src/index.js` | Every new component is exported from `src/index.js` so it reaches `dash_openlayers/__init__.py` on build |
-| 8 | Hand-editing files under `dash_openlayers/` | Edit `src/`, then run `npm run build` to regenerate `dash_openlayers/` |
+| 7 | Adding a new component but forgetting to export it from `src/index.js` | Every new component is exported from `src/index.js` so it reaches the client bundle on build |
+| 8 | Assuming `npm run build` regenerates `dash_openlayers/metadata.json` or the Python `<Component>.py` wrapper classes | It only runs Rollup (JS bundles). Hand-update `metadata.json` and the Python class yourself, in lockstep with `propTypes` — see `.cursorrules` §8 |
 | 9 | Re-importing `ol/ol.css` from every component | Import once, at the `Map` component boundary |
 | 10 | Holding derived/duplicate state for a Dash-owned prop in local `useState` and drifting from the prop | Treat the incoming prop as source of truth; call the OpenLayers setter directly in an effect keyed on that prop |
+| 11 | Listing the ESM bundle (`dash_openlayers.esm.js`) in `dash_openlayers/__init__.py`'s `_js_dist` | Dash serves `relative_package_path` assets as plain `<script>` tags (no `type="module"`) — list only the UMD bundle there; the ESM build is for npm/bundler consumers via `package-info.json`'s `module` field |
+| 12 | Letting the UMD Rollup output bundle its own copy of `react`/`react-dom` | Mark them `external` (with `output.globals`) in `rollup.config.js`, or hooks like `useRef` break once Dash's own React instance loads alongside the duplicate |
 
 ## 4. File reference
 
@@ -85,7 +87,8 @@ DOM/map event handler → `setProps` → Dash renderer → Python callback `Inpu
 | `src/lib/components/DrawInteraction.react.js` | Adds `ol/interaction/Draw` + scratch `VectorLayer`, `drawend` → `setProps({ drawnGeoJSON })` |
 | `src/lib/context/OLContext.js` | `React.createContext` + `useMap()` hook |
 | `src/index.js` | Public export surface consumed by the Python wrapper generator |
-| `dash_openlayers/` | **Generated.** Python classes, `metadata.json` (react-docgen output), JS bundles |
+| `dash_openlayers/*.esm.js`, `*.umd.js` | **Generated** by `npm run build` (Rollup) — never hand-edit |
+| `dash_openlayers/metadata.json`, `dash_openlayers/<Component>.py` | **Hand-maintained** — no docgen/generator step exists in this repo; update whenever `propTypes` change |
 | `tests/test_*.py` | pytest suite (import + `dash_duo` integration tests) |
 | `usage*.py` | Manual/demo Dash apps for local verification |
 | `.agent/skills/` | Executable skill recipes for scaffolding components, validating projections, generating tests |

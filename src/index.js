@@ -1,5 +1,6 @@
 import Map from './lib/components/Map.react';
 import DrawInteraction from './lib/components/DrawInteraction.react';
+import TileLayer from './lib/components/TileLayer.react';
 import OLContext from './lib/context/OLContext';
 
-export { Map, DrawInteraction, OLContext };
+export { Map, DrawInteraction, TileLayer, OLContext };

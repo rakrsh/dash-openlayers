@@ -18,15 +18,12 @@ with open(_filepath, encoding='utf-8') as f:
 package_name = package.get('name', 'dash_openlayers').replace(' ', '_').replace('-', '_')
 __version__ = package.get('version', '0.0.1')
 
+# UMD only: Dash serves relative_package_path assets as plain <script> tags
+# (no type="module"), so the ESM build can't be loaded this way.
 _js_dist = [
     {
         'relative_package_path': 'dash_openlayers.umd.js',
         'namespace': package_name,
-    },
-    {
-        'relative_package_path': 'dash_openlayers.esm.js',
-        'namespace': package_name,
-        'dynamic': False,
     },
 ]
 

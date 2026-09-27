@@ -14,15 +14,28 @@ must-follow rules and the exact commands to use when verifying work.
 2. **Dash bridge**: Outward state only via `setProps({ ... })`, always guarded
    with `if (setProps) { ... }`.
 3. **Docstrings**: Every `propTypes` key has a `/** ... */` JSDoc block
-   directly above it — no `//` comments. `react-docgen` (via `npm run build`)
-   turns these into the Python wrapper's docstrings; missing JSDoc ships a
-   blank Python docstring.
+   directly above it — no `//` comments. This JSDoc format mirrors what
+   `react-docgen` expects for the Python wrapper's docstrings — but `npm run
+   build` in this repo only runs Rollup; it does **not** regenerate
+   `dash_openlayers/metadata.json` or the Python `Component` classes. Update
+   those two by hand whenever `propTypes` changes (see rule 5 and Task 5).
 4. **Coordinates**: OpenLayers coordinate order is `[lon, lat]` / `[x, y]`,
    never `[lat, lon]`. Use `ol/proj` helpers (`fromLonLat`, `toLonLat`,
    `transform`) for conversions.
 5. **File locations**: components in `src/lib/components/*.react.js`, context
-   in `src/lib/context/`, exports wired in `src/index.js`. Never hand-edit
-   generated output in `dash_openlayers/` — it's produced by `npm run build`.
+   in `src/lib/context/`, exports wired in `src/index.js`. Never hand-edit the
+   generated JS bundles (`dash_openlayers/*.esm.js`/`*.umd.js`) — they're
+   produced by `npm run build`. `dash_openlayers/metadata.json` and
+   `dash_openlayers/<Component>.py` are **hand-maintained**; update all three
+   of `src/index.js`, `metadata.json`, and `<Component>.py` together whenever
+   a component is added or its props change.
+6. **Dash bundle loading**: `dash_openlayers/__init__.py`'s `_js_dist` must
+   list only the UMD bundle — Dash serves `relative_package_path` assets as
+   plain `<script>` tags (no `type="module"`), so an ESM bundle listed there
+   throws `Unexpected token 'export'` in the browser. Also keep `react`,
+   `react-dom`, `prop-types` marked `external` in `rollup.config.js`'s UMD
+   output, or the bundle embeds a duplicate React copy that breaks hooks
+   (`useRef`) once Dash's own React runtime loads.
 
 ## Command sequences
 
@@ -32,20 +45,22 @@ npm install
 uv sync
 
 # After any component/propTypes change
-npm run build          # regenerates dash_openlayers/*.py + metadata.json
+npm run build          # regenerates dash_openlayers/*.esm.js + *.umd.js only
 npm run lint
 npm run format
 uv run pytest -q
 uv run ruff check .
 uv run ruff format .
+uv run coverage xml    # coverage CLI lives in the uv venv; always use `uv run`
 
 # AI quality gate checks run locally (same as CI, see Task 5 below)
 node scripts/check-ai-invariants.js
 ```
 
-Always run `npm run build` after touching `propTypes` and check that the
-diff under `dash_openlayers/` reflects only the intended prop changes —
-uncommitted generator drift fails the `package` CI job.
+Always run `npm run build` after touching `propTypes`, then hand-update
+`dash_openlayers/metadata.json` and the component's `.py` wrapper class to
+match — check that the diff under `dash_openlayers/` reflects only the
+intended prop changes before committing.
 
 ## Adding a new component
 
@@ -59,6 +74,10 @@ already compliant with the invariants above.
 For projection/coordinate work, use the `gis-projection-validator` skill.
 For Selenium-based Dash integration tests, use the `dash-duo-test-generator`
 skill.
+For writing or running tests across all layers (unit, integration, demos),
+coverage commands, and debugging failed browser tests, use the
+`dash-ol-test-runner` skill
+([.agent/skills/dash-ol-test-runner/SKILL.md](../.agent/skills/dash-ol-test-runner/SKILL.md)).
 
 ## Architecture reference
 
