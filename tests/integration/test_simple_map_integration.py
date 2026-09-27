@@ -21,7 +21,16 @@ def test_simple_map_starts(dash_duo):
 
     dash_duo.start_server(app)
     # Wait for OpenLayers map viewport to appear (created by the client-side JS)
-    el = dash_duo.wait_for_element("div.ol-viewport", timeout=15)
+    try:
+        el = dash_duo.wait_for_element("div.ol-viewport", timeout=15)
+    except Exception:
+        # Dump page source and browser console logs for debugging
+        print(dash_duo.driver.page_source[:10000])
+        try:
+            print(dash_duo.driver.get_log("browser"))
+        except Exception:
+            pass
+        raise
     assert el is not None
     # allow map to initialize
     time.sleep(1)
