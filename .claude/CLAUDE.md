@@ -6,25 +6,36 @@ This file adds Claude-specific workflow guidance.
 
 ## Project shape
 
-- Python/Dash wrapper generated from React components (`src/lib/components`)
-  via `@plotly/dash-component-boilerplate` tooling (`npm run build` →
-  `react-docgen` + Rollup).
+- Python/Dash wrapper hand-authored alongside React components
+  (`src/lib/components`). `npm run build` (Rollup) only produces the JS
+  bundles (`dash_openlayers.esm.js`/`.umd.js`) — there is no react-docgen or
+  Python-generation step wired in, despite the `react-docgen` devDependency.
 - Map instance lives in `OLContext` (`src/lib/context/OLContext.js`);
   children read it with `useMap()`.
-- Never hand-edit `dash_openlayers/*.py`, `dash_openlayers/*.js`, or
-  `dash_openlayers/metadata.json` — regenerate with `npm run build`.
+- Never hand-edit `dash_openlayers/*.js` — regenerate with `npm run build`.
+  `dash_openlayers/metadata.json` and `dash_openlayers/*.py` (Python wrapper
+  classes) ARE hand-maintained here; update them yourself whenever
+  `propTypes` change.
 
 ## Non-negotiable invariants (see `.cursorrules` for full detail)
 
 1. OpenLayers objects are created/disposed inside `useEffect` with cleanup.
 2. Outward state changes go through `setProps({ ... })`, guarded by
    `if (setProps)`.
-3. Every `propTypes` key has a JSDoc `/** ... */` block immediately above it
-   (parsed by `react-docgen` into the Python docstring). No `//` comments.
+3. Every `propTypes` key has a JSDoc `/** ... */` block immediately above it,
+   mirrored by hand into `metadata.json`'s `description` field and the
+   Python class docstring. No `//` comments.
 4. Coordinates are `[lon, lat]` (`[x, y]`), never `[lat, lon]`. Use `ol/proj`
    helpers for all transforms.
 5. Components go in `src/lib/components/`, are exported from `src/index.js`,
-   Python wrappers build to `dash_openlayers/`, tests live in `tests/`.
+   and require a matching hand-written entry in `dash_openlayers/metadata.json`
+   and `dash_openlayers/<Component>.py`; tests live in `tests/`.
+6. `dash_openlayers/__init__.py`'s `_js_dist` must list only the UMD bundle.
+   Dash renders `relative_package_path` assets as plain `<script>` tags (no
+   `type="module"`), so an ESM entry there throws `Unexpected token 'export'`
+   in the browser. Keep `react`/`react-dom`/`prop-types` `external` in
+   `rollup.config.js`'s UMD output too, or the bundle ships a duplicate React
+   copy that breaks hooks (`useRef`) at runtime.
 
 ## Build, test & verification pipeline
 
@@ -33,14 +44,19 @@ silently working around them:
 
 ```bash
 npm install
-npm run build           # regenerate JS bundle + Python wrapper/metadata
+npm run build           # regenerate JS bundles only (ESM + UMD)
 npm run lint
 npm test                # if/when a JS test runner is configured; currently Python-only via pytest
 uv sync
 uv run pytest -q
 uv run ruff check .
+uv run coverage xml     # coverage CLI lives in the uv venv; always use `uv run`, never bare `coverage`
 node scripts/check-ai-invariants.js   # JSDoc + cleanup-hook AST gate (same as CI)
 ```
+
+After `npm run build`, manually update `dash_openlayers/metadata.json` and
+the affected `dash_openlayers/<Component>.py` to match any `propTypes`
+change — there is no generator step to do this for you.
 
 Treat a non-zero exit from any of these as a blocking failure to fix before
 declaring a task complete.
