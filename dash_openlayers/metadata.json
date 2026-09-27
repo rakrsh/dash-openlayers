@@ -1,1 +1,52 @@
-{"src/lib/components/DrawInteraction.react.js":{"description":"","displayName":"DrawInteraction","methods":[],"props":{"id":{"type":{"name":"string"},"required":false,"description":""},"geometryType":{"type":{"name":"enum","value":[{"value":"'Point'","computed":false},{"value":"'LineString'","computed":false},{"value":"'Polygon'","computed":false},{"value":"'Circle'","computed":false}]},"required":false,"description":"","defaultValue":{"value":"'Polygon'","computed":false}},"drawnGeoJSON":{"type":{"name":"object"},"required":false,"description":""},"setProps":{"type":{"name":"func"},"required":false,"description":""}}},"src/lib/components/Map.react.js":{"description":"","displayName":"MapComponent","methods":[],"props":{"id":{"type":{"name":"string"},"required":false,"description":""},"children":{"type":{"name":"node"},"required":false,"description":""},"center":{"type":{"name":"arrayOf","value":{"name":"number"}},"required":false,"description":"","defaultValue":{"value":"[0, 0]","computed":false}},"zoom":{"type":{"name":"number"},"required":false,"description":"","defaultValue":{"value":"2","computed":false}},"projection":{"type":{"name":"string"},"required":false,"description":"","defaultValue":{"value":"'EPSG:3857'","computed":false}},"proj4Defs":{"type":{"name":"arrayOf","value":{"name":"shape","value":{"code":{"name":"string","required":true},"def":{"name":"string","required":true}}}},"required":false,"description":"","defaultValue":{"value":"[]","computed":false}},"style":{"type":{"name":"object"},"required":false,"description":""},"clickData":{"type":{"name":"object"},"required":false,"description":""},"setProps":{"type":{"name":"func"},"required":false,"description":""}}}}
+{
+	"src/lib/components/DrawInteraction.react.js": {
+		"description": "",
+		"displayName": "DrawInteraction",
+		"methods": [],
+		"props": {
+			"id": { "type": { "name": "string" }, "required": false, "description": "" },
+			"geometryType": {
+				"type": {
+					"name": "enum",
+					"value": [
+						{ "value": "'Point'", "computed": false },
+						{ "value": "'LineString'", "computed": false },
+						{ "value": "'Polygon'", "computed": false },
+						{ "value": "'Circle'", "computed": false }
+					]
+				},
+				"required": false,
+				"description": "",
+				"defaultValue": { "value": "'Polygon'", "computed": false }
+			},
+			"drawnGeoJSON": { "type": { "name": "object" }, "required": false, "description": "" },
+			"setProps": { "type": { "name": "func" }, "required": false, "description": "" }
+		}
+	},
+	"src/lib/components/Map.react.js": {
+		"description": "",
+		"displayName": "MapComponent",
+		"methods": [],
+		"props": {
+			"id": { "type": { "name": "string" }, "required": false, "description": "" },
+			"children": { "type": { "name": "node" }, "required": false, "description": "" },
+			"center": { "type": { "name": "arrayOf", "value": { "name": "number" } }, "required": false, "description": "", "defaultValue": { "value": "[0, 0]", "computed": false } },
+			"zoom": { "type": { "name": "number" }, "required": false, "description": "", "defaultValue": { "value": "2", "computed": false } },
+			"projection": { "type": { "name": "string" }, "required": false, "description": "", "defaultValue": { "value": "'EPSG:3857'", "computed": false } },
+			"proj4Defs": { "type": { "name": "arrayOf", "value": { "name": "shape", "value": { "code": { "name": "string", "required": true }, "def": { "name": "string", "required": true } } } }, "required": false, "description": "", "defaultValue": { "value": "[]", "computed": false } },
+			"style": { "type": { "name": "object" }, "required": false, "description": "" },
+			"clickData": { "type": { "name": "object" }, "required": false, "description": "" },
+			"setProps": { "type": { "name": "func" }, "required": false, "description": "" }
+		}
+	},
+	"src/lib/components/TileLayer.react.js": {
+		"description": "",
+		"displayName": "TileLayer",
+		"methods": [],
+		"props": {
+			"id": { "type": { "name": "string" }, "required": false, "description": "" },
+			"source": { "type": { "name": "object" }, "required": false, "description": "" },
+			"setProps": { "type": { "name": "func" }, "required": false, "description": "" }
+		}
+	}
+}
