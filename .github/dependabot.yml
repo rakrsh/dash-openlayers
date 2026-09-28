@@ -1,0 +1,29 @@
+version: 2
+updates:
+  # Node.js Ecosystem
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "02:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "security"
+      - "automated-pr"
+    commit-message:
+      prefix: "chore(deps)"
+
+  # Python Ecosystem
+  - package-ecosystem: "pip"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "02:00"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "security"
+      - "automated-pr"
+    commit-message:
+      prefix: "chore(deps-python)"
