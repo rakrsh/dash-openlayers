@@ -1,0 +1,48 @@
+name: Security & License Audit
+
+on:
+  pull_request:
+    branches: [ main, master ]
+  schedule:
+    - cron: '0 2 * * *'  # Runs daily at 02:00 UTC
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Daily Vulnerability & License Audit
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      # --- Node.js Audits ---
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Audit Node License Compliance
+        run: |
+          npx @onebeyond/license-checker scan --failOn AGPL-1.0-or-later AGPL-3.0-only GPL-3.0-only SSPL-1.0 --ignoreRootPackageLicense
+
+      - name: Audit Node Vulnerabilities
+        run: npm audit --audit-level=high
+
+      # --- Python Audits ---
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Audit Python Vulnerabilities
+        run: |
+          uv audit

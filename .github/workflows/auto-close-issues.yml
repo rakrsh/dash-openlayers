@@ -1,0 +1,48 @@
+name: Auto-Close Dependency Issues
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [ main, master ]
+
+permissions:
+  issues: write
+  pull-requests: read
+
+jobs:
+  close-linked-issue:
+    if: github.event.pull_request.merged == true && contains(github.event.pull_request.labels.*.name, 'automated-pr')
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto-close tracking issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prBody = context.payload.pull_request.body || "";
+            // Find patterns like Fixes #123, Closes #123, or Resolve #123
+            const issueMatches = prBody.match(/(?:fix|fixes|fixed|close|closes|closed|resolve|resolves|resolved)\s+#(\d+)/gi);
+
+            if (!issueMatches) {
+              console.log("No explicit issue linking keywords found in PR description.");
+              return;
+            }
+
+            for (const match of issueMatches) {
+              const issueNumber = match.match(/\d+/)[0];
+              console.log(`Closing linked issue #${issueNumber}...`);
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: `🎉 Resolved automatically via merged PR #${context.payload.pull_request.number}.`
+              });
+
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                state: 'closed',
+                state_reason: 'completed'
+              });
+            }

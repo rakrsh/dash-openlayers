@@ -1,0 +1,82 @@
+name: Dependabot Issue Lifecycle Automation
+
+on:
+  pull_request_target:
+    types: [opened, closed]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  manage-issue:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+
+    steps:
+      # Step A: Create tracking issue and link PR when Dependabot PR opens
+      - name: Create Tracking Issue and Link to PR
+        if: github.event.action == 'opened'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            const issueTitle = `[Dependency Update] ${pr.title}`;
+            const issueBody = `Automated tracking issue for dependency update requested in PR #${pr.number}.\n\n**PR Details:**\n- **PR Link:** ${pr.html_url}\n- **Branch:** \`${pr.head.ref}\`\n\n*This issue will automatically close when PR #${pr.number} is merged.*`;
+
+            // 1. Create the tracking issue
+            const newIssue = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: issueTitle,
+              body: issueBody,
+              labels: ['dependencies', 'automated-pr']
+            });
+
+            console.log(`Created tracking issue #${newIssue.data.number}`);
+
+            // 2. Append 'Fixes #<issue_id>' to the PR description so native GitHub auto-close binds to it
+            const updatedPrBody = (pr.body || '') + `\n\n---\nFixes #${newIssue.data.number}`;
+
+            await github.rest.pulls.update({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: pr.number,
+              body: updatedPrBody
+            });
+
+            console.log(`Linked issue #${newIssue.data.number} to PR #${pr.number}`);
+
+      # Step B: Close tracking issue if PR is merged
+      - name: Ensure Linked Issue is Closed on PR Merge
+        if: github.event.action == 'closed' && github.event.pull_request.merged == true
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prBody = context.payload.pull_request.body || "";
+            const matches = prBody.match(/Fixes\s+#(\d+)/gi);
+
+            if (!matches) {
+              console.log("No linked issue pattern found in PR body.");
+              return;
+            }
+
+            for (const match of matches) {
+              const issueNumber = match.match(/\d+/)[0];
+              console.log(`Closing linked tracking issue #${issueNumber}...`);
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: `🎉 Resolved and closed automatically following the merge of PR #${context.payload.pull_request.number}.`
+              });
+
+              await github.rest.issues.update({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                state: 'closed',
+                state_reason: 'completed'
+              });
+            }
