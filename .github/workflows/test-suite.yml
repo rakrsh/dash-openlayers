@@ -42,6 +42,7 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           version: ${{ inputs.uv-version }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install browser & chromedriver (Linux)
         if: startsWith(runner.os, 'Linux')
