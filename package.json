@@ -27,7 +27,7 @@
     "@plotly/dash-component-plugins": "^1.2.3",
     "@rollup/plugin-babel": "^7.1.0",
     "@rollup/plugin-commonjs": "^24.0.0",
-    "@rollup/plugin-node-resolve": "^15.0.0",
+    "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-replace": "^5.0.0",
     "@rollup/plugin-terser": "^1.0.0",
     "eslint": "^9.39.5",
