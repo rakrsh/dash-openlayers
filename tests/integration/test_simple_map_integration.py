@@ -344,3 +344,44 @@ def test_map_center_zoom_syncs_both_directions(dash_duo):
         )
     )
     assert dash_duo.get_logs() == []
+
+
+def test_map_registers_custom_projection(dash_duo):
+    app = dash.Dash(__name__)
+    app.layout = dash.html.Div(
+        [
+            dol.Map(
+                id="map",
+                center=[530_000, 180_000],
+                zoom=10,
+                projection="EPSG:27700",
+                proj4Defs=[
+                    {
+                        "code": "EPSG:27700",
+                        "def": (
+                            "+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 "
+                            "+x_0=400000 +y_0=-100000 +ellps=airy +datum=OSGB36 "
+                            "+units=m +no_defs"
+                        ),
+                    }
+                ],
+                style={"height": "400px", "width": "600px"},
+            ),
+            html.Pre(id="click-state"),
+        ]
+    )
+
+    @app.callback(Output("click-state", "children"), Input("map", "clickData"))
+    def show_click_state(click_data):
+        return json.dumps(click_data) if click_data else ""
+
+    dash_duo.start_server(app)
+    viewport = dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
+    viewport.click()
+    dash_duo.wait_for_contains_text("#click-state", '"latLon"', timeout=10)
+
+    click_data = json.loads(dash_duo.find_element("#click-state").text)
+    latitude, longitude = click_data["latLon"]
+    assert abs(latitude - 51.5) < 0.1
+    assert abs(longitude - (-0.13)) < 0.1
+    assert dash_duo.get_logs() == []
