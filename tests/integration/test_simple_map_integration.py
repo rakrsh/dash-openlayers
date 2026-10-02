@@ -256,3 +256,91 @@ def test_modify_interaction_emits_updated_geojson(dash_duo):
         != geojson["features"][0]["geometry"]["coordinates"]
     )
     assert dash_duo.get_logs() == []
+
+
+def test_map_center_zoom_syncs_both_directions(dash_duo):
+    target_center = [1_000_000, 2_000_000]
+    target_zoom = 5
+    app = dash.Dash(__name__)
+    app.layout = dash.html.Div(
+        [
+            html.Button("Set view", id="set-view"),
+            dol.Map(
+                id="map",
+                center=[0, 0],
+                zoom=2,
+                children=[dol.TileLayer(source="OSM")],
+                style={"height": "400px", "width": "600px"},
+            ),
+            html.Pre(id="view-state"),
+            html.Pre(id="click-state"),
+        ]
+    )
+
+    @app.callback(
+        Output("map", "center"),
+        Output("map", "zoom"),
+        Input("set-view", "n_clicks"),
+        prevent_initial_call=True,
+    )
+    def set_view(n_clicks):
+        return target_center, target_zoom
+
+    @app.callback(
+        Output("view-state", "children"),
+        Input("map", "center"),
+        Input("map", "zoom"),
+    )
+    def show_view_state(center, zoom):
+        return json.dumps({"center": center, "zoom": zoom})
+
+    @app.callback(Output("click-state", "children"), Input("map", "clickData"))
+    def show_click_state(click_data):
+        return json.dumps(click_data) if click_data else ""
+
+    dash_duo.start_server(app)
+    viewport = dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
+    dash_duo.wait_for_element("#map canvas", timeout=15)
+
+    dash_duo.find_element("#set-view").click()
+    WebDriverWait(dash_duo.driver, 15).until(
+        lambda driver: (
+            json.loads(driver.find_element(By.ID, "view-state").text)
+            == {"center": target_center, "zoom": target_zoom}
+        )
+    )
+
+    viewport.click()
+    dash_duo.wait_for_contains_text("#click-state", '"coordinate"', timeout=10)
+    click_data = json.loads(dash_duo.find_element("#click-state").text)
+    assert abs(click_data["coordinate"][0] - target_center[0]) < 10_000
+    assert abs(click_data["coordinate"][1] - target_center[1]) < 10_000
+
+    (
+        ActionChains(dash_duo.driver)
+        .move_to_element_with_offset(viewport, 57, -57)
+        .click_and_hold()
+        .move_by_offset(30, 0)
+        .move_by_offset(30, 0)
+        .release()
+        .perform()
+    )
+    WebDriverWait(dash_duo.driver, 15).until(
+        lambda driver: (
+            json.loads(driver.find_element(By.ID, "view-state").text)["center"] != target_center
+        )
+    )
+
+    dash_duo.driver.execute_script(
+        """
+        document.querySelector('#map .ol-viewport').dispatchEvent(
+          new WheelEvent('wheel', {deltaY: -100, bubbles: true, cancelable: true})
+        );
+        """
+    )
+    WebDriverWait(dash_duo.driver, 15).until(
+        lambda driver: (
+            json.loads(driver.find_element(By.ID, "view-state").text)["zoom"] > target_zoom
+        )
+    )
+    assert dash_duo.get_logs() == []
