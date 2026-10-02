@@ -62,7 +62,7 @@ jobs:
 
       - name: Run unit tests with coverage
         run: |
-          uv run pytest -q tests/unit --cov=dash_openlayers --cov-report=term
+          uv run pytest -q tests/unit --cov=dash_openlayers --cov-report=term --cov-fail-under=80
 
       - name: Run integration tests with coverage (Linux uses xvfb)
         if: startsWith(runner.os, 'Linux')

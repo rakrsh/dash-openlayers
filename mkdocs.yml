@@ -27,6 +27,7 @@ nav:
   - Quickstart: quickstart.md
   - API: api.md
   - Architecture: architecture.md
+  - Testing: testing.md
 plugins:
   - search
   - mermaid2

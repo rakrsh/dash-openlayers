@@ -1,5 +1,7 @@
+import json
+
 import dash
-from dash import html
+from dash import Input, Output, html
 
 import dash_openlayers as dol
 
@@ -20,6 +22,12 @@ app.layout = html.Div(
         html.Pre(id="geojson-output"),
     ]
 )
+
+
+@app.callback(Output("geojson-output", "children"), Input("draw-tool", "drawnGeoJSON"))
+def show_drawn_geojson(feature):
+    return json.dumps(feature, indent=2) if feature else "Draw a feature to inspect its GeoJSON."
+
 
 if __name__ == "__main__":
     app.run_server(debug=True)
