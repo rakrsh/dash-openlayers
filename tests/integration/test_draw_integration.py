@@ -1,5 +1,4 @@
 import json
-import time
 
 import dash
 from dash import Input, Output, html
@@ -14,11 +13,11 @@ def test_draw_interaction(dash_duo):
         [
             dol.Map(
                 id="map",
-                center=[0, 0],
-                zoom=2,
+                center=[1_113_194.9, 5_621_521.5],
+                zoom=5,
                 children=[
                     dol.TileLayer(source="OSM"),
-                    dol.DrawInteraction(id="draw-tool", geometryType="Point"),
+                    dol.DrawInteraction(id="draw-tool", geometryType="Polygon"),
                 ],
                 style={"height": "300px"},
             ),
@@ -42,13 +41,28 @@ def test_draw_interaction(dash_duo):
             pass
         raise
     assert el is not None
-    time.sleep(1)
+    dash_duo.wait_for_element("#map canvas", timeout=15)
 
     viewport = dash_duo.find_element("#map .ol-viewport")
-    ActionChains(dash_duo.driver).move_to_element(viewport).click().perform()
+    (
+        ActionChains(dash_duo.driver)
+        .move_to_element_with_offset(viewport, -40, -30)
+        .click()
+        .move_to_element_with_offset(viewport, 40, -30)
+        .click()
+        .move_to_element_with_offset(viewport, 40, 30)
+        .click()
+        .move_to_element_with_offset(viewport, -40, 30)
+        .click()
+        .double_click()
+        .perform()
+    )
     dash_duo.wait_for_contains_text("#geojson-output", '"type": "Feature"', timeout=10)
 
     feature = json.loads(dash_duo.find_element("#geojson-output").text)
-    assert feature["geometry"]["type"] == "Point"
-    assert len(feature["geometry"]["coordinates"]) == 2
+    assert feature["geometry"]["type"] == "Polygon"
+    ring = feature["geometry"]["coordinates"][0]
+    assert len(ring) >= 4
+    assert all(-180 <= longitude <= 180 and -90 <= latitude <= 90 for longitude, latitude in ring)
+    assert all(8 < longitude < 12 and 43 < latitude < 47 for longitude, latitude in ring)
     assert dash_duo.get_logs() == []

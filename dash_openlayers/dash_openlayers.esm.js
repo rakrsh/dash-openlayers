@@ -55617,9 +55617,12 @@ const DrawInteraction = ({
       type: geometryType
     });
     map.addInteraction(draw);
-    draw.on('drawend', evt => {
+    const drawEndListener = draw.on('drawend', evt => {
       const writer = new GeoJSON();
-      const geojson = writer.writeFeatureObject(evt.feature);
+      const geojson = writer.writeFeatureObject(evt.feature, {
+        featureProjection: map.getView().getProjection(),
+        dataProjection: 'EPSG:4326'
+      });
       if (setProps) {
         setProps({
           drawnGeoJSON: geojson
@@ -55627,10 +55630,12 @@ const DrawInteraction = ({
       }
     });
     return () => {
+      unByKey(drawEndListener);
       map.removeInteraction(draw);
       map.removeLayer(vector);
+      source.clear();
     };
-  }, [map, geometryType]);
+  }, [map, geometryType, setProps]);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'none'
