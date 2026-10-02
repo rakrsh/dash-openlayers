@@ -15,10 +15,10 @@ must-follow rules and the exact commands to use when verifying work.
    with `if (setProps) { ... }`.
 3. **Docstrings**: Every `propTypes` key has a `/** ... */` JSDoc block
    directly above it — no `//` comments. This JSDoc format mirrors what
-   `react-docgen` expects for the Python wrapper's docstrings — but `npm run
-   build` in this repo only runs Rollup; it does **not** regenerate
-   `dash_openlayers/metadata.json` or the Python `Component` classes. Update
-   those two by hand whenever `propTypes` changes (see rule 5 and Task 5).
+   `react-docgen` expects for the Python wrapper's docstrings. `npm run build`
+   only runs Rollup; it does **not** regenerate `dash_openlayers/metadata.json`
+   or the Python `Component` classes. Update those two by hand whenever
+   `propTypes` changes (see rule 5 and Task 5).
 4. **Coordinates**: OpenLayers coordinate order is `[lon, lat]` / `[x, y]`,
    never `[lat, lon]`. Use `ol/proj` helpers (`fromLonLat`, `toLonLat`,
    `transform`) for conversions.
@@ -43,9 +43,11 @@ must-follow rules and the exact commands to use when verifying work.
 # Setup
 npm install
 uv sync
+npm test              # Jest + React Testing Library; enforces 80% statements per core component
 
 # After any component/propTypes change
 npm run build          # regenerates dash_openlayers/*.esm.js + *.umd.js only
+npm test               # frontend unit tests and per-component coverage thresholds
 npm run lint
 npm run format
 uv run pytest -q

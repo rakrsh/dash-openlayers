@@ -3,9 +3,9 @@ name: CI
 on:
   workflow_dispatch:
   push:
-    branches: [ main, release/** ]
+    branches: [main, release/**]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   lint:
@@ -23,6 +23,19 @@ jobs:
         with:
           python-version: ${{ vars.PYTHON_VERSION }}
       - uses: pre-commit/action@v3.0.1
+
+  frontend-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ vars.NODE_VERSION }}
+      - name: Install npm deps
+        run: npm ci
+      - name: Run frontend tests with coverage
+        run: npm test
 
   build-matrix:
     strategy:
@@ -44,7 +57,7 @@ jobs:
       # Tests are executed by a reusable workflow (see test-suite.yml)
 
   build:
-    needs: build-matrix
+    needs: [build-matrix, frontend-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Confirm build matrix succeeded
