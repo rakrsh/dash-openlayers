@@ -29,6 +29,8 @@ Keyword arguments:
 - id (string; optional)
 
 - source (string; optional)
+
+- url (string; optional)
 """
     _children_props: typing.List[str] = []
     _base_nodes = ['children']
@@ -40,11 +42,12 @@ Keyword arguments:
         self,
         id: typing.Optional[typing.Union[str, dict]] = None,
         source: typing.Optional[str] = None,
+        url: typing.Optional[str] = None,
         **kwargs
     ):
-        self._prop_names = ['id', 'source']
+        self._prop_names = ['id', 'source', 'url']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'source']
+        self.available_properties = ['id', 'source', 'url']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()

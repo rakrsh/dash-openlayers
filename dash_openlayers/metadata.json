@@ -45,7 +45,8 @@
 		"methods": [],
 		"props": {
 			"id": { "type": { "name": "string" }, "required": false, "description": "" },
-			"source": { "type": { "name": "object" }, "required": false, "description": "" },
+			"source": { "type": { "name": "string" }, "required": false, "description": "Built-in tile source identifier. Currently supports OSM.", "defaultValue": { "value": "null", "computed": false } },
+			"url": { "type": { "name": "string" }, "required": false, "description": "URL template for a custom XYZ tile source.", "defaultValue": { "value": "null", "computed": false } },
 			"setProps": { "type": { "name": "func" }, "required": false, "description": "" }
 		}
 	}
