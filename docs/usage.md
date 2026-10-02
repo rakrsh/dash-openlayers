@@ -16,6 +16,26 @@ dol.Map(
 )
 ```
 
+Add a `ModifyInteraction` beside a `VectorLayer` to drag feature vertices.
+Pass the vector layer's Dash `id` as `layerId`; `modifiedGeoJSON` receives the
+updated FeatureCollection after each completed edit:
+
+```python
+dol.Map(
+    id="map",
+    center=[0, 0],
+    zoom=4,
+    children=[
+        dol.VectorLayer(id="editable", geojson=features),
+        dol.ModifyInteraction(id="modify", layerId="editable"),
+    ],
+    style={"height": "500px"},
+)
+```
+
+Use `Input("modify", "modifiedGeoJSON")` in a Dash callback to receive the
+edited FeatureCollection.
+
 `VectorLayer` renders a GeoJSON Feature or FeatureCollection. Coordinates use
 GeoJSON's `[longitude, latitude]` order and are transformed into the map's
 projection. Updating `geojson` from a Dash callback replaces the rendered
