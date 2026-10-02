@@ -10,13 +10,11 @@
       
       
       
-        <link rel="canonical" href="https://rakrsh.github.io/dash-openlayers/dev/api/">
+        <link rel="canonical" href="https://rakrsh.github.io/dash-openlayers/dev/testing/">
       
       
-        <link rel="prev" href="../quickstart/">
+        <link rel="prev" href="../architecture/">
       
-      
-        <link rel="next" href="../architecture/">
       
       
         
@@ -27,7 +25,7 @@
     
     
       
-        <title>API - dash-openlayers</title>
+        <title>Testing - dash-openlayers</title>
       
     
     
@@ -78,7 +76,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#api" class="md-skip">
+        <a href="#testing" class="md-skip">
           Skip to content
         </a>
       
@@ -112,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              API
+              Testing
             
           </span>
         </div>
@@ -278,11 +276,9 @@
   
   
   
-    
   
-  
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="./" class="md-tabs__link">
+    <li class="md-tabs__item">
+      <a href="../api/" class="md-tabs__link">
         
   
   
@@ -318,9 +314,11 @@
   
   
   
+    
   
-    <li class="md-tabs__item">
-      <a href="../testing/" class="md-tabs__link">
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
         
   
   
@@ -463,19 +461,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../api/" class="md-nav__link">
         
   
   
@@ -491,7 +480,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -527,10 +515,37 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../testing/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -546,6 +561,59 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Requirements
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manual-demo-apps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual demo apps
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -570,6 +638,47 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#requirements" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Requirements
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#run-tests" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Run tests
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#manual-demo-apps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual demo apps
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -588,8 +697,39 @@
   
 
 
-<h1 id="api">API</h1>
-<p>API reference will be added here. Consider generating API docs from the Python package (Sphinx) or with mkdocstrings in a future iteration.</p>
+<h1 id="testing">Testing</h1>
+<h2 id="requirements">Requirements</h2>
+<p>Install the development dependencies with <code>uv sync</code>. Browser tests require a
+Chrome-compatible browser; <code>tests/conftest.py</code> installs the matching ChromeDriver.
+On Linux, run browser tests under Xvfb when no display is available.</p>
+<h2 id="run-tests">Run tests</h2>
+<p>Run the fast Python wrapper tests with the required coverage threshold:</p>
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-q<span class="w"> </span>tests/unit<span class="w"> </span>--cov<span class="o">=</span>dash_openlayers<span class="w"> </span>--cov-report<span class="o">=</span>term<span class="w"> </span>--cov-fail-under<span class="o">=</span><span class="m">80</span>
+</code></pre></div>
+<p>Run the Selenium integration and end-to-end tests:</p>
+<div class="highlight"><pre><span></span><code><span class="c1"># Linux headless</span>
+xvfb-run<span class="w"> </span>-s<span class="w"> </span><span class="s2">"-screen 0 1280x1024x24"</span><span class="w"> </span>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-q<span class="w"> </span>tests/integration
+
+<span class="c1"># Windows or a machine with a display</span>
+uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-q<span class="w"> </span>tests/integration
+</code></pre></div>
+<p>Generate a combined coverage report after running both test groups:</p>
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-q<span class="w"> </span>tests/unit<span class="w"> </span>--cov<span class="o">=</span>dash_openlayers<span class="w"> </span>--cov-report<span class="o">=</span>term<span class="w"> </span>--cov-fail-under<span class="o">=</span><span class="m">80</span>
+uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-q<span class="w"> </span>tests/integration<span class="w"> </span>--cov<span class="o">=</span>dash_openlayers<span class="w"> </span>--cov-append<span class="w"> </span>--cov-report<span class="o">=</span>term
+uv<span class="w"> </span>run<span class="w"> </span>coverage<span class="w"> </span>xml<span class="w"> </span>-o<span class="w"> </span>coverage.xml
+uv<span class="w"> </span>run<span class="w"> </span>coverage<span class="w"> </span>html<span class="w"> </span>-d<span class="w"> </span>coverage/html
+</code></pre></div>
+<p>Coverage measures the Python Dash wrapper package. The browser tests exercise
+the bundled React/OpenLayers behavior through Dash callbacks; JavaScript source
+coverage is not currently collected.</p>
+<h2 id="manual-demo-apps">Manual demo apps</h2>
+<p>Run an app from the repository root to inspect component behavior in a browser:</p>
+<div class="highlight"><pre><span></span><code>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>tests/demos/simple_map.py
+uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>tests/demos/draw_demo.py
+uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>tests/demos/projection_demo.py
+</code></pre></div>
+<p>The simple map reports click coordinates, the draw demo displays emitted
+GeoJSON, and the projection demo opens a British National Grid view.</p>
 
 
 
