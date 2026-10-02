@@ -1,4 +1,7 @@
+import json
+
 import dash
+from dash import Input, Output, html
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 
@@ -15,9 +18,14 @@ def test_simple_map_starts(dash_duo):
                 zoom=2,
                 children=[dol.TileLayer(source="OSM")],
                 style={"height": "300px"},
-            )
+            ),
+            html.Pre(id="click-output"),
         ]
     )
+
+    @app.callback(Output("click-output", "children"), Input("map", "clickData"))
+    def show_click_data(click_data):
+        return json.dumps(click_data) if click_data else ""
 
     dash_duo.start_server(app)
     # Wait for OpenLayers map viewport to appear (created by the client-side JS)
@@ -35,6 +43,13 @@ def test_simple_map_starts(dash_duo):
     WebDriverWait(dash_duo.driver, 15).until(
         lambda driver: len(driver.find_elements(By.CSS_SELECTOR, "#map .ol-layer")) == 1
     )
+    dash_duo.find_element("#map .ol-viewport").click()
+    dash_duo.wait_for_contains_text("#click-output", '"latLon"', timeout=10)
+
+    click_data = json.loads(dash_duo.find_element("#click-output").text)
+    assert len(click_data["coordinate"]) == 2
+    assert len(click_data["latLon"]) == 2
+    assert dash_duo.get_logs() == []
 
 
 def test_tile_layer_sources_attach_and_cleanup(dash_duo):

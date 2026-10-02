@@ -11,6 +11,63 @@ def test_components_exported():
     assert hasattr(mod, "__version__")
 
 
+def test_component_props_serialize():
+    proj4_defs = [{"code": "EPSG:27700", "def": "+proj=tmerc +lat_0=49 +lon_0=-2"}]
+    drawn_geojson = {
+        "type": "Feature",
+        "geometry": {"type": "Point", "coordinates": [1, 2]},
+        "properties": {},
+    }
+    components = [
+        (
+            dol.Map(
+                id="map",
+                center=[-0.1, 51.5],
+                zoom=8,
+                projection="EPSG:4326",
+                proj4Defs=proj4_defs,
+                style={"height": "400px"},
+                clickData={"coordinate": [1, 2], "latLon": [2, 1]},
+            ),
+            {
+                "children": None,
+                "id": "map",
+                "center": [-0.1, 51.5],
+                "zoom": 8,
+                "projection": "EPSG:4326",
+                "proj4Defs": proj4_defs,
+                "style": {"height": "400px"},
+                "clickData": {"coordinate": [1, 2], "latLon": [2, 1]},
+            },
+            "Map",
+        ),
+        (
+            dol.TileLayer(id="tiles", source="OSM"),
+            {"id": "tiles", "source": "OSM"},
+            "TileLayer",
+        ),
+        (
+            dol.DrawInteraction(
+                id="draw",
+                geometryType="Point",
+                drawnGeoJSON=drawn_geojson,
+            ),
+            {
+                "id": "draw",
+                "geometryType": "Point",
+                "drawnGeoJSON": drawn_geojson,
+            },
+            "DrawInteraction",
+        ),
+    ]
+
+    for component, expected_props, expected_type in components:
+        serialized = component.to_plotly_json()
+        assert serialized["namespace"] == "dash_openlayers"
+        assert serialized["type"] == expected_type
+        assert serialized["props"] == expected_props
+
+
 def test_tile_layer_source_props_serialize():
     osm_layer = dol.TileLayer(id="osm", source="OSM")
     custom_layer = dol.TileLayer(
