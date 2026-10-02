@@ -4205,24 +4205,6 @@ function addCoordinateTransforms(source, destination, forward, inverse) {
 }
 
 /**
- * Transforms a coordinate from longitude/latitude to a different projection.
- * @param {import("./coordinate.js").Coordinate} coordinate Coordinate as longitude and latitude, i.e.
- *     an array with longitude as 1st and latitude as 2nd element.
- * @param {ProjectionLike} [projection] Target projection. The
- *     default is Web Mercator, i.e. 'EPSG:3857'.
- * @return {import("./coordinate.js").Coordinate} Coordinate projected to the target projection.
- * @api
- */
-function fromLonLat(coordinate, projection) {
-  disableCoordinateWarning();
-  return transform$1(
-    coordinate,
-    'EPSG:4326',
-    'EPSG:3857',
-  );
-}
-
-/**
  * Transforms a coordinate to longitude/latitude.
  * @param {import("./coordinate.js").Coordinate} coordinate Projected coordinate.
  * @param {ProjectionLike} [projection] Projection of the coordinate.
@@ -39999,12 +39981,11 @@ const MapComponent = ({
   }, [proj4Defs]);
   useEffect(() => {
     if (!mapElement.current) return;
-    const initialCenter = projection === 'EPSG:3857' ? fromLonLat(center) : center;
     const olMap = new Map({
       target: mapElement.current,
       view: new View({
         projection: projection,
-        center: initialCenter,
+        center: center,
         zoom: zoom
       })
     });
@@ -40031,6 +40012,17 @@ const MapComponent = ({
     setMap(olMap);
     return () => olMap.setTarget(null);
   }, []);
+  useEffect(() => {
+    if (!map) return;
+    const view = map.getView();
+    const currentCenter = view.getCenter();
+    if (center && (!currentCenter || currentCenter[0] !== center[0] || currentCenter[1] !== center[1])) {
+      view.setCenter(center);
+    }
+    if (zoom !== undefined && zoom !== view.getZoom()) {
+      view.setZoom(zoom);
+    }
+  }, [center, map, zoom]);
   return /*#__PURE__*/React.createElement(OLContext.Provider, {
     value: map
   }, /*#__PURE__*/React.createElement("div", {
