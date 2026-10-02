@@ -6,7 +6,7 @@ import VectorSource from 'ol/source/Vector';
 import { useMap } from '../context/OLContext';
 
 /** Render GeoJSON features in a canvas-backed OpenLayers vector layer. */
-const VectorLayerComponent = ({ geojson }) => {
+const VectorLayerComponent = ({ id, geojson }) => {
   const map = useMap();
   const sourceRef = useRef(null);
   const formatRef = useRef(null);
@@ -15,6 +15,7 @@ const VectorLayerComponent = ({ geojson }) => {
     const source = new VectorSource();
     const layer = new VectorLayer({ source });
     const format = new GeoJSON();
+    layer.set('dashId', id);
     sourceRef.current = source;
     formatRef.current = format;
     map.addLayer(layer);
@@ -25,7 +26,7 @@ const VectorLayerComponent = ({ geojson }) => {
       sourceRef.current = null;
       formatRef.current = null;
     };
-  }, [map]);
+  }, [id, map]);
 
   useEffect(() => {
     const source = sourceRef.current;
@@ -40,7 +41,7 @@ const VectorLayerComponent = ({ geojson }) => {
       featureProjection: map.getView().getProjection(),
     });
     source.addFeatures(features);
-  }, [geojson, map]);
+  }, [geojson, id, map]);
 
   return null;
 };
@@ -50,7 +51,7 @@ VectorLayerComponent.defaultProps = {
 };
 
 VectorLayerComponent.propTypes = {
-  /** The ID used to identify this component in Dash callbacks. */
+  /** Dash component ID; also used by ModifyInteraction to target this vector layer. */
   id: PropTypes.string,
   /** GeoJSON Feature or FeatureCollection with coordinates in [longitude, latitude] order; updates are rendered in the map projection. */
   geojson: PropTypes.object,

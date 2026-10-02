@@ -2,6 +2,7 @@ import json
 
 import dash
 from dash import Input, Output, html
+from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 
@@ -192,5 +193,66 @@ def test_vector_layer_renders_geojson_and_updates(dash_duo):
     dash_duo.find_element("#update-features").click()
     WebDriverWait(dash_duo.driver, 15).until(
         lambda driver: (frame := rendered_canvas(driver)) and frame != initial_frame
+    )
+    assert dash_duo.get_logs() == []
+
+
+def test_modify_interaction_emits_updated_geojson(dash_duo):
+    geojson = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[[-10, -10], [10, -10], [10, 10], [-10, 10], [-10, -10]]],
+                },
+                "properties": {"name": "Editable area"},
+            }
+        ],
+    }
+    app = dash.Dash(__name__)
+    app.layout = dash.html.Div(
+        [
+            dol.Map(
+                id="map",
+                center=[0, 0],
+                zoom=3,
+                projection="EPSG:4326",
+                children=[
+                    dol.VectorLayer(id="editable-layer", geojson=geojson),
+                    dol.ModifyInteraction(id="modify", layerId="editable-layer"),
+                ],
+                style={"height": "400px", "width": "600px"},
+            ),
+            html.Pre(id="modified-output"),
+        ]
+    )
+
+    @app.callback(
+        Output("modified-output", "children"),
+        Input("modify", "modifiedGeoJSON"),
+    )
+    def show_modified_geojson(modified_geojson):
+        return json.dumps(modified_geojson) if modified_geojson else ""
+
+    dash_duo.start_server(app)
+    viewport = dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
+    dash_duo.wait_for_element("#map canvas", timeout=15)
+
+    (
+        ActionChains(dash_duo.driver)
+        .move_to_element_with_offset(viewport, 57, -57)
+        .click_and_hold()
+        .move_by_offset(30, 0)
+        .release()
+        .perform()
+    )
+    dash_duo.wait_for_contains_text("#modified-output", '"type": "FeatureCollection"', timeout=10)
+
+    modified = json.loads(dash_duo.find_element("#modified-output").text)
+    assert (
+        modified["features"][0]["geometry"]["coordinates"]
+        != geojson["features"][0]["geometry"]["coordinates"]
     )
     assert dash_duo.get_logs() == []

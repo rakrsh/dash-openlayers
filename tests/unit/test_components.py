@@ -7,6 +7,7 @@ def test_components_exported():
     mod = importlib.import_module("dash_openlayers")
     assert hasattr(mod, "Map")
     assert hasattr(mod, "DrawInteraction")
+    assert hasattr(mod, "ModifyInteraction")
     assert hasattr(mod, "TileLayer")
     assert hasattr(mod, "VectorLayer")
     assert hasattr(mod, "__version__")
@@ -74,6 +75,11 @@ def test_component_props_serialize():
             },
             "DrawInteraction",
         ),
+        (
+            dol.ModifyInteraction(id="modify", layerId="vectors"),
+            {"id": "modify", "layerId": "vectors"},
+            "ModifyInteraction",
+        ),
     ]
 
     for component, expected_props, expected_type in components:
@@ -94,4 +100,19 @@ def test_tile_layer_source_props_serialize():
     assert custom_layer.to_plotly_json()["props"] == {
         "id": "custom",
         "url": "https://tiles.example.com/{z}/{x}/{y}.png",
+    }
+
+
+def test_modify_interaction_result_prop_serializes():
+    result = {"type": "FeatureCollection", "features": []}
+    component = dol.ModifyInteraction(
+        id="modify",
+        layerId="vectors",
+        modifiedGeoJSON=result,
+    )
+
+    assert component.to_plotly_json()["props"] == {
+        "id": "modify",
+        "layerId": "vectors",
+        "modifiedGeoJSON": result,
     }
