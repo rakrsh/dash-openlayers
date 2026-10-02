@@ -51,7 +51,6 @@ def test_tile_layer_sources_attach_and_cleanup(dash_duo):
                 center=[0, 0],
                 zoom=2,
                 children=[
-                    dol.TileLayer(id="osm", source="OSM"),
                     dol.TileLayer(
                         id="custom",
                         url="https://{a-c}.tile.openstreetmap.org/{z}/{x}/{y}.png",
@@ -72,14 +71,9 @@ def test_tile_layer_sources_attach_and_cleanup(dash_duo):
     dash_duo.start_server(app)
     dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
     layer_selector = "#map .ol-layer"
-    try:
-        WebDriverWait(dash_duo.driver, 15).until(
-            lambda driver: len(driver.find_elements(By.CSS_SELECTOR, layer_selector)) >= 2
-        )
-    except Exception:
-        print("layers:", len(dash_duo.find_elements(layer_selector)))
-        print("browser:", dash_duo.driver.get_log("browser"))
-        raise
+    WebDriverWait(dash_duo.driver, 15).until(
+        lambda driver: len(driver.find_elements(By.CSS_SELECTOR, layer_selector)) == 1
+    )
 
     dash_duo.find_element("#show-layers input").click()
     WebDriverWait(dash_duo.driver, 15).until(

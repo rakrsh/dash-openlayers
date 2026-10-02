@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import PropTypes from 'prop-types';
 import Tile from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
