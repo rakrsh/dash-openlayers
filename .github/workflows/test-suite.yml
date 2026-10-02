@@ -50,11 +50,18 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y chromium-browser chromium-chromedriver
 
-      - name: Install browser & chromedriver (Windows)
+      - name: Verify Chrome (Windows)
         if: startsWith(runner.os, 'Windows')
         shell: pwsh
         run: |
-          choco install -y googlechrome chromedriver
+          $chromePath = @(
+            "$env:ProgramFiles\Google\Chrome\Application\chrome.exe",
+            "${env:ProgramFiles(x86)}\Google\Chrome\Application\chrome.exe"
+          ) | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $chromePath) {
+            throw "Google Chrome is not available on this Windows runner."
+          }
+          & $chromePath --version
 
       - name: Install Python deps for tests
         run: |

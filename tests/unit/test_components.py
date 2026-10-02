@@ -66,3 +66,17 @@ def test_component_props_serialize():
         assert serialized["namespace"] == "dash_openlayers"
         assert serialized["type"] == expected_type
         assert serialized["props"] == expected_props
+
+
+def test_tile_layer_source_props_serialize():
+    osm_layer = dol.TileLayer(id="osm", source="OSM")
+    custom_layer = dol.TileLayer(
+        id="custom",
+        url="https://tiles.example.com/{z}/{x}/{y}.png",
+    )
+
+    assert osm_layer.to_plotly_json()["props"] == {"id": "osm", "source": "OSM"}
+    assert custom_layer.to_plotly_json()["props"] == {
+        "id": "custom",
+        "url": "https://tiles.example.com/{z}/{x}/{y}.png",
+    }
