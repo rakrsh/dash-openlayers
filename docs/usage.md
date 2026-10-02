@@ -1,5 +1,67 @@
 # Usage
 
+`TileLayer` supports the built-in OpenStreetMap source and custom XYZ tile URL
+templates:
+
+```python
+dol.Map(
+    id="map",
+    center=[0, 0],
+    zoom=2,
+    children=[
+        dol.TileLayer(source="OSM"),
+        dol.TileLayer(url="https://tiles.example.com/{z}/{x}/{y}.png"),
+    ],
+    style={"height": "500px"},
+)
+```
+
+Add a `ModifyInteraction` beside a `VectorLayer` to drag feature vertices.
+Pass the vector layer's Dash `id` as `layerId`; `modifiedGeoJSON` receives the
+updated FeatureCollection after each completed edit:
+
+```python
+dol.Map(
+    id="map",
+    center=[0, 0],
+    zoom=4,
+    children=[
+        dol.VectorLayer(id="editable", geojson=features),
+        dol.ModifyInteraction(id="modify", layerId="editable"),
+    ],
+    style={"height": "500px"},
+)
+```
+
+Use `Input("modify", "modifiedGeoJSON")` in a Dash callback to receive the
+edited FeatureCollection.
+
+`VectorLayer` renders a GeoJSON Feature or FeatureCollection. Coordinates use
+GeoJSON's `[longitude, latitude]` order and are transformed into the map's
+projection. Updating `geojson` from a Dash callback replaces the rendered
+features:
+
+```python
+features = {
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [-0.1, 51.5]},
+            "properties": {"name": "London"},
+        }
+    ],
+}
+
+dol.Map(
+    id="map",
+    center=[-0.1, 51.5],
+    zoom=8,
+    children=[dol.VectorLayer(id="features", geojson=features)],
+    style={"height": "500px"},
+)
+```
+
 Example usage (from the repository `usage.py`) — draw polygons and capture GeoJSON:
 
 ```python

@@ -5,6 +5,7 @@ import Draw from 'ol/interaction/Draw';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
 import GeoJSON from 'ol/format/GeoJSON';
+import { unByKey } from 'ol/Observable';
 import { useMap } from '../context/OLContext';
 
 const DrawInteraction = ({ id, geometryType, setProps }) => {
@@ -24,9 +25,12 @@ const DrawInteraction = ({ id, geometryType, setProps }) => {
 
     map.addInteraction(draw);
 
-    draw.on('drawend', (evt) => {
+    const drawEndListener = draw.on('drawend', (evt) => {
       const writer = new GeoJSON();
-      const geojson = writer.writeFeatureObject(evt.feature);
+      const geojson = writer.writeFeatureObject(evt.feature, {
+        featureProjection: map.getView().getProjection(),
+        dataProjection: 'EPSG:4326',
+      });
 
       if (setProps) {
         setProps({
@@ -36,10 +40,12 @@ const DrawInteraction = ({ id, geometryType, setProps }) => {
     });
 
     return () => {
+      unByKey(drawEndListener);
       map.removeInteraction(draw);
       map.removeLayer(vector);
+      source.clear();
     };
-  }, [map, geometryType]);
+  }, [map, geometryType, setProps]);
 
   return <div style={{ display: 'none' }} />;
 };

@@ -3,34 +3,26 @@ import PropTypes from 'prop-types';
 import 'ol/ol.css';
 import Map from 'ol/Map';
 import View from 'ol/View';
-import { fromLonLat, toLonLat } from 'ol/proj';
-import proj4 from 'proj4';
-import { register } from 'ol/proj/proj4';
+import { toLonLat } from 'ol/proj';
 import { OLContext } from '../context/OLContext';
+import { registerProjections } from '../utils/projection';
 
 const MapComponent = ({ id, children, center, zoom, projection, proj4Defs, style, setProps }) => {
   const mapElement = useRef(null);
   const [map, setMap] = useState(null);
 
   useEffect(() => {
-    if (proj4Defs && proj4Defs.length > 0) {
-      proj4Defs.forEach(({ code, def }) => {
-        proj4.defs(code, def);
-      });
-      register(proj4);
-    }
+    registerProjections(proj4Defs);
   }, [proj4Defs]);
 
   useEffect(() => {
     if (!mapElement.current) return;
 
-    const initialCenter = projection === 'EPSG:3857' ? fromLonLat(center) : center;
-
     const olMap = new Map({
       target: mapElement.current,
       view: new View({
         projection: projection,
-        center: initialCenter,
+        center: center,
         zoom: zoom,
       }),
     });
@@ -61,6 +53,23 @@ const MapComponent = ({ id, children, center, zoom, projection, proj4Defs, style
 
     return () => olMap.setTarget(null);
   }, []);
+
+  useEffect(() => {
+    if (!map) return;
+
+    const view = map.getView();
+    const currentCenter = view.getCenter();
+    if (
+      center &&
+      (!currentCenter || currentCenter[0] !== center[0] || currentCenter[1] !== center[1])
+    ) {
+      view.setCenter(center);
+    }
+
+    if (zoom !== undefined && zoom !== view.getZoom()) {
+      view.setZoom(zoom);
+    }
+  }, [center, map, zoom]);
 
   return (
     <OLContext.Provider value={map}>
