@@ -602,6 +602,22 @@ templates:</p>
     <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
 <span class="p">)</span>
 </code></pre></div>
+<p>Add a <code>ModifyInteraction</code> beside a <code>VectorLayer</code> to drag feature vertices.
+Pass the vector layer's Dash <code>id</code> as <code>layerId</code>; <code>modifiedGeoJSON</code> receives the
+updated FeatureCollection after each completed edit:</p>
+<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
+    <span class="nb">id</span><span class="o">=</span><span class="s2">"map"</span><span class="p">,</span>
+    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">zoom</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
+    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"editable"</span><span class="p">,</span> <span class="n">geojson</span><span class="o">=</span><span class="n">features</span><span class="p">),</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">ModifyInteraction</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"modify"</span><span class="p">,</span> <span class="n">layerId</span><span class="o">=</span><span class="s2">"editable"</span><span class="p">),</span>
+    <span class="p">],</span>
+    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>Use <code>Input("modify", "modifiedGeoJSON")</code> in a Dash callback to receive the
+edited FeatureCollection.</p>
 <p><code>VectorLayer</code> renders a GeoJSON Feature or FeatureCollection. Coordinates use
 GeoJSON's <code>[longitude, latitude]</code> order and are transformed into the map's
 projection. Updating <code>geojson</code> from a Dash callback replaces the rendered
