@@ -9,7 +9,7 @@ import { babel } from '@rollup/plugin-babel';
 const jsx = babel({
   babelHelpers: 'bundled',
   presets: [],
-  plugins: [['@babel/plugin-transform-react-jsx', { runtime: 'automatic' }]],
+  plugins: [['@babel/plugin-transform-react-jsx', { runtime: 'classic' }]],
   extensions: ['.js'],
   exclude: 'node_modules/**',
 });

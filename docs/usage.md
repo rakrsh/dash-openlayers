@@ -1,5 +1,21 @@
 # Usage
 
+`TileLayer` supports the built-in OpenStreetMap source and custom XYZ tile URL
+templates:
+
+```python
+dol.Map(
+    id="map",
+    center=[0, 0],
+    zoom=2,
+    children=[
+        dol.TileLayer(source="OSM"),
+        dol.TileLayer(url="https://tiles.example.com/{z}/{x}/{y}.png"),
+    ],
+    style={"height": "500px"},
+)
+```
+
 Example usage (from the repository `usage.py`) — draw polygons and capture GeoJSON:
 
 ```python
