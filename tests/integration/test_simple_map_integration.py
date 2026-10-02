@@ -94,3 +94,103 @@ def test_tile_layer_sources_attach_and_cleanup(dash_duo):
     WebDriverWait(dash_duo.driver, 15).until(
         lambda driver: not driver.find_elements(By.CSS_SELECTOR, layer_selector)
     )
+
+
+def test_vector_layer_renders_geojson_and_updates(dash_duo):
+    initial_geojson = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [0, 0]},
+                "properties": {},
+            },
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[-8, -8], [-4, -4], [0, -2]],
+                },
+                "properties": {},
+            },
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[[5, 5], [12, 5], [12, 12], [5, 12], [5, 5]]],
+                },
+                "properties": {},
+            },
+        ],
+    }
+    updated_geojson = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [20, 10]},
+                "properties": {},
+            },
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "LineString",
+                    "coordinates": [[10, -10], [15, -5], [20, -2]],
+                },
+                "properties": {},
+            },
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[[18, 12], [25, 12], [25, 20], [18, 20], [18, 12]]],
+                },
+                "properties": {},
+            },
+        ],
+    }
+    app = dash.Dash(__name__)
+    app.layout = dash.html.Div(
+        [
+            dash.html.Button("Update features", id="update-features"),
+            dol.Map(
+                id="map",
+                center=[0, 0],
+                zoom=4,
+                children=[dol.VectorLayer(id="vectors", geojson=initial_geojson)],
+                style={"height": "400px", "width": "400px"},
+            ),
+        ]
+    )
+
+    @app.callback(
+        dash.Output("vectors", "geojson"),
+        dash.Input("update-features", "n_clicks"),
+    )
+    def update_features(n_clicks):
+        return updated_geojson if n_clicks else initial_geojson
+
+    dash_duo.start_server(app)
+    dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
+
+    def rendered_canvas(driver):
+        return driver.execute_script(
+            """
+            const canvas = document.querySelector('#map .ol-layer canvas');
+            if (!canvas) return null;
+            const pixels = canvas.getContext('2d').getImageData(
+              0, 0, canvas.width, canvas.height
+            ).data;
+            const hasPixels = Array.from(pixels).some((value, index) =>
+              index % 4 === 3 && value > 0
+            );
+            return hasPixels ? canvas.toDataURL() : null;
+            """
+        )
+
+    initial_frame = WebDriverWait(dash_duo.driver, 15).until(rendered_canvas)
+    dash_duo.find_element("#update-features").click()
+    WebDriverWait(dash_duo.driver, 15).until(
+        lambda driver: (frame := rendered_canvas(driver)) and frame != initial_frame
+    )
+    assert dash_duo.get_logs() == []
