@@ -16,6 +16,32 @@ dol.Map(
 )
 ```
 
+`VectorLayer` renders a GeoJSON Feature or FeatureCollection. Coordinates use
+GeoJSON's `[longitude, latitude]` order and are transformed into the map's
+projection. Updating `geojson` from a Dash callback replaces the rendered
+features:
+
+```python
+features = {
+    "type": "FeatureCollection",
+    "features": [
+        {
+            "type": "Feature",
+            "geometry": {"type": "Point", "coordinates": [-0.1, 51.5]},
+            "properties": {"name": "London"},
+        }
+    ],
+}
+
+dol.Map(
+    id="map",
+    center=[-0.1, 51.5],
+    zoom=8,
+    children=[dol.VectorLayer(id="features", geojson=features)],
+    style={"height": "500px"},
+)
+```
+
 Example usage (from the repository `usage.py`) — draw polygons and capture GeoJSON:
 
 ```python

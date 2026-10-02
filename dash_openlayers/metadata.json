@@ -49,5 +49,15 @@
 			"url": { "type": { "name": "string" }, "required": false, "description": "URL template for a custom XYZ tile source.", "defaultValue": { "value": "null", "computed": false } },
 			"setProps": { "type": { "name": "func" }, "required": false, "description": "" }
 		}
+	},
+	"src/lib/components/VectorLayer.react.js": {
+		"description": "Render GeoJSON features in a canvas-backed OpenLayers vector layer.",
+		"displayName": "VectorLayerComponent",
+		"methods": [],
+		"props": {
+			"id": { "type": { "name": "string" }, "required": false, "description": "The ID used to identify this component in Dash callbacks." },
+			"geojson": { "type": { "name": "object" }, "required": false, "description": "GeoJSON Feature or FeatureCollection with coordinates in [longitude, latitude] order; updates are rendered in the map projection.", "defaultValue": { "value": "null", "computed": false } },
+			"setProps": { "type": { "name": "func" }, "required": false, "description": "Dash-supplied callback used to write component state back to the layout." }
+		}
 	}
 }

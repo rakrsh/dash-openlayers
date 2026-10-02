@@ -8,6 +8,7 @@ def test_components_exported():
     assert hasattr(mod, "Map")
     assert hasattr(mod, "DrawInteraction")
     assert hasattr(mod, "TileLayer")
+    assert hasattr(mod, "VectorLayer")
     assert hasattr(mod, "__version__")
 
 
@@ -45,6 +46,20 @@ def test_component_props_serialize():
             dol.TileLayer(id="tiles", source="OSM"),
             {"id": "tiles", "source": "OSM"},
             "TileLayer",
+        ),
+        (
+            dol.VectorLayer(
+                id="vectors",
+                geojson={
+                    "type": "FeatureCollection",
+                    "features": [],
+                },
+            ),
+            {
+                "id": "vectors",
+                "geojson": {"type": "FeatureCollection", "features": []},
+            },
+            "VectorLayer",
         ),
         (
             dol.DrawInteraction(
