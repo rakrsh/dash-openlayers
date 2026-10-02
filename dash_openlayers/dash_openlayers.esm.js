@@ -29136,6 +29136,15 @@ function createOptionsInternal(options) {
   };
 }
 
+const OLContext = createContext(null);
+const useMap = () => {
+  const map = useContext(OLContext);
+  if (!map) {
+    throw new Error('dash-openlayers components must be wrapped within a <Map>');
+  }
+  return map;
+};
+
 function globals (defs) {
   defs('EPSG:4326', '+title=WGS 84 (long/lat) +proj=longlat +ellps=WGS84 +datum=WGS84 +units=degrees');
   defs('EPSG:4269', '+title=NAD83 (long/lat) +proj=longlat +a=6378137.0 +b=6356752.31414036 +ellps=GRS80 +datum=NAD83 +units=degrees');
@@ -39947,13 +39956,15 @@ function register(proj4) {
   }
 }
 
-const OLContext = createContext(null);
-const useMap = () => {
-  const map = useContext(OLContext);
-  if (!map) {
-    throw new Error('dash-openlayers components must be wrapped within a <Map>');
-  }
-  return map;
+const registerProjections = proj4Defs => {
+  if (!proj4Defs || proj4Defs.length === 0) return;
+  proj4Defs.forEach(({
+    code,
+    def
+  }) => {
+    proj4.defs(code, def);
+  });
+  register(proj4);
 };
 
 const MapComponent = ({
@@ -39969,15 +39980,7 @@ const MapComponent = ({
   const mapElement = useRef(null);
   const [map, setMap] = useState(null);
   useEffect(() => {
-    if (proj4Defs && proj4Defs.length > 0) {
-      proj4Defs.forEach(({
-        code,
-        def
-      }) => {
-        proj4.defs(code, def);
-      });
-      register(proj4);
-    }
+    registerProjections(proj4Defs);
   }, [proj4Defs]);
   useEffect(() => {
     if (!mapElement.current) return;

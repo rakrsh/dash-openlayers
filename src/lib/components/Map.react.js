@@ -4,21 +4,15 @@ import 'ol/ol.css';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import { toLonLat } from 'ol/proj';
-import proj4 from 'proj4';
-import { register } from 'ol/proj/proj4';
 import { OLContext } from '../context/OLContext';
+import { registerProjections } from '../utils/projection';
 
 const MapComponent = ({ id, children, center, zoom, projection, proj4Defs, style, setProps }) => {
   const mapElement = useRef(null);
   const [map, setMap] = useState(null);
 
   useEffect(() => {
-    if (proj4Defs && proj4Defs.length > 0) {
-      proj4Defs.forEach(({ code, def }) => {
-        proj4.defs(code, def);
-      });
-      register(proj4);
-    }
+    registerProjections(proj4Defs);
   }, [proj4Defs]);
 
   useEffect(() => {
