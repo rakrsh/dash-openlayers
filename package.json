@@ -21,7 +21,7 @@
     "react-dom": "^19.0.0"
   },
   "devDependencies": {
-    "@babel/core": "^7.22.1",
+    "@babel/core": "^8.0.6",
     "@babel/plugin-transform-react-jsx": "^7.22.1",
     "@eslint/js": "^9.39.5",
     "@plotly/dash-component-plugins": "^1.2.3",
