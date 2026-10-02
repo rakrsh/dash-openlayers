@@ -100,6 +100,7 @@ installs by default.
 # install JS deps and build the JS bundles (needed before Python tests/imports)
 npm install
 npm run build
+npm test
 
 # install Python dev tooling (pytest, build, ruff, pre-commit)
 uv sync
@@ -107,6 +108,10 @@ uv sync
 # install the git hook so checks run automatically on every commit
 uv run pre-commit install
 ```
+
+`npm test` runs the Jest/React Testing Library suite in jsdom and reports
+statement coverage for `Map`, `TileLayer`, and `VectorLayer`. Each component
+has an enforced 80% statement-coverage threshold.
 
 ## AI-Assisted Development Guide
 
@@ -145,7 +150,6 @@ npm run mcp-validate-spatial    # (advanced) run the local GIS inspector
 If you are using an AI assistant, always run `npm run check-ai-invariants` and `npm run build`
 and inspect the generated `dash_openlayers/` diff before committing — failing to do so makes
 CI likely to reject the PR.
-
 
 ## Code style
 
