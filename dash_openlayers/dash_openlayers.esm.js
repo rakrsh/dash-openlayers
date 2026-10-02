@@ -5,7 +5,7 @@ function styleInject(css, ref) {
   if ( ref === void 0 ) ref = {};
   var insertAt = ref.insertAt;
 
-  if (!css || typeof document === 'undefined') { return; }
+  if (typeof document === 'undefined') { return; }
 
   var head = document.head || document.getElementsByTagName('head')[0];
   var style = document.createElement('style');
@@ -93,8 +93,6 @@ class BaseEvent {
   }
 }
 
-var Event = BaseEvent;
-
 /**
  * @module ol/ObjectEventType
  */
@@ -149,8 +147,6 @@ class Disposable {
    */
   disposeInternal() {}
 }
-
-var Disposable$1 = Disposable;
 
 /**
  * @module ol/array
@@ -461,7 +457,7 @@ function isEmpty$1(object) {
  *    more listeners after this one will be called. Same as when the listener
  *    returns false.
  */
-class Target extends Disposable$1 {
+class Target extends Disposable {
   /**
    * @param {*} [target] Default event target for dispatched events.
    */
@@ -526,7 +522,7 @@ class Target extends Disposable$1 {
       return;
     }
 
-    const evt = isString ? new Event(event) : /** @type {Event} */ (event);
+    const evt = isString ? new BaseEvent(event) : /** @type {Event} */ (event);
     if (!evt.target) {
       evt.target = this.eventTarget_ || this;
     }
@@ -625,8 +621,6 @@ class Target extends Disposable$1 {
   }
 }
 
-var Target$1 = Target;
-
 /**
  * @module ol/events/EventType
  */
@@ -643,26 +637,11 @@ var EventType = {
    */
   CHANGE: 'change',
 
-  /**
-   * Generic error event. Triggered when an error occurs.
-   * @event module:ol/events/Event~BaseEvent#error
-   * @api
-   */
-  ERROR: 'error',
-
-  BLUR: 'blur',
-  CLEAR: 'clear',
   CONTEXTMENU: 'contextmenu',
   CLICK: 'click',
   DBLCLICK: 'dblclick',
-  DRAGENTER: 'dragenter',
-  DRAGOVER: 'dragover',
-  DROP: 'drop',
-  FOCUS: 'focus',
   KEYDOWN: 'keydown',
   KEYPRESS: 'keypress',
-  LOAD: 'load',
-  RESIZE: 'resize',
   TOUCHMOVE: 'touchmove',
   WHEEL: 'wheel',
 };
@@ -809,7 +788,7 @@ function unlistenByKey(key) {
  * @fires import("./events/Event.js").default
  * @api
  */
-class Observable extends Target$1 {
+class Observable extends Target {
   constructor() {
     super();
 
@@ -959,8 +938,6 @@ function unByKey(key) {
   }
 }
 
-var Observable$1 = Observable;
-
 /**
  * @module ol/util
  */
@@ -1000,7 +977,7 @@ function getUid(obj) {
  * @classdesc
  * Events emitted by {@link module:ol/Object~BaseObject} instances are instances of this type.
  */
-class ObjectEvent extends Event {
+class ObjectEvent extends BaseEvent {
   /**
    * @param {string} type The event type.
    * @param {string} key The property name.
@@ -1076,7 +1053,7 @@ class ObjectEvent extends Event {
  * @fires ObjectEvent
  * @api
  */
-class BaseObject extends Observable$1 {
+class BaseObject extends Observable {
   /**
    * @param {Object<string, *>} [values] An object with key-value pairs.
    */
@@ -1259,8 +1236,6 @@ class BaseObject extends Observable$1 {
   }
 }
 
-var BaseObject$1 = BaseObject;
-
 /**
  * @module ol/CollectionEventType
  */
@@ -1301,7 +1276,7 @@ const Property$2 = {
  * type.
  * @template T
  */
-class CollectionEvent extends Event {
+class CollectionEvent extends BaseEvent {
   /**
    * @param {import("./CollectionEventType.js").default} type Type.
    * @param {T} element Element.
@@ -1355,7 +1330,7 @@ class CollectionEvent extends Event {
  * @template T
  * @api
  */
-class Collection extends BaseObject$1 {
+class Collection extends BaseObject {
   /**
    * @param {Array<T>} [array] Array.
    * @param {Options} [options] Collection options.
@@ -1607,8 +1582,6 @@ class Collection extends BaseObject$1 {
   }
 }
 
-var Collection$1 = Collection;
-
 /**
  * @module ol/layer/Property
  */
@@ -1802,7 +1775,7 @@ function toFixed(n, decimals) {
  *
  * @api
  */
-class BaseLayer extends BaseObject$1 {
+class BaseLayer extends BaseObject {
   /**
    * @param {Options} options Layer options.
    */
@@ -2143,8 +2116,6 @@ class BaseLayer extends BaseObject$1 {
     super.disposeInternal();
   }
 }
-
-var BaseLayer$1 = BaseLayer;
 
 /**
  * @module ol/render/EventType
@@ -2538,8 +2509,6 @@ let Projection$1 = class Projection {
   }
 };
 
-var Projection$2 = Projection$1;
-
 /**
  * @module ol/proj/epsg3857
  */
@@ -2581,7 +2550,7 @@ const MAX_SAFE_Y = RADIUS$1 * Math.log(Math.tan(Math.PI / 2));
  * @classdesc
  * Projection object for web/spherical Mercator (EPSG:3857).
  */
-class EPSG3857Projection extends Projection$2 {
+class EPSG3857Projection extends Projection$1 {
   /**
    * @param {string} code Code.
    */
@@ -2707,7 +2676,7 @@ const METERS_PER_UNIT = (Math.PI * RADIUS) / 180;
  * The EPSG registry defines 4326 as a CRS for Latitude,Longitude (y,x).
  * OpenLayers treats EPSG:4326 as a pseudo-projection, with x,y coordinates.
  */
-class EPSG4326Projection extends Projection$2 {
+class EPSG4326Projection extends Projection$1 {
   /**
    * @param {string} code Code.
    * @param {string} [axisOrientation] Axis orientation.
@@ -3512,7 +3481,7 @@ function wrapAndSliceX(extent, projection, multiWorld) {
     wrapX$1(extent, projection);
     const worldWidth = getWidth(projectionExtent);
 
-    if (getWidth(extent) > worldWidth && !multiWorld) {
+    if (getWidth(extent) > worldWidth && true) {
       // the extent wraps around on itself
       return [[projectionExtent[0], extent[1], projectionExtent[2], extent[3]]];
     }
@@ -3709,32 +3678,11 @@ function getWorldsAway(coordinate, projection, sourceExtentWidth) {
  * @module ol/console
  */
 
-/**
- * @typedef {'info'|'warn'|'error'|'none'} Level
- */
-
-/**
- * @type {Object<Level, number>}
- */
-const levels = {
-  info: 1,
-  warn: 2,
-  error: 3,
-  none: 4,
-};
-
-/**
- * @type {number}
- */
-let level = levels.info;
 
 /**
  * @param  {...any} args Arguments to log
  */
 function warn(...args) {
-  if (level > levels.warn) {
-    return;
-  }
   console.warn(...args); // eslint-disable-line no-console
 }
 
@@ -3749,8 +3697,7 @@ let showCoordinateWarning = true;
  * @param {boolean} [disable = true] Disable console info about `useGeographic()`
  */
 function disableCoordinateWarning(disable) {
-  const hide = disable === undefined ? true : disable;
-  showCoordinateWarning = !hide;
+  showCoordinateWarning = false;
 }
 
 /**
@@ -3962,7 +3909,7 @@ function fromLonLat(coordinate, projection) {
   return transform$1(
     coordinate,
     'EPSG:4326',
-    projection !== undefined ? projection : 'EPSG:3857',
+    'EPSG:3857',
   );
 }
 
@@ -4065,20 +4012,6 @@ function getTransform(source, destination) {
 function transform$1(coordinate, source, destination) {
   const transformFunc = getTransform(source, destination);
   return transformFunc(coordinate, undefined, coordinate.length);
-}
-
-/**
- * @type {Projection|null}
- */
-let userProjection = null;
-
-/**
- * Get the projection for coordinates supplied from and returned by API methods.
- * @return {Projection|null} The user projection (or null if not set).
- * @api
- */
-function getUserProjection() {
-  return userProjection;
 }
 
 /**
@@ -4583,7 +4516,7 @@ function createSnapToN(n) {
  * @return {Type} Rotation constraint.
  */
 function createSnapToZero(tolerance) {
-  const t = tolerance === undefined ? toRadians(5) : tolerance;
+  const t = toRadians(5) ;
   return (
     /**
      * @param {number|undefined} rotation Rotation.
@@ -4987,7 +4920,7 @@ const tmpTransform$1 = create();
  * @abstract
  * @api
  */
-class Geometry extends BaseObject$1 {
+class Geometry extends BaseObject {
   constructor() {
     super();
 
@@ -5282,8 +5215,6 @@ class Geometry extends BaseObject$1 {
   }
 }
 
-var Geometry$1 = Geometry;
-
 /**
  * @module ol/geom/SimpleGeometry
  */
@@ -5296,7 +5227,7 @@ var Geometry$1 = Geometry;
  * @abstract
  * @api
  */
-class SimpleGeometry extends Geometry$1 {
+class SimpleGeometry extends Geometry {
   constructor() {
     super();
 
@@ -6738,8 +6669,6 @@ class LinearRing extends SimpleGeometry {
   }
 }
 
-var LinearRing$1 = LinearRing;
-
 /**
  * @module ol/geom/Point
  */
@@ -6853,8 +6782,6 @@ let Point$1 = class Point extends SimpleGeometry {
     this.changed();
   }
 };
-
-var Point$2 = Point$1;
 
 /**
  * @module ol/geom/flat/contains
@@ -7840,7 +7767,7 @@ class Polygon extends SimpleGeometry {
    * @api
    */
   getInteriorPoint() {
-    return new Point$2(this.getFlatInteriorPoint(), 'XYM');
+    return new Point$1(this.getFlatInteriorPoint(), 'XYM');
   }
 
   /**
@@ -7868,7 +7795,7 @@ class Polygon extends SimpleGeometry {
     if (index < 0 || this.ends_.length <= index) {
       return null;
     }
-    return new LinearRing$1(
+    return new LinearRing(
       this.flatCoordinates.slice(
         index === 0 ? 0 : this.ends_[index - 1],
         this.ends_[index],
@@ -7890,7 +7817,7 @@ class Polygon extends SimpleGeometry {
     let offset = 0;
     for (let i = 0, ii = ends.length; i < ii; ++i) {
       const end = ends[i];
-      const linearRing = new LinearRing$1(
+      const linearRing = new LinearRing(
         flatCoordinates.slice(offset, end),
         layout,
       );
@@ -7992,8 +7919,6 @@ class Polygon extends SimpleGeometry {
     this.changed();
   }
 }
-
-var Polygon$1 = Polygon;
 
 /**
  * Create a polygon from an extent. The layout used is `XY`.
@@ -8291,7 +8216,7 @@ const DEFAULT_MIN_ZOOM = 0;
  *
  * @api
  */
-class View extends BaseObject$1 {
+class View extends BaseObject {
   /**
    * @param {ViewOptions} [options] View options.
    */
@@ -10131,8 +10056,6 @@ function calculateCenterOn(coordinate, size, position, resolution, rotation) {
   return [centerX, centerY];
 }
 
-var View$1 = View;
-
 /**
  * @module ol/layer/Layer
  */
@@ -10224,7 +10147,7 @@ var View$1 = View;
  * @template {import("../renderer/Layer.js").default} [RendererType=import("../renderer/Layer.js").default]
  * @api
  */
-class Layer extends BaseLayer$1 {
+class Layer extends BaseLayer {
   /**
    * @param {Options<SourceType>} options Layer options.
    */
@@ -10427,7 +10350,7 @@ class Layer extends BaseLayer$1 {
     if (!view && map) {
       view = map.getView();
     }
-    if (view instanceof View$1) {
+    if (view instanceof View) {
       frameState = {
         viewState: view.getState(),
         extent: view.calculateExtent(),
@@ -10475,7 +10398,7 @@ class Layer extends BaseLayer$1 {
       return [];
     }
     const frameState =
-      view instanceof View$1 ? view.getViewStateAndExtent() : view;
+      view instanceof View ? view.getViewStateAndExtent() : view;
     let attributions = getAttributions(frameState);
     if (!Array.isArray(attributions)) {
       attributions = [attributions];
@@ -10670,8 +10593,6 @@ function inView(layerState, viewState) {
   return zoom > layerState.minZoom && zoom <= layerState.maxZoom;
 }
 
-var Layer$1 = Layer;
-
 function quickselect(arr, k, left, right, compare) {
     quickselectStep(arr, k, left || 0, right || (arr.length - 1), compare || defaultCompare);
 }
@@ -10726,7 +10647,7 @@ function defaultCompare(a, b) {
     return a < b ? -1 : a > b ? 1 : 0;
 }
 
-let RBush$2 = class RBush {
+let RBush$1 = class RBush {
     constructor(maxEntries = 9) {
         // max entries in a node is 9 by default; min node fill is 40% for best performance
         this._maxEntries = Math.max(4, maxEntries);
@@ -11248,9 +11169,7 @@ var ImageState = {
   IDLE: 0,
   LOADING: 1,
   LOADED: 2,
-  ERROR: 3,
-  EMPTY: 4,
-};
+  ERROR: 3};
 
 /**
  * @module ol/size
@@ -11590,8 +11509,6 @@ class ImageStyle {
     return Promise.resolve();
   }
 }
-
-var ImageStyle$1 = ImageStyle;
 
 /**
  * RGB space.
@@ -12038,7 +11955,7 @@ const colors = {
 };
 
 for (const key in colors) Object.freeze(colors[key]);
-var names$B = Object.freeze(colors);
+var names$A = Object.freeze(colors);
 
 /**
  * @module color-parse
@@ -12074,8 +11991,8 @@ function parse$2(cstr) {
 	cstr = String(cstr).toLowerCase();
 
 	//keyword
-	if (names$B[cstr]) {
-		parts = names$B[cstr].slice();
+	if (names$A[cstr]) {
+		parts = names$A[cstr].slice();
 		space = 'rgb';
 	}
 
@@ -13663,7 +13580,7 @@ const M_PP_XYZ50 = [
 // XYZ (D50) -> ProPhoto (Linear)
 const M_XYZ50_PP = [
 	1.34578688164715830, -0.25557208737979464, -0.05110186497554526,
-	-0.54463070512490190, 1.50824774284514680, 0.02052744743642139,
+	-0.5446307051249019, 1.50824774284514680, 0.02052744743642139,
 	0.00000000000000000, 0.00000000000000000, 1.21196754563894520
 ];
 
@@ -14292,9 +14209,6 @@ function load(image, src) {
     }
     image.addEventListener('load', handleLoad);
     image.addEventListener('error', handleError);
-    if (src) {
-      image.src = src;
-    }
   });
 }
 
@@ -14484,7 +14398,7 @@ const shared = new IconImageCache();
  */
 let taintedTestContext = null;
 
-class IconImage extends Target$1 {
+class IconImage extends Target {
   /**
    * @param {HTMLImageElement|HTMLCanvasElement|ImageBitmap|null} image Image.
    * @param {string|undefined} src Src.
@@ -15156,7 +15070,7 @@ const defaultLineWidth = 1;
 /**
  * @type {BaseObject}
  */
-const checkedFonts = new BaseObject$1();
+const checkedFonts = new BaseObject();
 
 /**
  * @type {CanvasRenderingContext2D}
@@ -15532,7 +15446,7 @@ function executeLabelInstructions(label, context) {
  * `radius2` are provided.
  * @api
  */
-class RegularShape extends ImageStyle$1 {
+class RegularShape extends ImageStyle {
   /**
    * @param {Options} options Options.
    */
@@ -16091,8 +16005,6 @@ class RegularShape extends ImageStyle$1 {
   }
 }
 
-var RegularShape$1 = RegularShape;
-
 /**
  * @module ol/style/Circle
  */
@@ -16118,7 +16030,7 @@ var RegularShape$1 = RegularShape;
  * Set circle style for vector features.
  * @api
  */
-class CircleStyle extends RegularShape$1 {
+class CircleStyle extends RegularShape {
   /**
    * @param {Options} [options] Options.
    */
@@ -16172,8 +16084,6 @@ class CircleStyle extends RegularShape$1 {
     this.render();
   }
 }
-
-var Circle$2 = CircleStyle;
 
 /**
  * @module ol/style/Fill
@@ -16281,8 +16191,6 @@ class Fill {
     return this.patternImage_ ? this.patternImage_.ready() : Promise.resolve();
   }
 }
-
-var Fill$1 = Fill;
 
 /**
  * @module ol/style/Stroke
@@ -16510,8 +16418,6 @@ class Stroke {
     this.width_ = width;
   }
 }
-
-var Stroke$1 = Stroke;
 
 /**
  * @module ol/style/Style
@@ -16994,16 +16900,16 @@ function createDefaultStyle(feature, resolution) {
   // canvas.getContext('2d') at construction time, which will cause an.error
   // in such browsers.)
   if (!defaultStyles) {
-    const fill = new Fill$1({
+    const fill = new Fill({
       color: 'rgba(255,255,255,0.4)',
     });
-    const stroke = new Stroke$1({
+    const stroke = new Stroke({
       color: '#3399CC',
       width: 1.25,
     });
     defaultStyles = [
       new Style({
-        image: new Circle$2({
+        image: new CircleStyle({
           fill: fill,
           stroke: stroke,
           radius: 5,
@@ -17028,7 +16934,7 @@ function createEditingStyle() {
   const width = 3;
   styles['Polygon'] = [
     new Style({
-      fill: new Fill$1({
+      fill: new Fill({
         color: [255, 255, 255, 0.5],
       }),
     }),
@@ -17037,13 +16943,13 @@ function createEditingStyle() {
 
   styles['LineString'] = [
     new Style({
-      stroke: new Stroke$1({
+      stroke: new Stroke({
         color: white,
         width: width + 2,
       }),
     }),
     new Style({
-      stroke: new Stroke$1({
+      stroke: new Stroke({
         color: blue,
         width: width,
       }),
@@ -17055,12 +16961,12 @@ function createEditingStyle() {
 
   styles['Point'] = [
     new Style({
-      image: new Circle$2({
+      image: new CircleStyle({
         radius: width * 2,
-        fill: new Fill$1({
+        fill: new Fill({
           color: blue,
         }),
-        stroke: new Stroke$1({
+        stroke: new Stroke({
           color: white,
           width: width / 2,
         }),
@@ -17161,7 +17067,7 @@ function calculateScale(width, height, wantedWidth, wantedHeight) {
  * Set icon style for vector features.
  * @api
  */
-class Icon extends ImageStyle$1 {
+class Icon extends ImageStyle {
   /**
    * @param {Options} [options] Options.
    */
@@ -17649,8 +17555,6 @@ class Icon extends ImageStyle$1 {
   }
 }
 
-var Icon$1 = Icon;
-
 /**
  * @module ol/style/Text
  */
@@ -17795,7 +17699,7 @@ class Text {
     this.fill_ =
       options.fill !== undefined
         ? options.fill
-        : new Fill$1({color: DEFAULT_FILL_COLOR});
+        : new Fill({color: DEFAULT_FILL_COLOR});
 
     /**
      * @private
@@ -18277,8 +18181,6 @@ class Text {
     this.padding_ = padding;
   }
 }
-
-var Text$1 = Text;
 
 /**
  * @module ol/expr/expression
@@ -20381,7 +20283,7 @@ function buildFill(flatStyle, prefix, context) {
     return null;
   }
 
-  const fill = new Fill$1();
+  const fill = new Fill();
   return function (context) {
     const color = evaluateColor(context);
     if (color === 'none') {
@@ -20449,7 +20351,7 @@ function buildStroke(flatStyle, prefix, context) {
     context,
   );
 
-  const stroke = new Stroke$1();
+  const stroke = new Stroke();
   return function (context) {
     if (evaluateColor) {
       const color = evaluateColor(context);
@@ -20610,7 +20512,7 @@ function buildText(flatStyle, context) {
     prefix + 'declutter-mode',
   );
 
-  const text = new Text$1({declutterMode});
+  const text = new Text({declutterMode});
 
   return function (context) {
     text.setText(evaluateValue(context));
@@ -20815,7 +20717,7 @@ function buildIcon(flatStyle, context) {
     prefix + 'declutter-mode',
   );
 
-  const icon = new Icon$1({
+  const icon = new Icon({
     src,
     anchorOrigin,
     anchorXUnits,
@@ -20900,7 +20802,7 @@ function buildShape(flatStyle, context) {
     prefix + 'declutter-mode',
   );
 
-  const shape = new RegularShape$1({
+  const shape = new RegularShape({
     points,
     radius,
     radius2,
@@ -20967,7 +20869,7 @@ function buildCircle(flatStyle, context) {
     prefix + 'declutter-mode',
   );
 
-  const circle = new Circle$2({
+  const circle = new CircleStyle({
     radius: 5, // this is arbitrary, but required - the evaluated radius is used below
     declutterMode,
   });
@@ -21474,7 +21376,7 @@ const Property$1 = {
  * @extends {Layer<VectorSourceType, RendererType>}
  * @api
  */
-class BaseVectorLayer extends Layer$1 {
+class BaseVectorLayer extends Layer {
   /**
    * @param {Options<VectorSourceType>} [options] Options.
    */
@@ -21622,7 +21524,7 @@ class BaseVectorLayer extends Layer$1 {
   renderDeclutter(frameState, layerState) {
     const declutterGroup = this.getDeclutter();
     if (declutterGroup in frameState.declutter === false) {
-      frameState.declutter[declutterGroup] = new RBush$2(9);
+      frameState.declutter[declutterGroup] = new RBush$1(9);
     }
     this.getRenderer().renderDeclutter(frameState, layerState);
   }
@@ -21730,8 +21632,6 @@ function toStyleLike(style) {
   return flatStylesToStyleFunction(flatStyles);
 }
 
-var BaseVectorLayer$1 = BaseVectorLayer;
-
 /**
  * @module ol/renderer/Map
  */
@@ -21749,7 +21649,7 @@ var BaseVectorLayer$1 = BaseVectorLayer;
 /**
  * @abstract
  */
-class MapRenderer extends Disposable$1 {
+class MapRenderer extends Disposable {
   /**
    * @param {import("../Map.js").default} map Map.
    */
@@ -21966,14 +21866,12 @@ function expireIconCache(map, frameState) {
   shared.expire();
 }
 
-var MapRenderer$1 = MapRenderer;
-
 /**
  * @module ol/render/Event
  */
 
 
-class RenderEvent extends Event {
+class RenderEvent extends BaseEvent {
   /**
    * @param {import("./EventType.js").default} type Type.
    * @param {import("../transform.js").Transform} [inversePixelTransform] Transform for
@@ -22010,8 +21908,6 @@ class RenderEvent extends Event {
   }
 }
 
-var RenderEvent$1 = RenderEvent;
-
 /**
  * @module ol/renderer/Composite
  */
@@ -22021,7 +21917,7 @@ var RenderEvent$1 = RenderEvent;
  * Canvas map renderer.
  * @api
  */
-class CompositeMapRenderer extends MapRenderer$1 {
+class CompositeMapRenderer extends MapRenderer {
   /**
    * @param {import("../Map.js").default} map Map.
    */
@@ -22073,7 +21969,7 @@ class CompositeMapRenderer extends MapRenderer$1 {
   dispatchRenderEvent(type, frameState) {
     const map = this.getMap();
     if (map.hasListener(type)) {
-      const event = new RenderEvent$1(type, undefined, frameState);
+      const event = new RenderEvent(type, undefined, frameState);
       map.dispatchEvent(event);
     }
   }
@@ -22105,7 +22001,7 @@ class CompositeMapRenderer extends MapRenderer$1 {
     });
     const declutter = layerStatesArray.some(
       (layerState) =>
-        layerState.layer instanceof BaseVectorLayer$1 &&
+        layerState.layer instanceof BaseVectorLayer &&
         layerState.layer.getDeclutter(),
     );
     if (declutter) {
@@ -22179,8 +22075,6 @@ class CompositeMapRenderer extends MapRenderer$1 {
   }
 }
 
-var CompositeMapRenderer$1 = CompositeMapRenderer;
-
 /**
  * @module ol/layer/Group
  */
@@ -22195,7 +22089,7 @@ var CompositeMapRenderer$1 = CompositeMapRenderer;
  * the group or one of its child groups.  When a layer group is added to or removed from another layer group,
  * a single event will be triggered (instead of one per layer in the group added or removed).
  */
-class GroupEvent extends Event {
+class GroupEvent extends BaseEvent {
   /**
    * @param {GroupEventType} type The event type.
    * @param {BaseLayer} layer The layer.
@@ -22258,7 +22152,7 @@ const Property = {
  *
  * @api
  */
-class LayerGroup extends BaseLayer$1 {
+class LayerGroup extends BaseLayer {
   /**
    * @param {Options} [options] Layer options.
    */
@@ -22302,7 +22196,7 @@ class LayerGroup extends BaseLayer$1 {
 
     if (layers) {
       if (Array.isArray(layers)) {
-        layers = new Collection$1(layers.slice(), {unique: true});
+        layers = new Collection(layers.slice(), {unique: true});
       } else {
         assert(
           typeof (/** @type {?} */ (layers).getArray) === 'function',
@@ -22310,7 +22204,7 @@ class LayerGroup extends BaseLayer$1 {
         );
       }
     } else {
-      layers = new Collection$1(undefined, {unique: true});
+      layers = new Collection(undefined, {unique: true});
     }
 
     this.setLayers(layers);
@@ -22525,8 +22419,6 @@ class LayerGroup extends BaseLayer$1 {
   }
 }
 
-var LayerGroup$1 = LayerGroup;
-
 /**
  * @module ol/MapEvent
  */
@@ -22536,7 +22428,7 @@ var LayerGroup$1 = LayerGroup;
  * Events emitted as map events are instances of this type.
  * See {@link module:ol/Map~Map} for which events trigger a map event.
  */
-class MapEvent extends Event {
+class MapEvent extends BaseEvent {
   /**
    * @param {string} type Event type.
    * @param {import("./Map.js").default} map Map.
@@ -22561,8 +22453,6 @@ class MapEvent extends Event {
   }
 }
 
-var MapEvent$1 = MapEvent;
-
 /**
  * @module ol/MapBrowserEvent
  */
@@ -22573,7 +22463,7 @@ var MapEvent$1 = MapEvent;
  * See {@link module:ol/Map~Map} for which events trigger a map browser event.
  * @template {UIEvent} EVENT
  */
-class MapBrowserEvent extends MapEvent$1 {
+class MapBrowserEvent extends MapEvent {
   /**
    * @param {string} type Event type.
    * @param {import("./Map.js").default} map Map.
@@ -22676,8 +22566,6 @@ class MapBrowserEvent extends MapEvent$1 {
   }
 }
 
-var MapBrowserEvent$1 = MapBrowserEvent;
-
 /**
  * @module ol/MapBrowserEventType
  */
@@ -22747,21 +22635,14 @@ var MapBrowserEventType = {
  */
 var PointerEventType = {
   POINTERMOVE: 'pointermove',
-  POINTERDOWN: 'pointerdown',
-  POINTERUP: 'pointerup',
-  POINTEROVER: 'pointerover',
-  POINTEROUT: 'pointerout',
-  POINTERENTER: 'pointerenter',
-  POINTERLEAVE: 'pointerleave',
-  POINTERCANCEL: 'pointercancel',
-};
+  POINTERDOWN: 'pointerdown'};
 
 /**
  * @module ol/MapBrowserEventHandler
  */
 
 
-class MapBrowserEventHandler extends Target$1 {
+class MapBrowserEventHandler extends Target {
   /**
    * @param {import("./Map.js").default} map The map with the viewport to listen to events on.
    * @param {number} [moveTolerance] The minimal distance the pointer must travel to trigger a move.
@@ -22876,7 +22757,7 @@ class MapBrowserEventHandler extends Target$1 {
    * @private
    */
   emulateClick_(pointerEvent) {
-    let newEvent = new MapBrowserEvent$1(
+    let newEvent = new MapBrowserEvent(
       MapBrowserEventType.CLICK,
       this.map_,
       pointerEvent,
@@ -22886,7 +22767,7 @@ class MapBrowserEventHandler extends Target$1 {
       // double-click
       clearTimeout(this.clickTimeoutId_);
       this.clickTimeoutId_ = undefined;
-      newEvent = new MapBrowserEvent$1(
+      newEvent = new MapBrowserEvent(
         MapBrowserEventType.DBLCLICK,
         this.map_,
         pointerEvent,
@@ -22896,7 +22777,7 @@ class MapBrowserEventHandler extends Target$1 {
       // click
       this.clickTimeoutId_ = setTimeout(() => {
         this.clickTimeoutId_ = undefined;
-        const newEvent = new MapBrowserEvent$1(
+        const newEvent = new MapBrowserEvent(
           MapBrowserEventType.SINGLECLICK,
           this.map_,
           pointerEvent,
@@ -22948,7 +22829,7 @@ class MapBrowserEventHandler extends Target$1 {
    */
   handlePointerUp_(pointerEvent) {
     this.updateActivePointers_(pointerEvent);
-    const newEvent = new MapBrowserEvent$1(
+    const newEvent = new MapBrowserEvent(
       MapBrowserEventType.POINTERUP,
       this.map_,
       pointerEvent,
@@ -22999,7 +22880,7 @@ class MapBrowserEventHandler extends Target$1 {
   handlePointerDown_(pointerEvent) {
     this.emulateClicks_ = this.activePointers_.length === 0;
     this.updateActivePointers_(pointerEvent);
-    const newEvent = new MapBrowserEvent$1(
+    const newEvent = new MapBrowserEvent(
       MapBrowserEventType.POINTERDOWN,
       this.map_,
       pointerEvent,
@@ -23070,7 +22951,7 @@ class MapBrowserEventHandler extends Target$1 {
     if (this.isMoving_(pointerEvent)) {
       this.updateActivePointers_(pointerEvent);
       this.dragging_ = true;
-      const newEvent = new MapBrowserEvent$1(
+      const newEvent = new MapBrowserEvent(
         MapBrowserEventType.POINTERDRAG,
         this.map_,
         pointerEvent,
@@ -23092,7 +22973,7 @@ class MapBrowserEventHandler extends Target$1 {
     this.originalPointerMoveEvent_ = pointerEvent;
     const dragging = !!(this.down_ && this.isMoving_(pointerEvent));
     this.dispatchEvent(
-      new MapBrowserEvent$1(
+      new MapBrowserEvent(
         MapBrowserEventType.POINTERMOVE,
         this.map_,
         pointerEvent,
@@ -23162,8 +23043,6 @@ class MapBrowserEventHandler extends Target$1 {
     super.disposeInternal();
   }
 }
-
-var MapBrowserEventHandler$1 = MapBrowserEventHandler;
 
 /**
  * @module ol/MapEventType
@@ -23489,8 +23368,6 @@ class PriorityQueue {
   }
 }
 
-var PriorityQueue$1 = PriorityQueue;
-
 /**
  * @module ol/TileState
  */
@@ -23500,7 +23377,6 @@ var PriorityQueue$1 = PriorityQueue;
  */
 var TileState = {
   IDLE: 0,
-  LOADING: 1,
   LOADED: 2,
   /**
    * Indicates that tile loading failed
@@ -23518,7 +23394,7 @@ var TileState = {
  * @typedef {function(import("./Tile.js").default, string, import("./coordinate.js").Coordinate, number): number} PriorityFunction
  */
 
-class TileQueue extends PriorityQueue$1 {
+class TileQueue extends PriorityQueue {
   /**
    * @param {PriorityFunction} tilePriorityFunction Tile priority function.
    * @param {function(): ?} tileChangeCallback Function called on each tile change event.
@@ -23632,8 +23508,6 @@ class TileQueue extends PriorityQueue$1 {
   }
 }
 
-var TileQueue$1 = TileQueue;
-
 /**
  * @param {import('./Map.js').FrameState} frameState Frame state.
  * @param {import("./Tile.js").default} tile Tile.
@@ -23712,7 +23586,7 @@ function getTilePriority(
  *
  * @api
  */
-class Control extends BaseObject$1 {
+class Control extends BaseObject {
   /**
    * @param {Options} options Control options.
    */
@@ -23827,8 +23701,6 @@ class Control extends BaseObject$1 {
   }
 }
 
-var Control$1 = Control;
-
 /**
  * @module ol/control/Attribution
  */
@@ -23869,7 +23741,7 @@ var Control$1 = Control;
  *
  * @api
  */
-class Attribution extends Control$1 {
+class Attribution extends Control {
   /**
    * @param {Options} [options] Attribution options.
    */
@@ -24162,8 +24034,6 @@ class Attribution extends Control$1 {
   }
 }
 
-var Attribution$1 = Attribution;
-
 /**
  * @module ol/control/Rotate
  */
@@ -24193,7 +24063,7 @@ var Attribution$1 = Attribution;
  *
  * @api
  */
-class Rotate extends Control$1 {
+class Rotate extends Control {
   /**
    * @param {Options} [options] Rotate options.
    */
@@ -24341,8 +24211,6 @@ class Rotate extends Control$1 {
   }
 }
 
-var Rotate$1 = Rotate;
-
 /**
  * @module ol/control/Zoom
  */
@@ -24372,7 +24240,7 @@ var Rotate$1 = Rotate;
  *
  * @api
  */
-class Zoom extends Control$1 {
+class Zoom extends Control {
   /**
    * @param {Options} [options] Zoom options.
    */
@@ -24498,8 +24366,6 @@ class Zoom extends Control$1 {
   }
 }
 
-var Zoom$1 = Zoom;
-
 /**
  * @module ol/control/defaults
  */
@@ -24536,22 +24402,22 @@ function defaults$1(options) {
   options = options ? options : {};
 
   /** @type {Collection<import("./Control.js").default>} */
-  const controls = new Collection$1();
+  const controls = new Collection();
 
   const zoomControl = options.zoom !== undefined ? options.zoom : true;
   if (zoomControl) {
-    controls.push(new Zoom$1(options.zoomOptions));
+    controls.push(new Zoom(options.zoomOptions));
   }
 
   const rotateControl = options.rotate !== undefined ? options.rotate : true;
   if (rotateControl) {
-    controls.push(new Rotate$1(options.rotateOptions));
+    controls.push(new Rotate(options.rotateOptions));
   }
 
   const attributionControl =
     options.attribution !== undefined ? options.attribution : true;
   if (attributionControl) {
-    controls.push(new Attribution$1(options.attributionOptions));
+    controls.push(new Attribution(options.attributionOptions));
   }
 
   return controls;
@@ -24605,7 +24471,7 @@ var InteractionProperty = {
  * vectors and so are visible on the screen.
  * @api
  */
-class Interaction extends BaseObject$1 {
+class Interaction extends BaseObject {
   /**
    * @param {InteractionOptions} [options] Options.
    */
@@ -24734,8 +24600,6 @@ function zoomByDelta(view, delta, anchor, duration) {
   });
 }
 
-var Interaction$1 = Interaction;
-
 /**
  * @module ol/interaction/DoubleClickZoom
  */
@@ -24751,7 +24615,7 @@ var Interaction$1 = Interaction;
  * Allows the user to zoom by double-clicking on the map.
  * @api
  */
-class DoubleClickZoom extends Interaction$1 {
+class DoubleClickZoom extends Interaction {
   /**
    * @param {Options} [options] Options.
    */
@@ -24797,8 +24661,6 @@ class DoubleClickZoom extends Interaction$1 {
   }
 }
 
-var DoubleClickZoom$1 = DoubleClickZoom;
-
 /**
  * @module ol/interaction/Pointer
  */
@@ -24841,7 +24703,7 @@ var DoubleClickZoom$1 = DoubleClickZoom;
  * user function is called and returns `false`.
  * @api
  */
-class PointerInteraction extends Interaction$1 {
+class PointerInteraction extends Interaction {
   /**
    * @param {Options} [options] Options.
    */
@@ -25001,8 +24863,6 @@ function centroid(pointerEvents) {
   }
   return {clientX: clientX / length, clientY: clientY / length};
 }
-
-var PointerInteraction$1 = PointerInteraction;
 
 /**
  * @module ol/events/condition
@@ -25253,7 +25113,7 @@ const primaryAction = function (mapBrowserEvent) {
  * Allows the user to pan the map by dragging the map.
  * @api
  */
-class DragPan extends PointerInteraction$1 {
+class DragPan extends PointerInteraction {
   /**
    * @param {Options} [options] Options.
    */
@@ -25406,8 +25266,6 @@ class DragPan extends PointerInteraction$1 {
   }
 }
 
-var DragPan$1 = DragPan;
-
 /**
  * @module ol/interaction/DragRotate
  */
@@ -25430,7 +25288,7 @@ var DragPan$1 = DragPan;
  * This interaction is only supported for mouse devices.
  * @api
  */
-class DragRotate extends PointerInteraction$1 {
+class DragRotate extends PointerInteraction {
   /**
    * @param {Options} [options] Options.
    */
@@ -25523,14 +25381,12 @@ class DragRotate extends PointerInteraction$1 {
   }
 }
 
-var DragRotate$1 = DragRotate;
-
 /**
  * @module ol/render/Box
  */
 
 
-class RenderBox extends Disposable$1 {
+class RenderBox extends Disposable {
   /**
    * @param {string} className CSS class name.
    */
@@ -25644,7 +25500,7 @@ class RenderBox extends Disposable$1 {
     // close the polygon
     coordinates[4] = coordinates[0].slice();
     if (!this.geometry_) {
-      this.geometry_ = new Polygon$1([coordinates]);
+      this.geometry_ = new Polygon([coordinates]);
     } else {
       this.geometry_.setCoordinates([coordinates]);
     }
@@ -25657,8 +25513,6 @@ class RenderBox extends Disposable$1 {
     return this.geometry_;
   }
 }
-
-var RenderBox$1 = RenderBox;
 
 /**
  * @module ol/interaction/DragBox
@@ -25725,7 +25579,7 @@ const DragBoxEventType = {
  * Events emitted by {@link module:ol/interaction/DragBox~DragBox} instances are instances of
  * this type.
  */
-class DragBoxEvent extends Event {
+class DragBoxEvent extends BaseEvent {
   /**
    * @param {string} type The event type.
    * @param {import("../coordinate.js").Coordinate} coordinate The event coordinate.
@@ -25773,7 +25627,7 @@ class DragBoxEvent extends Event {
  * @fires DragBoxEvent
  * @api
  */
-class DragBox extends PointerInteraction$1 {
+class DragBox extends PointerInteraction {
   /**
    * @param {Options} [options] Options.
    */
@@ -25801,7 +25655,7 @@ class DragBox extends PointerInteraction$1 {
      * @type {import("../render/Box.js").default}
      * @private
      */
-    this.box_ = new RenderBox$1(options.className || 'ol-dragbox');
+    this.box_ = new RenderBox(options.className || 'ol-dragbox');
 
     /**
      * @type {number}
@@ -25957,8 +25811,6 @@ class DragBox extends PointerInteraction$1 {
   }
 }
 
-var DragBox$1 = DragBox;
-
 /**
  * @module ol/interaction/DragZoom
  */
@@ -25987,7 +25839,7 @@ var DragBox$1 = DragBox;
  * your custom one configured with `className`.
  * @api
  */
-class DragZoom extends DragBox$1 {
+class DragZoom extends DragBox {
   /**
    * @param {Options} [options] Options.
    */
@@ -26039,8 +25891,6 @@ class DragZoom extends DragBox$1 {
   }
 }
 
-var DragZoom$1 = DragZoom;
-
 /**
  * @module ol/events/Key
  */
@@ -26085,7 +25935,7 @@ var Key = {
  * See also {@link module:ol/interaction/KeyboardZoom~KeyboardZoom}.
  * @api
  */
-class KeyboardPan extends Interaction$1 {
+class KeyboardPan extends Interaction {
   /**
    * @param {Options} [options] Options.
    */
@@ -26174,8 +26024,6 @@ class KeyboardPan extends Interaction$1 {
   }
 }
 
-var KeyboardPan$1 = KeyboardPan;
-
 /**
  * @module ol/interaction/KeyboardZoom
  */
@@ -26205,7 +26053,7 @@ var KeyboardPan$1 = KeyboardPan;
  * See also {@link module:ol/interaction/KeyboardPan~KeyboardPan}.
  * @api
  */
-class KeyboardZoom extends Interaction$1 {
+class KeyboardZoom extends Interaction {
   /**
    * @param {Options} [options] Options.
    */
@@ -26269,8 +26117,6 @@ class KeyboardZoom extends Interaction$1 {
     return !stopEvent;
   }
 }
-
-var KeyboardZoom$1 = KeyboardZoom;
 
 /**
  * @module ol/Kinetic
@@ -26397,8 +26243,6 @@ class Kinetic {
   }
 }
 
-var Kinetic$1 = Kinetic;
-
 /**
  * @module ol/interaction/MouseWheelZoom
  */
@@ -26431,7 +26275,7 @@ var Kinetic$1 = Kinetic;
  * Allows the user to zoom the map by scrolling the mouse wheel.
  * @api
  */
-class MouseWheelZoom extends Interaction$1 {
+class MouseWheelZoom extends Interaction {
   /**
    * @param {Options} [options] Options.
    */
@@ -26691,8 +26535,6 @@ class MouseWheelZoom extends Interaction$1 {
   }
 }
 
-var MouseWheelZoom$1 = MouseWheelZoom;
-
 /**
  * @module ol/interaction/PinchRotate
  */
@@ -26710,7 +26552,7 @@ var MouseWheelZoom$1 = MouseWheelZoom;
  * on a touch screen.
  * @api
  */
-class PinchRotate extends PointerInteraction$1 {
+class PinchRotate extends PointerInteraction {
   /**
    * @param {Options} [options] Options.
    */
@@ -26846,8 +26688,6 @@ class PinchRotate extends PointerInteraction$1 {
   }
 }
 
-var PinchRotate$1 = PinchRotate;
-
 /**
  * @module ol/interaction/PinchZoom
  */
@@ -26863,7 +26703,7 @@ var PinchRotate$1 = PinchRotate;
  * on a touch screen.
  * @api
  */
-class PinchZoom extends PointerInteraction$1 {
+class PinchZoom extends PointerInteraction {
   /**
    * @param {Options} [options] Options.
    */
@@ -26978,8 +26818,6 @@ class PinchZoom extends PointerInteraction$1 {
   }
 }
 
-var PinchZoom$1 = PinchZoom;
-
 /**
  * @module ol/interaction/defaults
  */
@@ -27035,23 +26873,23 @@ function defaults(options) {
   options = options ? options : {};
 
   /** @type {Collection<import("./Interaction.js").default>} */
-  const interactions = new Collection$1();
+  const interactions = new Collection();
 
-  const kinetic = new Kinetic$1(-0.005, 0.05, 100);
+  const kinetic = new Kinetic(-5e-3, 0.05, 100);
 
   const altShiftDragRotate =
     options.altShiftDragRotate !== undefined
       ? options.altShiftDragRotate
       : true;
   if (altShiftDragRotate) {
-    interactions.push(new DragRotate$1());
+    interactions.push(new DragRotate());
   }
 
   const doubleClickZoom =
     options.doubleClickZoom !== undefined ? options.doubleClickZoom : true;
   if (doubleClickZoom) {
     interactions.push(
-      new DoubleClickZoom$1({
+      new DoubleClickZoom({
         delta: options.zoomDelta,
         duration: options.zoomDuration,
       }),
@@ -27061,7 +26899,7 @@ function defaults(options) {
   const dragPan = options.dragPan !== undefined ? options.dragPan : true;
   if (dragPan) {
     interactions.push(
-      new DragPan$1({
+      new DragPan({
         onFocusOnly: options.onFocusOnly,
         kinetic: kinetic,
       }),
@@ -27071,13 +26909,13 @@ function defaults(options) {
   const pinchRotate =
     options.pinchRotate !== undefined ? options.pinchRotate : true;
   if (pinchRotate) {
-    interactions.push(new PinchRotate$1());
+    interactions.push(new PinchRotate());
   }
 
   const pinchZoom = options.pinchZoom !== undefined ? options.pinchZoom : true;
   if (pinchZoom) {
     interactions.push(
-      new PinchZoom$1({
+      new PinchZoom({
         duration: options.zoomDuration,
       }),
     );
@@ -27085,9 +26923,9 @@ function defaults(options) {
 
   const keyboard = options.keyboard !== undefined ? options.keyboard : true;
   if (keyboard) {
-    interactions.push(new KeyboardPan$1());
+    interactions.push(new KeyboardPan());
     interactions.push(
-      new KeyboardZoom$1({
+      new KeyboardZoom({
         delta: options.zoomDelta,
         duration: options.zoomDuration,
       }),
@@ -27098,7 +26936,7 @@ function defaults(options) {
     options.mouseWheelZoom !== undefined ? options.mouseWheelZoom : true;
   if (mouseWheelZoom) {
     interactions.push(
-      new MouseWheelZoom$1({
+      new MouseWheelZoom({
         onFocusOnly: options.onFocusOnly,
         duration: options.zoomDuration,
       }),
@@ -27109,7 +26947,7 @@ function defaults(options) {
     options.shiftDragZoom !== undefined ? options.shiftDragZoom : true;
   if (shiftDragZoom) {
     interactions.push(
-      new DragZoom$1({
+      new DragZoom({
         duration: options.zoomDuration,
       }),
     );
@@ -27236,11 +27074,11 @@ function defaults(options) {
  * @param {import("./layer/Base.js").default} layer Layer.
  */
 function removeLayerMapProperty(layer) {
-  if (layer instanceof Layer$1) {
+  if (layer instanceof Layer) {
     layer.setMapInternal(null);
     return;
   }
-  if (layer instanceof LayerGroup$1) {
+  if (layer instanceof LayerGroup) {
     layer.getLayers().forEach(removeLayerMapProperty);
   }
 }
@@ -27250,11 +27088,11 @@ function removeLayerMapProperty(layer) {
  * @param {Map} map Map.
  */
 function setLayerMapProperty(layer, map) {
-  if (layer instanceof Layer$1) {
+  if (layer instanceof Layer) {
     layer.setMapInternal(map);
     return;
   }
-  if (layer instanceof LayerGroup$1) {
+  if (layer instanceof LayerGroup) {
     const layers = layer.getLayers().getArray();
     for (let i = 0, ii = layers.length; i < ii; ++i) {
       setLayerMapProperty(layers[i], map);
@@ -27314,7 +27152,7 @@ function setLayerMapProperty(layer, map) {
  * @fires import("./render/Event.js").default#rendercomplete
  * @api
  */
-class Map extends BaseObject$1 {
+class Map extends BaseObject {
   /**
    * @param {MapOptions} [options] Map options.
    */
@@ -27555,7 +27393,7 @@ class Map extends BaseObject$1 {
      * @private
      * @type {TileQueue}
      */
-    this.tileQueue_ = new TileQueue$1(
+    this.tileQueue_ = new TileQueue(
       this.getTilePriority.bind(this),
       this.handleTileChange_.bind(this),
     );
@@ -27573,9 +27411,9 @@ class Map extends BaseObject$1 {
     this.setProperties(optionsInternal.values);
 
     const map = this;
-    if (options.view && !(options.view instanceof View$1)) {
+    if (options.view && !(options.view instanceof View)) {
       options.view.then(function (viewOptions) {
-        map.setView(new View$1(viewOptions));
+        map.setView(new View(viewOptions));
       });
     }
 
@@ -27811,7 +27649,7 @@ class Map extends BaseObject$1 {
     const layers = [];
     function addLayersFrom(layerGroup) {
       layerGroup.forEach(function (layer) {
-        if (layer instanceof LayerGroup$1) {
+        if (layer instanceof LayerGroup) {
           addLayersFrom(layer.getLayers());
         } else {
           layers.push(layer);
@@ -28010,7 +27848,7 @@ class Map extends BaseObject$1 {
    */
   setLayers(layers) {
     const group = this.getLayerGroup();
-    if (layers instanceof Collection$1) {
+    if (layers instanceof Collection) {
       group.setLayers(layers);
       return;
     }
@@ -28177,7 +28015,7 @@ class Map extends BaseObject$1 {
    */
   handleBrowserEvent(browserEvent, type) {
     type = type || browserEvent.type;
-    const mapBrowserEvent = new MapBrowserEvent$1(type, this, browserEvent);
+    const mapBrowserEvent = new MapBrowserEvent(type, this, browserEvent);
     this.handleMapBrowserEvent(mapBrowserEvent);
   }
 
@@ -28281,13 +28119,13 @@ class Map extends BaseObject$1 {
         if (this.loaded_ === false) {
           this.loaded_ = true;
           this.dispatchEvent(
-            new MapEvent$1(MapEventType.LOADEND, this, frameState),
+            new MapEvent(MapEventType.LOADEND, this, frameState),
           );
         }
       } else if (this.loaded_ === true) {
         this.loaded_ = false;
         this.dispatchEvent(
-          new MapEvent$1(MapEventType.LOADSTART, this, frameState),
+          new MapEvent(MapEventType.LOADSTART, this, frameState),
         );
       }
     }
@@ -28365,10 +28203,10 @@ class Map extends BaseObject$1 {
     } else {
       targetElement.appendChild(this.viewport_);
       if (!this.renderer_) {
-        this.renderer_ = new CompositeMapRenderer$1(this);
+        this.renderer_ = new CompositeMapRenderer(this);
       }
 
-      this.mapBrowserEventHandler_ = new MapBrowserEventHandler$1(
+      this.mapBrowserEventHandler_ = new MapBrowserEventHandler(
         this,
         this.moveTolerance_,
       );
@@ -28663,7 +28501,7 @@ class Map extends BaseObject$1 {
             !equals$1(frameState.extent, this.previousExtent_));
         if (moveStart) {
           this.dispatchEvent(
-            new MapEvent$1(MapEventType.MOVESTART, this, previousFrameState),
+            new MapEvent(MapEventType.MOVESTART, this, previousFrameState),
           );
           this.previousExtent_ = createOrUpdateEmpty(this.previousExtent_);
         }
@@ -28677,13 +28515,13 @@ class Map extends BaseObject$1 {
 
       if (idle) {
         this.dispatchEvent(
-          new MapEvent$1(MapEventType.MOVEEND, this, frameState),
+          new MapEvent(MapEventType.MOVEEND, this, frameState),
         );
         clone(frameState.extent, this.previousExtent_);
       }
     }
 
-    this.dispatchEvent(new MapEvent$1(MapEventType.POSTRENDER, this, frameState));
+    this.dispatchEvent(new MapEvent(MapEventType.POSTRENDER, this, frameState));
 
     this.renderComplete_ =
       this.hasListener(MapEventType.LOADSTART) ||
@@ -28747,15 +28585,15 @@ class Map extends BaseObject$1 {
    * @api
    */
   setView(view) {
-    if (!view || view instanceof View$1) {
+    if (!view || view instanceof View) {
       this.set(MapProperty.VIEW, view);
       return;
     }
-    this.set(MapProperty.VIEW, new View$1());
+    this.set(MapProperty.VIEW, new View());
 
     const map = this;
     view.then(function (viewOptions) {
-      map.setView(new View$1(viewOptions));
+      map.setView(new View(viewOptions));
     });
   }
 
@@ -28844,7 +28682,7 @@ function createOptionsInternal(options) {
     options.layers &&
     typeof (/** @type {?} */ (options.layers).getLayers) === 'function'
       ? /** @type {LayerGroup} */ (options.layers)
-      : new LayerGroup$1({
+      : new LayerGroup({
           layers:
             /** @type {Collection<import("./layer/Base.js").default>|Array<import("./layer/Base.js").default>} */ (
               options.layers
@@ -28855,13 +28693,13 @@ function createOptionsInternal(options) {
   values[MapProperty.TARGET] = options.target;
 
   values[MapProperty.VIEW] =
-    options.view instanceof View$1 ? options.view : new View$1();
+    options.view instanceof View ? options.view : new View();
 
   /** @type {Collection<import("./control/Control.js").default>} */
   let controls;
   if (options.controls !== undefined) {
     if (Array.isArray(options.controls)) {
-      controls = new Collection$1(options.controls.slice());
+      controls = new Collection(options.controls.slice());
     } else {
       assert(
         typeof (/** @type {?} */ (options.controls).getArray) === 'function',
@@ -28875,7 +28713,7 @@ function createOptionsInternal(options) {
   let interactions;
   if (options.interactions !== undefined) {
     if (Array.isArray(options.interactions)) {
-      interactions = new Collection$1(options.interactions.slice());
+      interactions = new Collection(options.interactions.slice());
     } else {
       assert(
         typeof (/** @type {?} */ (options.interactions).getArray) ===
@@ -28890,7 +28728,7 @@ function createOptionsInternal(options) {
   let overlays;
   if (options.overlays !== undefined) {
     if (Array.isArray(options.overlays)) {
-      overlays = new Collection$1(options.overlays.slice());
+      overlays = new Collection(options.overlays.slice());
     } else {
       assert(
         typeof (/** @type {?} */ (options.overlays).getArray) === 'function',
@@ -28899,7 +28737,7 @@ function createOptionsInternal(options) {
       overlays = options.overlays;
     }
   } else {
-    overlays = new Collection$1();
+    overlays = new Collection();
   }
 
   return {
@@ -28910,7 +28748,6 @@ function createOptionsInternal(options) {
     values: values,
   };
 }
-var Map$1 = Map;
 
 function globals (defs) {
   defs('EPSG:4326', '+title=WGS 84 (long/lat) +proj=longlat +ellps=WGS84 +datum=WGS84 +units=degrees');
@@ -30644,12 +30481,12 @@ function inverse$x(p) {
   return p;
 }
 
-var names$A = ['Mercator', 'Popular Visualisation Pseudo Mercator', 'Mercator_1SP', 'Mercator_Auxiliary_Sphere', 'Mercator_Variant_A', 'merc'];
+var names$z = ['Mercator', 'Popular Visualisation Pseudo Mercator', 'Mercator_1SP', 'Mercator_Auxiliary_Sphere', 'Mercator_Variant_A', 'merc'];
 var merc = {
   init: init$z,
   forward: forward$x,
   inverse: inverse$x,
-  names: names$A
+  names: names$z
 };
 
 function init$y() {
@@ -30659,17 +30496,17 @@ function init$y() {
 function identity(pt) {
   return pt;
 }
-var names$z = ['longlat', 'identity', 'lonlat', 'latlon', 'latlong'];
+var names$y = ['longlat', 'identity', 'lonlat', 'latlon', 'latlong'];
 var longlat = {
   init: init$y,
   forward: identity,
   inverse: identity,
-  names: names$z
+  names: names$y
 };
 
 /** @type {Array<Partial<import('./Proj').default>>} */
 var projs = [merc, longlat];
-var names$y = {};
+var names$x = {};
 var projStore = [];
 
 /**
@@ -30684,7 +30521,7 @@ function add(proj, i) {
   }
   projStore[len] = proj;
   proj.names.forEach(function (n) {
-    names$y[n.toLowerCase()] = len;
+    names$x[n.toLowerCase()] = len;
   });
   return this;
 }
@@ -30703,12 +30540,12 @@ function get(name) {
     return false;
   }
   var n = name.toLowerCase();
-  if (typeof names$y[n] !== 'undefined' && projStore[names$y[n]]) {
-    return projStore[names$y[n]];
+  if (typeof names$x[n] !== 'undefined' && projStore[names$x[n]]) {
+    return projStore[names$x[n]];
   }
   n = getNormalizedProjName(n);
-  if (n in names$y && projStore[names$y[n]]) {
-    return projStore[names$y[n]];
+  if (n in names$x && projStore[names$x[n]]) {
+    return projStore[names$x[n]];
   }
 }
 
@@ -34391,7 +34228,7 @@ function getMinNorthing(zoneLetter) {
     northing = 7900000.0;
     break;
   default:
-    northing = -1.0;
+    northing = -1;
   }
   if (northing >= 0.0) {
     return northing;
@@ -34651,12 +34488,12 @@ function inverse$v(p) {
   return p;
 }
 
-var names$x = ['Fast_Transverse_Mercator', 'Fast Transverse Mercator'];
+var names$w = ['Fast_Transverse_Mercator', 'Fast Transverse Mercator'];
 var tmerc = {
   init: init$x,
   forward: forward$v,
   inverse: inverse$v,
-  names: names$x
+  names: names$w
 };
 
 function sinh (x) {
@@ -34924,12 +34761,12 @@ function inverse$u(p) {
   return p;
 }
 
-var names$w = ['Extended_Transverse_Mercator', 'Extended Transverse Mercator', 'etmerc', 'Transverse_Mercator', 'Transverse Mercator', 'Gauss Kruger', 'Gauss_Kruger', 'tmerc'];
+var names$v = ['Extended_Transverse_Mercator', 'Extended Transverse Mercator', 'etmerc', 'Transverse_Mercator', 'Transverse Mercator', 'Gauss Kruger', 'Gauss_Kruger', 'tmerc'];
 var etmerc = {
   init: init$w,
   forward: forward$u,
   inverse: inverse$u,
-  names: names$w
+  names: names$v
 };
 
 function adjust_zone (zone, lon) {
@@ -34964,10 +34801,10 @@ function init$v() {
   this.inverse = etmerc.inverse;
 }
 
-var names$v = ['Universal Transverse Mercator System', 'utm'];
+var names$u = ['Universal Transverse Mercator System', 'utm'];
 var utm = {
   init: init$v,
-  names: names$v,
+  names: names$u,
   dependsOn: dependsOn
 };
 
@@ -35029,14 +34866,10 @@ function inverse$t(p) {
   p.y = lat;
   return p;
 }
-
-var names$u = ['gauss'];
 var gauss = {
   init: init$u,
   forward: forward$t,
-  inverse: inverse$t,
-  names: names$u
-};
+  inverse: inverse$t};
 
 /**
  * @typedef {Object} LocalThis
@@ -35361,7 +35194,7 @@ function inverse$q(p) {
 
   var S = 0;
   var phy = b;
-  var prevPhy = -1000;
+  var prevPhy = -1e3;
   var iteration = 0;
   while (Math.abs(phy - prevPhy) > 0.0000001) {
     if (++iteration > 20) {
@@ -36930,11 +36763,11 @@ function init$g() {
   this.A[3] = 0.063294409;
   this.A[4] = -0.02526853;
   this.A[5] = 0.0117879;
-  this.A[6] = -0.0055161;
+  this.A[6] = -55161e-7;
   this.A[7] = 0.0026906;
-  this.A[8] = -0.001333;
+  this.A[8] = -1333e-6;
   this.A[9] = 0.00067;
-  this.A[10] = -0.00034;
+  this.A[10] = -34e-5;
 
   this.B_re = [];
   this.B_im = [];
@@ -36942,7 +36775,7 @@ function init$g() {
   this.B_im[1] = 0;
   this.B_re[2] = 0.249204646;
   this.B_im[2] = 0.003371507;
-  this.B_re[3] = -0.001541739;
+  this.B_re[3] = -1541739e-9;
   this.B_im[3] = 0.041058560;
   this.B_re[4] = -0.10162907;
   this.B_im[4] = 0.01727609;
@@ -36956,7 +36789,7 @@ function init$g() {
   this.C_re[1] = 1.3231270439;
   this.C_im[1] = 0;
   this.C_re[2] = -0.577245789;
-  this.C_im[2] = -0.007809598;
+  this.C_im[2] = -7809598e-9;
   this.C_re[3] = 0.508307513;
   this.C_im[3] = -0.112208952;
   this.C_re[4] = -0.15094762;
@@ -36975,7 +36808,7 @@ function init$g() {
   this.D[6] = 0.007317;
   this.D[7] = 0.01220;
   this.D[8] = 0.00394;
-  this.D[9] = -0.0013;
+  this.D[9] = -13e-4;
 }
 
 /**
@@ -38280,8 +38113,8 @@ function inverse$6(p) {
   cosphi = 1 - cosmu * cosmu * tannu * tannu * (1 - Math.cos(Math.atan(1 / Math.cos(theta))));
   if (cosphi < -1) {
     cosphi = -1;
-  } else if (cosphi > +1) {
-    cosphi = +1;
+  } else if (cosphi > 1) {
+    cosphi = 1;
   }
 
   /* Apply the result to the real area on the cube face.
@@ -38436,47 +38269,47 @@ var qsc = {
 
 
 var COEFS_X = [
-  [1.0000, 2.2199e-17, -7.15515e-05, 3.1103e-06],
-  [0.9986, -0.000482243, -2.4897e-05, -1.3309e-06],
-  [0.9954, -0.00083103, -4.48605e-05, -9.86701e-07],
-  [0.9900, -0.00135364, -5.9661e-05, 3.6777e-06],
-  [0.9822, -0.00167442, -4.49547e-06, -5.72411e-06],
-  [0.9730, -0.00214868, -9.03571e-05, 1.8736e-08],
-  [0.9600, -0.00305085, -9.00761e-05, 1.64917e-06],
-  [0.9427, -0.00382792, -6.53386e-05, -2.6154e-06],
-  [0.9216, -0.00467746, -0.00010457, 4.81243e-06],
-  [0.8962, -0.00536223, -3.23831e-05, -5.43432e-06],
-  [0.8679, -0.00609363, -0.000113898, 3.32484e-06],
-  [0.8350, -0.00698325, -6.40253e-05, 9.34959e-07],
-  [0.7986, -0.00755338, -5.00009e-05, 9.35324e-07],
-  [0.7597, -0.00798324, -3.5971e-05, -2.27626e-06],
-  [0.7186, -0.00851367, -7.01149e-05, -8.6303e-06],
-  [0.6732, -0.00986209, -0.000199569, 1.91974e-05],
+  [1.0000, 2.2199e-17, -715515e-10, 3.1103e-06],
+  [0.9986, -482243e-9, -24897e-9, -13309e-10],
+  [0.9954, -83103e-8, -448605e-10, -9.86701e-7],
+  [0.9900, -135364e-8, -59661e-9, 3.6777e-06],
+  [0.9822, -167442e-8, -449547e-11, -572411e-11],
+  [0.9730, -214868e-8, -903571e-10, 1.8736e-08],
+  [0.9600, -305085e-8, -900761e-10, 1.64917e-06],
+  [0.9427, -382792e-8, -653386e-10, -26154e-10],
+  [0.9216, -467746e-8, -10457e-8, 4.81243e-06],
+  [0.8962, -536223e-8, -323831e-10, -543432e-11],
+  [0.8679, -609363e-8, -113898e-9, 3.32484e-06],
+  [0.8350, -698325e-8, -640253e-10, 9.34959e-07],
+  [0.7986, -755338e-8, -500009e-10, 9.35324e-07],
+  [0.7597, -798324e-8, -35971e-9, -227626e-11],
+  [0.7186, -851367e-8, -701149e-10, -86303e-10],
+  [0.6732, -986209e-8, -199569e-9, 1.91974e-05],
   [0.6213, -0.010418, 8.83923e-05, 6.24051e-06],
-  [0.5722, -0.00906601, 0.000182, 6.24051e-06],
-  [0.5322, -0.00677797, 0.000275608, 6.24051e-06]
+  [0.5722, -906601e-8, 0.000182, 6.24051e-06],
+  [0.5322, -677797e-8, 0.000275608, 6.24051e-06]
 ];
 
 var COEFS_Y = [
-  [-5.20417e-18, 0.0124, 1.21431e-18, -8.45284e-11],
-  [0.0620, 0.0124, -1.26793e-09, 4.22642e-10],
-  [0.1240, 0.0124, 5.07171e-09, -1.60604e-09],
-  [0.1860, 0.0123999, -1.90189e-08, 6.00152e-09],
-  [0.2480, 0.0124002, 7.10039e-08, -2.24e-08],
-  [0.3100, 0.0123992, -2.64997e-07, 8.35986e-08],
-  [0.3720, 0.0124029, 9.88983e-07, -3.11994e-07],
-  [0.4340, 0.0123893, -3.69093e-06, -4.35621e-07],
-  [0.4958, 0.0123198, -1.02252e-05, -3.45523e-07],
-  [0.5571, 0.0121916, -1.54081e-05, -5.82288e-07],
-  [0.6176, 0.0119938, -2.41424e-05, -5.25327e-07],
-  [0.6769, 0.011713, -3.20223e-05, -5.16405e-07],
-  [0.7346, 0.0113541, -3.97684e-05, -6.09052e-07],
-  [0.7903, 0.0109107, -4.89042e-05, -1.04739e-06],
-  [0.8435, 0.0103431, -6.4615e-05, -1.40374e-09],
-  [0.8936, 0.00969686, -6.4636e-05, -8.547e-06],
-  [0.9394, 0.00840947, -0.000192841, -4.2106e-06],
-  [0.9761, 0.00616527, -0.000256, -4.2106e-06],
-  [1.0000, 0.00328947, -0.000319159, -4.2106e-06]
+  [-520417e-23, 0.0124, 1.21431e-18, -845284e-16],
+  [0.0620, 0.0124, -1.26793e-9, 4.22642e-10],
+  [0.1240, 0.0124, 5.07171e-09, -1.60604e-9],
+  [0.1860, 0.0123999, -1.90189e-8, 6.00152e-09],
+  [0.2480, 0.0124002, 7.10039e-08, -2.24e-8],
+  [0.3100, 0.0123992, -2.64997e-7, 8.35986e-08],
+  [0.3720, 0.0124029, 9.88983e-07, -3.11994e-7],
+  [0.4340, 0.0123893, -369093e-11, -4.35621e-7],
+  [0.4958, 0.0123198, -102252e-10, -3.45523e-7],
+  [0.5571, 0.0121916, -154081e-10, -5.82288e-7],
+  [0.6176, 0.0119938, -241424e-10, -5.25327e-7],
+  [0.6769, 0.011713, -320223e-10, -5.16405e-7],
+  [0.7346, 0.0113541, -397684e-10, -6.09052e-7],
+  [0.7903, 0.0109107, -489042e-10, -104739e-11],
+  [0.8435, 0.0103431, -64615e-9, -1.40374e-9],
+  [0.8936, 0.00969686, -64636e-9, -8547e-9],
+  [0.9394, 0.00840947, -192841e-9, -42106e-10],
+  [0.9761, 0.00616527, -256e-6, -42106e-10],
+  [1.0000, 0.00328947, -319159e-9, -42106e-10]
 ];
 
 var FXC = 0.8487;
@@ -38912,7 +38745,7 @@ function forward$2(p) {
 }
 
 function inverse$2(p) {
-  var v_x = -1.0;
+  var v_x = -1;
   var v_y = 0.0;
   var v_z = 0.0;
   var a, b, det, k;
@@ -39320,7 +39153,7 @@ function init() {
   this.y0 = this.y0 || 0;
   this.long0 = this.long0 || 0;
   this.title = this.title || 'General Oblique Transformation';
-  this.isIdentity = names$z.includes(this.o_proj);
+  this.isIdentity = names$y.includes(this.o_proj);
 
   /** Verify required parameters exist */
   if (!this.o_proj) {
@@ -39671,11 +39504,6 @@ includedProjections(proj4);
  */
 
 /**
- * @type {import("proj4")|null}
- */
-let registered = null;
-
-/**
  * Make projections defined in proj4 (with `proj4.defs()`) available in
  * OpenLayers. Requires proj4 >= 2.8.0.
  *
@@ -39687,7 +39515,6 @@ let registered = null;
  * @api
  */
 function register(proj4) {
-  registered = proj4;
 
   const projCodes = Object.keys(proj4.defs);
   const len = projCodes.length;
@@ -39701,7 +39528,7 @@ function register(proj4) {
         units = 'degrees';
       }
       addProjection(
-        new Projection$2({
+        new Projection$1({
           code: code,
           axisOrientation: def.axis,
           metersPerUnit: def.to_meter,
@@ -39755,6 +39582,7 @@ var reactJsxRuntime_production = {};
  * This source code is licensed under the MIT license found in the
  * LICENSE file in the root directory of this source tree.
  */
+<<<<<<< HEAD
 var REACT_ELEMENT_TYPE = Symbol.for("react.transitional.element"),
   REACT_FRAGMENT_TYPE = Symbol.for("react.fragment");
 function jsxProd(type, config, maybeKey) {
@@ -39781,9 +39609,32 @@ reactJsxRuntime_production.jsxs = jsxProd;
 
 {
   jsxRuntime.exports = reactJsxRuntime_production;
+=======
+
+var hasRequiredReactJsxRuntime_production_min;
+
+function requireReactJsxRuntime_production_min () {
+	if (hasRequiredReactJsxRuntime_production_min) return reactJsxRuntime_production_min;
+	hasRequiredReactJsxRuntime_production_min = 1;
+var f=require$$0,k=Symbol.for("react.element"),l=Symbol.for("react.fragment"),m=Object.prototype.hasOwnProperty,n=f.__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED.ReactCurrentOwner,p={key:true,ref:true,__self:true,__source:true};
+	function q(c,a,g){var b,d={},e=null,h=null;void 0!==g&&(e=""+g);void 0!==a.key&&(e=""+a.key);void 0!==a.ref&&(h=a.ref);for(b in a)m.call(a,b)&&!p.hasOwnProperty(b)&&(d[b]=a[b]);if(c&&c.defaultProps)for(b in a=c.defaultProps,a) void 0===d[b]&&(d[b]=a[b]);return {$$typeof:k,type:c,key:e,ref:h,props:d,_owner:n.current}}reactJsxRuntime_production_min.Fragment=l;reactJsxRuntime_production_min.jsx=q;reactJsxRuntime_production_min.jsxs=q;
+	return reactJsxRuntime_production_min;
+>>>>>>> 1aae3faf482a0e666928e9328600a022f348f6ff
 }
 
-var jsxRuntimeExports = jsxRuntime.exports;
+var hasRequiredJsxRuntime;
+
+function requireJsxRuntime () {
+	if (hasRequiredJsxRuntime) return jsxRuntime.exports;
+	hasRequiredJsxRuntime = 1;
+
+	{
+	  jsxRuntime.exports = requireReactJsxRuntime_production_min();
+	}
+	return jsxRuntime.exports;
+}
+
+var jsxRuntimeExports = requireJsxRuntime();
 
 const MapComponent = ({
   id,
@@ -39811,9 +39662,9 @@ const MapComponent = ({
   useEffect(() => {
     if (!mapElement.current) return;
     const initialCenter = projection === 'EPSG:3857' ? fromLonLat(center) : center;
-    const olMap = new Map$1({
+    const olMap = new Map({
       target: mapElement.current,
-      view: new View$1({
+      view: new View({
         projection: projection,
         center: initialCenter,
         zoom: zoom
@@ -40149,7 +40000,6 @@ class Circle extends SimpleGeometry {
  * @api
  */
 Circle.prototype.transform;
-var Circle$1 = Circle;
 
 /**
  * @module ol/Feature
@@ -40221,7 +40071,7 @@ var Circle$1 = Circle;
  * @api
  * @template {import("./geom/Geometry.js").default} [Geometry=import("./geom/Geometry.js").default]
  */
-class Feature extends BaseObject$1 {
+class Feature extends BaseObject {
   /**
    * @param {Geometry|ObjectWithGeometry<Geometry>} [geometryOrProperties]
    *     You may pass a Geometry object directly, or an object literal containing
@@ -40483,7 +40333,6 @@ function createStyleFunction(obj) {
     return styles;
   };
 }
-var Feature$1 = Feature;
 
 /**
  * @module ol/geom/GeometryCollection
@@ -40495,7 +40344,7 @@ var Feature$1 = Feature;
  *
  * @api
  */
-class GeometryCollection extends Geometry$1 {
+class GeometryCollection extends Geometry {
   /**
    * @param {Array<Geometry>} geometries Geometries.
    */
@@ -40813,8 +40662,6 @@ class GeometryCollection extends Geometry$1 {
 function cloneGeometries(geometries) {
   return geometries.map((geometry) => geometry.clone());
 }
-
-var GeometryCollection$1 = GeometryCollection;
 
 /**
  * @module ol/geom/flat/interpolate
@@ -41347,8 +41194,6 @@ class LineString extends SimpleGeometry {
   }
 }
 
-var LineString$1 = LineString;
-
 /**
  * @module ol/geom/MultiLineString
  */
@@ -41556,7 +41401,7 @@ class MultiLineString extends SimpleGeometry {
     if (index < 0 || this.ends_.length <= index) {
       return null;
     }
-    return new LineString$1(
+    return new LineString(
       this.flatCoordinates.slice(
         index === 0 ? 0 : this.ends_[index - 1],
         this.ends_[index],
@@ -41579,7 +41424,7 @@ class MultiLineString extends SimpleGeometry {
     let offset = 0;
     for (let i = 0, ii = ends.length; i < ii; ++i) {
       const end = ends[i];
-      const lineString = new LineString$1(
+      const lineString = new LineString(
         flatCoordinates.slice(offset, end),
         layout,
       );
@@ -41684,8 +41529,6 @@ class MultiLineString extends SimpleGeometry {
     this.changed();
   }
 }
-
-var MultiLineString$1 = MultiLineString;
 
 /**
  * @module ol/geom/MultiPoint
@@ -41800,7 +41643,7 @@ class MultiPoint extends SimpleGeometry {
     if (index < 0 || n <= index) {
       return null;
     }
-    return new Point$2(
+    return new Point$1(
       this.flatCoordinates.slice(
         index * this.stride,
         (index + 1) * this.stride,
@@ -41821,7 +41664,7 @@ class MultiPoint extends SimpleGeometry {
     /** @type {Array<Point>} */
     const points = [];
     for (let i = 0, ii = flatCoordinates.length; i < ii; i += stride) {
-      const point = new Point$2(flatCoordinates.slice(i, i + stride), layout);
+      const point = new Point$1(flatCoordinates.slice(i, i + stride), layout);
       points.push(point);
     }
     return points;
@@ -41875,8 +41718,6 @@ class MultiPoint extends SimpleGeometry {
     this.changed();
   }
 }
-
-var MultiPoint$1 = MultiPoint;
 
 /**
  * @module ol/geom/flat/center
@@ -42190,7 +42031,7 @@ class MultiPolygon extends SimpleGeometry {
    * @api
    */
   getInteriorPoints() {
-    return new MultiPoint$1(this.getFlatInteriorPoints().slice(), 'XYM');
+    return new MultiPoint(this.getFlatInteriorPoints().slice(), 'XYM');
   }
 
   /**
@@ -42264,7 +42105,7 @@ class MultiPolygon extends SimpleGeometry {
         ends[i] -= offset;
       }
     }
-    return new Polygon$1(
+    return new Polygon(
       this.flatCoordinates.slice(offset, end),
       this.layout,
       ends,
@@ -42290,7 +42131,7 @@ class MultiPolygon extends SimpleGeometry {
           ends[j] -= offset;
         }
       }
-      const polygon = new Polygon$1(
+      const polygon = new Polygon(
         flatCoordinates.slice(offset, end),
         layout,
         ends,
@@ -42355,8 +42196,6 @@ class MultiPolygon extends SimpleGeometry {
   }
 }
 
-var MultiPolygon$1 = MultiPolygon;
-
 /**
  * @module ol/render/canvas/Instruction
  */
@@ -42399,8 +42238,6 @@ const beginPathInstruction = [Instruction.BEGIN_PATH];
  * @type {Array<Instruction>}
  */
 const closePathInstruction = [Instruction.CLOSE_PATH];
-
-var CanvasInstruction = Instruction;
 
 /**
  * @module ol/render/VectorContext
@@ -42527,13 +42364,11 @@ class VectorContext {
   setTextStyle(textStyle, declutterImageWithText) {}
 }
 
-var VectorContext$1 = VectorContext;
-
 /**
  * @module ol/render/canvas/Builder
  */
 
-class CanvasBuilder extends VectorContext$1 {
+class CanvasBuilder extends VectorContext {
   /**
    * @param {number} tolerance Tolerance.
    * @param {import("../../extent.js").Extent} maxExtent Maximum extent.
@@ -42788,7 +42623,7 @@ class CanvasBuilder extends VectorContext$1 {
           builderEndss.push(myEnds);
         }
         this.instructions.push([
-          CanvasInstruction.CUSTOM,
+          Instruction.CUSTOM,
           builderBegin,
           builderEndss,
           geometry,
@@ -42797,7 +42632,7 @@ class CanvasBuilder extends VectorContext$1 {
           index,
         ]);
         this.hitDetectionInstructions.push([
-          CanvasInstruction.CUSTOM,
+          Instruction.CUSTOM,
           builderBegin,
           builderEndss,
           geometry,
@@ -42825,7 +42660,7 @@ class CanvasBuilder extends VectorContext$1 {
           builderEnds,
         );
         this.instructions.push([
-          CanvasInstruction.CUSTOM,
+          Instruction.CUSTOM,
           builderBegin,
           builderEnds,
           geometry,
@@ -42834,7 +42669,7 @@ class CanvasBuilder extends VectorContext$1 {
           index,
         ]);
         this.hitDetectionInstructions.push([
-          CanvasInstruction.CUSTOM,
+          Instruction.CUSTOM,
           builderBegin,
           builderEnds,
           geometry,
@@ -42855,7 +42690,7 @@ class CanvasBuilder extends VectorContext$1 {
           false,
         );
         this.instructions.push([
-          CanvasInstruction.CUSTOM,
+          Instruction.CUSTOM,
           builderBegin,
           builderEnd,
           geometry,
@@ -42864,7 +42699,7 @@ class CanvasBuilder extends VectorContext$1 {
           index,
         ]);
         this.hitDetectionInstructions.push([
-          CanvasInstruction.CUSTOM,
+          Instruction.CUSTOM,
           builderBegin,
           builderEnd,
           geometry,
@@ -42879,7 +42714,7 @@ class CanvasBuilder extends VectorContext$1 {
 
         if (builderEnd > builderBegin) {
           this.instructions.push([
-            CanvasInstruction.CUSTOM,
+            Instruction.CUSTOM,
             builderBegin,
             builderEnd,
             geometry,
@@ -42888,7 +42723,7 @@ class CanvasBuilder extends VectorContext$1 {
             index,
           ]);
           this.hitDetectionInstructions.push([
-            CanvasInstruction.CUSTOM,
+            Instruction.CUSTOM,
             builderBegin,
             builderEnd,
             geometry,
@@ -42904,7 +42739,7 @@ class CanvasBuilder extends VectorContext$1 {
         builderEnd = this.coordinates.length;
 
         this.instructions.push([
-          CanvasInstruction.CUSTOM,
+          Instruction.CUSTOM,
           builderBegin,
           builderEnd,
           geometry,
@@ -42913,7 +42748,7 @@ class CanvasBuilder extends VectorContext$1 {
           index,
         ]);
         this.hitDetectionInstructions.push([
-          CanvasInstruction.CUSTOM,
+          Instruction.CUSTOM,
           builderBegin,
           builderEnd,
           geometry,
@@ -42934,7 +42769,7 @@ class CanvasBuilder extends VectorContext$1 {
    */
   beginGeometry(geometry, feature, index) {
     this.beginGeometryInstruction1_ = [
-      CanvasInstruction.BEGIN_GEOMETRY,
+      Instruction.BEGIN_GEOMETRY,
       feature,
       0,
       geometry,
@@ -42942,7 +42777,7 @@ class CanvasBuilder extends VectorContext$1 {
     ];
     this.instructions.push(this.beginGeometryInstruction1_);
     this.beginGeometryInstruction2_ = [
-      CanvasInstruction.BEGIN_GEOMETRY,
+      Instruction.BEGIN_GEOMETRY,
       feature,
       0,
       geometry,
@@ -42978,9 +42813,9 @@ class CanvasBuilder extends VectorContext$1 {
     for (i = 0; i < n; ++i) {
       instruction = hitDetectionInstructions[i];
       type = /** @type {import("./Instruction.js").default} */ (instruction[0]);
-      if (type == CanvasInstruction.END_GEOMETRY) {
+      if (type == Instruction.END_GEOMETRY) {
         begin = i;
-      } else if (type == CanvasInstruction.BEGIN_GEOMETRY) {
+      } else if (type == Instruction.BEGIN_GEOMETRY) {
         instruction[2] = i;
         reverseSubArray(this.hitDetectionInstructions, begin, i);
         begin = -1;
@@ -43061,7 +42896,7 @@ class CanvasBuilder extends VectorContext$1 {
   createFill(state) {
     const fillStyle = state.fillStyle;
     /** @type {Array<*>} */
-    const fillInstruction = [CanvasInstruction.SET_FILL_STYLE, fillStyle];
+    const fillInstruction = [Instruction.SET_FILL_STYLE, fillStyle];
     if (typeof fillStyle !== 'string') {
       // Fill is a pattern or gradient - align and scale it!
       fillInstruction.push(state.fillPatternScale);
@@ -43082,7 +42917,7 @@ class CanvasBuilder extends VectorContext$1 {
    */
   createStroke(state) {
     return [
-      CanvasInstruction.SET_STROKE_STYLE,
+      Instruction.SET_STROKE_STYLE,
       state.strokeStyle,
       state.lineWidth * this.pixelRatio,
       state.lineCap,
@@ -43150,7 +42985,7 @@ class CanvasBuilder extends VectorContext$1 {
     this.beginGeometryInstruction1_ = null;
     this.beginGeometryInstruction2_[2] = this.hitDetectionInstructions.length;
     this.beginGeometryInstruction2_ = null;
-    const endGeometryInstruction = [CanvasInstruction.END_GEOMETRY, feature];
+    const endGeometryInstruction = [Instruction.END_GEOMETRY, feature];
     this.instructions.push(endGeometryInstruction);
     this.hitDetectionInstructions.push(endGeometryInstruction);
   }
@@ -43174,13 +43009,11 @@ class CanvasBuilder extends VectorContext$1 {
   }
 }
 
-var Builder = CanvasBuilder;
-
 /**
  * @module ol/render/canvas/ImageBuilder
  */
 
-class CanvasImageBuilder extends Builder {
+class CanvasImageBuilder extends CanvasBuilder {
   /**
    * @param {number} tolerance Tolerance.
    * @param {import("../../extent.js").Extent} maxExtent Maximum extent.
@@ -43301,7 +43134,7 @@ class CanvasImageBuilder extends Builder {
     const myBegin = this.coordinates.length;
     const myEnd = this.appendFlatPointCoordinates(flatCoordinates, stride);
     this.instructions.push([
-      CanvasInstruction.DRAW_IMAGE,
+      Instruction.DRAW_IMAGE,
       myBegin,
       myEnd,
       this.image_,
@@ -43323,7 +43156,7 @@ class CanvasImageBuilder extends Builder {
       this.declutterImageWithText_,
     ]);
     this.hitDetectionInstructions.push([
-      CanvasInstruction.DRAW_IMAGE,
+      Instruction.DRAW_IMAGE,
       myBegin,
       myEnd,
       this.hitDetectionImage_,
@@ -43374,7 +43207,7 @@ class CanvasImageBuilder extends Builder {
     const myBegin = this.coordinates.length;
     const myEnd = this.appendFlatPointCoordinates(filteredFlatCoordinates, 2);
     this.instructions.push([
-      CanvasInstruction.DRAW_IMAGE,
+      Instruction.DRAW_IMAGE,
       myBegin,
       myEnd,
       this.image_,
@@ -43396,7 +43229,7 @@ class CanvasImageBuilder extends Builder {
       this.declutterImageWithText_,
     ]);
     this.hitDetectionInstructions.push([
-      CanvasInstruction.DRAW_IMAGE,
+      Instruction.DRAW_IMAGE,
       myBegin,
       myEnd,
       this.hitDetectionImage_,
@@ -43465,13 +43298,11 @@ class CanvasImageBuilder extends Builder {
   }
 }
 
-var ImageBuilder = CanvasImageBuilder;
-
 /**
  * @module ol/render/canvas/LineStringBuilder
  */
 
-class CanvasLineStringBuilder extends Builder {
+class CanvasLineStringBuilder extends CanvasBuilder {
   /**
    * @param {number} tolerance Tolerance.
    * @param {import("../../extent.js").Extent} maxExtent Maximum extent.
@@ -43501,7 +43332,7 @@ class CanvasLineStringBuilder extends Builder {
       false,
     );
     const moveToLineToInstruction = [
-      CanvasInstruction.MOVE_TO_LINE_TO,
+      Instruction.MOVE_TO_LINE_TO,
       myBegin,
       myEnd,
     ];
@@ -43526,7 +43357,7 @@ class CanvasLineStringBuilder extends Builder {
     this.beginGeometry(lineStringGeometry, feature, index);
     this.hitDetectionInstructions.push(
       [
-        CanvasInstruction.SET_STROKE_STYLE,
+        Instruction.SET_STROKE_STYLE,
         state.strokeStyle,
         state.lineWidth,
         state.lineCap,
@@ -43565,7 +43396,7 @@ class CanvasLineStringBuilder extends Builder {
     this.beginGeometry(multiLineStringGeometry, feature, index);
     this.hitDetectionInstructions.push(
       [
-        CanvasInstruction.SET_STROKE_STYLE,
+        Instruction.SET_STROKE_STYLE,
         state.strokeStyle,
         state.lineWidth,
         state.lineCap,
@@ -43625,13 +43456,11 @@ class CanvasLineStringBuilder extends Builder {
   }
 }
 
-var LineStringBuilder = CanvasLineStringBuilder;
-
 /**
  * @module ol/render/canvas/PolygonBuilder
  */
 
-class CanvasPolygonBuilder extends Builder {
+class CanvasPolygonBuilder extends CanvasBuilder {
   /**
    * @param {number} tolerance Tolerance.
    * @param {import("../../extent.js").Extent} maxExtent Maximum extent.
@@ -43669,7 +43498,7 @@ class CanvasPolygonBuilder extends Builder {
         !stroke,
       );
       const moveToLineToInstruction = [
-        CanvasInstruction.MOVE_TO_LINE_TO,
+        Instruction.MOVE_TO_LINE_TO,
         myBegin,
         myEnd,
       ];
@@ -43710,13 +43539,13 @@ class CanvasPolygonBuilder extends Builder {
     this.beginGeometry(circleGeometry, feature, index);
     if (state.fillStyle !== undefined) {
       this.hitDetectionInstructions.push([
-        CanvasInstruction.SET_FILL_STYLE,
+        Instruction.SET_FILL_STYLE,
         defaultFillStyle,
       ]);
     }
     if (state.strokeStyle !== undefined) {
       this.hitDetectionInstructions.push([
-        CanvasInstruction.SET_STROKE_STYLE,
+        Instruction.SET_STROKE_STYLE,
         state.strokeStyle,
         state.lineWidth,
         state.lineCap,
@@ -43737,7 +43566,7 @@ class CanvasPolygonBuilder extends Builder {
       false,
       false,
     );
-    const circleInstruction = [CanvasInstruction.CIRCLE, myBegin];
+    const circleInstruction = [Instruction.CIRCLE, myBegin];
     this.instructions.push(beginPathInstruction, circleInstruction);
     this.hitDetectionInstructions.push(beginPathInstruction, circleInstruction);
     if (state.fillStyle !== undefined) {
@@ -43767,13 +43596,13 @@ class CanvasPolygonBuilder extends Builder {
     this.beginGeometry(polygonGeometry, feature, index);
     if (state.fillStyle !== undefined) {
       this.hitDetectionInstructions.push([
-        CanvasInstruction.SET_FILL_STYLE,
+        Instruction.SET_FILL_STYLE,
         defaultFillStyle,
       ]);
     }
     if (state.strokeStyle !== undefined) {
       this.hitDetectionInstructions.push([
-        CanvasInstruction.SET_STROKE_STYLE,
+        Instruction.SET_STROKE_STYLE,
         state.strokeStyle,
         state.lineWidth,
         state.lineCap,
@@ -43811,13 +43640,13 @@ class CanvasPolygonBuilder extends Builder {
     this.beginGeometry(multiPolygonGeometry, feature, index);
     if (state.fillStyle !== undefined) {
       this.hitDetectionInstructions.push([
-        CanvasInstruction.SET_FILL_STYLE,
+        Instruction.SET_FILL_STYLE,
         defaultFillStyle,
       ]);
     }
     if (state.strokeStyle !== undefined) {
       this.hitDetectionInstructions.push([
-        CanvasInstruction.SET_STROKE_STYLE,
+        Instruction.SET_STROKE_STYLE,
         state.strokeStyle,
         state.lineWidth,
         state.lineCap,
@@ -43876,8 +43705,6 @@ class CanvasPolygonBuilder extends Builder {
     }
   }
 }
-
-var PolygonBuilder = CanvasPolygonBuilder;
 
 /**
  * Creates chunks of equal length from a linestring
@@ -44005,7 +43832,7 @@ const TEXT_ALIGN = {
   'bottom': 1,
 };
 
-class CanvasTextBuilder extends Builder {
+class CanvasTextBuilder extends CanvasBuilder {
   /**
    * @param {number} tolerance Tolerance.
    * @param {import("../../extent.js").Extent} maxExtent Maximum extent.
@@ -44343,7 +44170,7 @@ class CanvasTextBuilder extends Builder {
       // render time.
       const pixelRatio = this.pixelRatio;
       this.instructions.push([
-        CanvasInstruction.DRAW_IMAGE,
+        Instruction.DRAW_IMAGE,
         begin,
         end,
         null,
@@ -44382,7 +44209,7 @@ class CanvasTextBuilder extends Builder {
         this.hitDetectionInstructions.push(this.createFill(this.state));
       }
       this.hitDetectionInstructions.push([
-        CanvasInstruction.DRAW_IMAGE,
+        Instruction.DRAW_IMAGE,
         begin,
         end,
         null,
@@ -44485,7 +44312,7 @@ class CanvasTextBuilder extends Builder {
       : 0;
 
     this.instructions.push([
-      CanvasInstruction.DRAW_CHARS,
+      Instruction.DRAW_CHARS,
       begin,
       end,
       baseline,
@@ -44502,7 +44329,7 @@ class CanvasTextBuilder extends Builder {
       this.declutterMode_,
     ]);
     this.hitDetectionInstructions.push([
-      CanvasInstruction.DRAW_CHARS,
+      Instruction.DRAW_CHARS,
       begin,
       end,
       baseline,
@@ -44643,11 +44470,11 @@ class CanvasTextBuilder extends Builder {
  * @type {Object<import("../canvas.js").BuilderType, typeof Builder>}
  */
 const BATCH_CONSTRUCTORS = {
-  'Circle': PolygonBuilder,
-  'Default': Builder,
-  'Image': ImageBuilder,
-  'LineString': LineStringBuilder,
-  'Polygon': PolygonBuilder,
+  'Circle': CanvasPolygonBuilder,
+  'Default': CanvasBuilder,
+  'Image': CanvasImageBuilder,
+  'LineString': CanvasLineStringBuilder,
+  'Polygon': CanvasPolygonBuilder,
   'Text': CanvasTextBuilder,
 };
 
@@ -44733,8 +44560,6 @@ class BuilderGroup {
   }
 }
 
-var CanvasBuilderGroup = BuilderGroup;
-
 /**
  * @module ol/renderer/Layer
  */
@@ -44742,7 +44567,7 @@ var CanvasBuilderGroup = BuilderGroup;
 /**
  * @template {import("../layer/Layer.js").default} LayerType
  */
-class LayerRenderer extends Observable$1 {
+class LayerRenderer extends Observable {
   /**
    * @param {LayerType} layer Layer.
    */
@@ -44931,8 +44756,6 @@ class LayerRenderer extends Observable$1 {
   }
 }
 
-var LayerRenderer$1 = LayerRenderer;
-
 /**
  * @module ol/render/canvas/ZIndexContext
  */
@@ -45060,8 +44883,6 @@ class ZIndexContext {
   }
 }
 
-var ZIndexContext$1 = ZIndexContext;
-
 /**
  * @module ol/renderer/canvas/Layer
  */
@@ -45087,7 +44908,7 @@ function createPixelContext() {
  * @template {import("../../layer/Layer.js").default} LayerType
  * @extends {LayerRenderer<LayerType>}
  */
-class CanvasLayerRenderer extends LayerRenderer$1 {
+class CanvasLayerRenderer extends LayerRenderer {
   /**
    * @param {LayerType} layer Layer.
    */
@@ -45342,7 +45163,7 @@ class CanvasLayerRenderer extends LayerRenderer$1 {
   dispatchRenderEvent_(type, context, frameState) {
     const layer = this.getLayer();
     if (layer.hasListener(type)) {
-      const event = new RenderEvent$1(
+      const event = new RenderEvent(
         type,
         this.inversePixelTransform,
         frameState,
@@ -45388,7 +45209,7 @@ class CanvasLayerRenderer extends LayerRenderer$1 {
    */
   getRenderContext(frameState) {
     if (frameState.declutter && !this.deferredContext_) {
-      this.deferredContext_ = new ZIndexContext$1();
+      this.deferredContext_ = new ZIndexContext();
     }
     return frameState.declutter
       ? this.deferredContext_.getContext()
@@ -45467,8 +45288,6 @@ class CanvasLayerRenderer extends LayerRenderer$1 {
     super.disposeInternal();
   }
 }
-
-var CanvasLayerRenderer$1 = CanvasLayerRenderer;
 
 /**
  * @module ol/geom/flat/textpath
@@ -45833,7 +45652,7 @@ class Executor {
      * @private
      * @type {import("../canvas/ZIndexContext.js").default}
      */
-    this.zIndexContext_ = deferredRendering ? new ZIndexContext$1() : null;
+    this.zIndexContext_ = deferredRendering ? new ZIndexContext() : null;
   }
 
   /**
@@ -46338,7 +46157,7 @@ class Executor {
         instruction[0]
       );
       switch (type) {
-        case CanvasInstruction.BEGIN_GEOMETRY:
+        case Instruction.BEGIN_GEOMETRY:
           feature = /** @type {import("../../Feature.js").FeatureLike} */ (
             instruction[1]
           );
@@ -46357,7 +46176,7 @@ class Executor {
             zIndexContext.zIndex = instruction[4];
           }
           break;
-        case CanvasInstruction.BEGIN_PATH:
+        case Instruction.BEGIN_PATH:
           if (pendingFill > batchSize) {
             this.fill_(context);
             pendingFill = 0;
@@ -46373,7 +46192,7 @@ class Executor {
           }
           ++i;
           break;
-        case CanvasInstruction.CIRCLE:
+        case Instruction.CIRCLE:
           d = /** @type {number} */ (instruction[1]);
           const x1 = pixelCoordinates[d];
           const y1 = pixelCoordinates[d + 1];
@@ -46386,11 +46205,11 @@ class Executor {
           context.arc(x1, y1, r, 0, 2 * Math.PI, true);
           ++i;
           break;
-        case CanvasInstruction.CLOSE_PATH:
+        case Instruction.CLOSE_PATH:
           context.closePath();
           ++i;
           break;
-        case CanvasInstruction.CUSTOM:
+        case Instruction.CUSTOM:
           d = /** @type {number} */ (instruction[1]);
           dd = instruction[2];
           const geometry =
@@ -46418,7 +46237,7 @@ class Executor {
           renderer(coords, state);
           ++i;
           break;
-        case CanvasInstruction.DRAW_IMAGE:
+        case Instruction.DRAW_IMAGE:
           d = /** @type {number} */ (instruction[1]);
           dd = /** @type {number} */ (instruction[2]);
           image =
@@ -46591,7 +46410,7 @@ class Executor {
           }
           ++i;
           break;
-        case CanvasInstruction.DRAW_CHARS:
+        case Instruction.DRAW_CHARS:
           const begin = /** @type {number} */ (instruction[1]);
           const end = /** @type {number} */ (instruction[2]);
           const baseline = /** @type {number} */ (instruction[3]);
@@ -46753,7 +46572,7 @@ class Executor {
           }
           ++i;
           break;
-        case CanvasInstruction.END_GEOMETRY:
+        case Instruction.END_GEOMETRY:
           if (featureCallback !== undefined) {
             feature = /** @type {import("../../Feature.js").FeatureLike} */ (
               instruction[1]
@@ -46769,7 +46588,7 @@ class Executor {
           }
           ++i;
           break;
-        case CanvasInstruction.FILL:
+        case Instruction.FILL:
           if (batchSize) {
             pendingFill++;
           } else {
@@ -46777,7 +46596,7 @@ class Executor {
           }
           ++i;
           break;
-        case CanvasInstruction.MOVE_TO_LINE_TO:
+        case Instruction.MOVE_TO_LINE_TO:
           d = /** @type {number} */ (instruction[1]);
           dd = /** @type {number} */ (instruction[2]);
           x = pixelCoordinates[d];
@@ -46798,7 +46617,7 @@ class Executor {
           }
           ++i;
           break;
-        case CanvasInstruction.SET_FILL_STYLE:
+        case Instruction.SET_FILL_STYLE:
           lastFillInstruction = instruction;
           this.alignAndScaleFill_ = instruction[2];
 
@@ -46815,7 +46634,7 @@ class Executor {
           context.fillStyle = instruction[1];
           ++i;
           break;
-        case CanvasInstruction.SET_STROKE_STYLE:
+        case Instruction.SET_STROKE_STYLE:
           lastStrokeInstruction = instruction;
           if (pendingStroke) {
             context.stroke();
@@ -46824,7 +46643,7 @@ class Executor {
           this.setStrokeStyle_(context, /** @type {Array<*>} */ (instruction));
           ++i;
           break;
-        case CanvasInstruction.STROKE:
+        case Instruction.STROKE:
           if (batchSize) {
             pendingStroke++;
           } else {
@@ -46904,8 +46723,6 @@ class Executor {
     );
   }
 }
-
-var Executor$1 = Executor;
 
 /**
  * @module ol/render/canvas/ExecutorGroup
@@ -47054,7 +46871,7 @@ class ExecutorGroup {
       const instructionByZindex = allInstructions[zIndex];
       for (const builderType in instructionByZindex) {
         const instructions = instructionByZindex[builderType];
-        executors[builderType] = new Executor$1(
+        executors[builderType] = new Executor(
           this.resolution_,
           this.pixelRatio_,
           this.overlaps_,
@@ -47414,8 +47231,6 @@ function getPixelIndexArray(radius) {
   return pixelIndex;
 }
 
-var ExecutorGroup$1 = ExecutorGroup;
-
 /**
  * @module ol/render/canvas/Immediate
  */
@@ -47433,7 +47248,7 @@ var ExecutorGroup$1 = ExecutorGroup;
  * {@link module:ol/render/Event~RenderEvent} object associated with postcompose, precompose and
  * render events emitted by layers and maps.
  */
-class CanvasImmediateRenderer extends VectorContext$1 {
+class CanvasImmediateRenderer extends VectorContext {
   /**
    * @param {CanvasRenderingContext2D} context Context.
    * @param {number} pixelRatio Pixel ratio.
@@ -48572,8 +48387,6 @@ class CanvasImmediateRenderer extends VectorContext$1 {
   }
 }
 
-var CanvasImmediateRenderer$1 = CanvasImmediateRenderer;
-
 /**
  * @module ol/render/canvas/hitdetect
  */
@@ -48608,22 +48421,20 @@ function createHitDetectionImageData(
   squaredTolerance,
   projection,
 ) {
-  const userExtent = projection ? toUserExtent(extent) : extent;
+  const userExtent = extent;
   const width = size[0] * HIT_DETECT_RESOLUTION;
   const height = size[1] * HIT_DETECT_RESOLUTION;
   const context = createCanvasContext2D(width, height);
   context.imageSmoothingEnabled = false;
   const canvas = context.canvas;
-  const renderer = new CanvasImmediateRenderer$1(
+  const renderer = new CanvasImmediateRenderer(
     context,
     HIT_DETECT_RESOLUTION,
     extent,
     null,
     rotation,
     squaredTolerance,
-    projection
-      ? getTransformFromProjections(getUserProjection(), projection)
-      : null,
+    null,
   );
   const featureCount = features.length;
   // Stretch hit detection index to use the whole available color range
@@ -48678,7 +48489,7 @@ function createHitDetectionImageData(
         imgContext.fillStyle = color;
         imgContext.fillRect(0, 0, img.width, img.height);
         style.setImage(
-          new Icon$1({
+          new Icon({
             img: img,
             anchor: image.getAnchor(),
             anchorXUnits: 'pixels',
@@ -49218,7 +49029,7 @@ function renderPolygonGeometry(builderGroup, geometry, style, feature, index) {
  * Canvas renderer for vector layers.
  * @api
  */
-class CanvasVectorLayerRenderer extends CanvasLayerRenderer$1 {
+class CanvasVectorLayerRenderer extends CanvasLayerRenderer {
   /**
    * @param {import("../../layer/BaseVector.js").default} vectorLayer Vector layer.
    */
@@ -49615,9 +49426,7 @@ class CanvasVectorLayerRenderer extends CanvasLayerRenderer$1 {
           extent,
           resolution,
           rotation,
-          getSquaredTolerance(resolution, this.renderedPixelRatio_),
-          null,
-        );
+          getSquaredTolerance(resolution, this.renderedPixelRatio_));
       }
       resolve(
         hitDetect(pixel, this.renderedFeatures_, this.hitDetectionImageData_),
@@ -49831,7 +49640,7 @@ class CanvasVectorLayerRenderer extends CanvasLayerRenderer$1 {
 
     this.replayGroup_ = null;
 
-    const replayGroup = new CanvasBuilderGroup(
+    const replayGroup = new BuilderGroup(
       getTolerance(resolution, pixelRatio),
       extent,
       resolution,
@@ -49885,7 +49694,7 @@ class CanvasVectorLayerRenderer extends CanvasLayerRenderer$1 {
     this.ready = ready;
 
     const replayGroupInstructions = replayGroup.finish();
-    const executorGroup = new ExecutorGroup$1(
+    const executorGroup = new ExecutorGroup(
       extent,
       resolution,
       pixelRatio,
@@ -49964,8 +49773,6 @@ class CanvasVectorLayerRenderer extends CanvasLayerRenderer$1 {
   }
 }
 
-var CanvasVectorLayerRenderer$1 = CanvasVectorLayerRenderer;
-
 /**
  * @module ol/layer/Vector
  */
@@ -50035,7 +49842,7 @@ var CanvasVectorLayerRenderer$1 = CanvasVectorLayerRenderer;
  * @extends {BaseVectorLayer<import("../source/Vector.js").default<FeatureType>, CanvasVectorLayerRenderer>}
  * @api
  */
-class VectorLayer extends BaseVectorLayer$1 {
+class VectorLayer extends BaseVectorLayer {
   /**
    * @param {Options<FeatureType>} [options] Options.
    */
@@ -50044,11 +49851,9 @@ class VectorLayer extends BaseVectorLayer$1 {
   }
 
   createRenderer() {
-    return new CanvasVectorLayerRenderer$1(this);
+    return new CanvasVectorLayerRenderer(this);
   }
 }
-
-var VectorLayer$1 = VectorLayer;
 
 /**
  * @module ol/structs/RBush
@@ -50078,7 +49883,7 @@ class RBush {
     /**
      * @private
      */
-    this.rbush_ = new RBush$2(maxEntries);
+    this.rbush_ = new RBush$1(maxEntries);
 
     /**
      * A mapping between the objects added to this rbush wrapper
@@ -50264,8 +50069,6 @@ class RBush {
     }
   }
 }
-
-var RBush$1 = RBush;
 
 /**
  * @module ol/render/Feature
@@ -50698,8 +50501,6 @@ class RenderFeature {
 RenderFeature.prototype.getFlatCoordinates =
   RenderFeature.prototype.getOrientedFlatCoordinates;
 
-var RenderFeature$1 = RenderFeature;
-
 /**
  * @module ol/source/Source
  */
@@ -50748,7 +50549,7 @@ var RenderFeature$1 = RenderFeature;
  * @abstract
  * @api
  */
-class Source extends BaseObject$1 {
+class Source extends BaseObject {
   /**
    * @param {Options} options Source options.
    */
@@ -50941,8 +50742,6 @@ function adaptAttributions(attributionLike) {
     return [attributionLike];
   };
 }
-
-var Source$1 = Source;
 
 /**
  * @module ol/source/VectorEventType
@@ -51213,7 +51012,7 @@ function xhr(url, format) {
  * type.
  * @template {import("../Feature.js").FeatureLike} [FeatureClass=import("../Feature.js").default]
  */
-class VectorSourceEvent extends Event {
+class VectorSourceEvent extends BaseEvent {
   /**
    * @param {string} type Type.
    * @param {FeatureClass} [feature] Feature.
@@ -51356,7 +51155,7 @@ class VectorSourceEvent extends Event {
  * @api
  * @template {import("../Feature.js").FeatureLike} [FeatureType=import("../Feature.js").default]
  */
-class VectorSource extends Source$1 {
+class VectorSource extends Source {
   /**
    * @param {Options<FeatureType>} [options] Vector source options.
    */
@@ -51432,13 +51231,13 @@ class VectorSource extends Source$1 {
      * @private
      * @type {RBush<FeatureType>}
      */
-    this.featuresRtree_ = useSpatialIndex ? new RBush$1() : null;
+    this.featuresRtree_ = useSpatialIndex ? new RBush() : null;
 
     /**
      * @private
      * @type {RBush<{extent: import("../extent.js").Extent}>}
      */
-    this.loadedExtentsRtree_ = new RBush$1();
+    this.loadedExtentsRtree_ = new RBush();
 
     /**
      * @type {number}
@@ -51489,7 +51288,7 @@ class VectorSource extends Source$1 {
       features = collection.getArray();
     }
     if (!useSpatialIndex && collection === undefined) {
-      collection = new Collection$1(features);
+      collection = new Collection(features);
     }
     if (features !== undefined) {
       this.addFeaturesInternal(features);
@@ -51554,7 +51353,7 @@ class VectorSource extends Source$1 {
    * @private
    */
   setupChangeEvents_(featureKey, feature) {
-    if (feature instanceof RenderFeature$1) {
+    if (feature instanceof RenderFeature) {
       return;
     }
     this.featureChangeKeys_[featureKey] = [
@@ -51581,9 +51380,9 @@ class VectorSource extends Source$1 {
       const id = String(feature.getId());
       if (!(id in this.idIndex_)) {
         this.idIndex_[id] = feature;
-      } else if (feature instanceof RenderFeature$1) {
+      } else if (feature instanceof RenderFeature) {
         const indexedFeature = this.idIndex_[id];
-        if (!(indexedFeature instanceof RenderFeature$1)) {
+        if (!(indexedFeature instanceof RenderFeature)) {
           valid = false;
         } else {
           if (!Array.isArray(indexedFeature)) {
@@ -51806,7 +51605,7 @@ class VectorSource extends Source$1 {
     return this.forEachFeatureInExtent(extent, function (feature) {
       const geometry = feature.getGeometry();
       if (
-        geometry instanceof RenderFeature$1 ||
+        geometry instanceof RenderFeature ||
         geometry.intersectsCoordinate(coordinate)
       ) {
         return callback(feature);
@@ -51868,7 +51667,7 @@ class VectorSource extends Source$1 {
       function (feature) {
         const geometry = feature.getGeometry();
         if (
-          geometry instanceof RenderFeature$1 ||
+          geometry instanceof RenderFeature ||
           geometry.intersectsExtent(extent)
         ) {
           const result = callback(feature);
@@ -51996,7 +51795,7 @@ class VectorSource extends Source$1 {
           const geometry = feature.getGeometry();
           const previousMinSquaredDistance = minSquaredDistance;
           minSquaredDistance =
-            geometry instanceof RenderFeature$1
+            geometry instanceof RenderFeature
               ? 0
               : geometry.closestPointXY(x, y, closestPoint, minSquaredDistance);
           if (minSquaredDistance < previousMinSquaredDistance) {
@@ -52340,7 +52139,7 @@ class VectorSource extends Source$1 {
     for (const id in this.idIndex_) {
       const indexedFeature = this.idIndex_[id];
       if (
-        feature instanceof RenderFeature$1 &&
+        feature instanceof RenderFeature &&
         Array.isArray(indexedFeature) &&
         indexedFeature.includes(feature)
       ) {
@@ -52375,8 +52174,6 @@ class VectorSource extends Source$1 {
     this.setLoader(xhr(url, this.format_));
   }
 }
-
-var VectorSource$1 = VectorSource;
 
 /**
  * @module ol/interaction/Draw
@@ -52533,7 +52330,7 @@ const DrawEventType = {
  * Events emitted by {@link module:ol/interaction/Draw~Draw} instances are
  * instances of this type.
  */
-class DrawEvent extends Event {
+class DrawEvent extends BaseEvent {
   /**
    * @param {DrawEventType} type Type.
    * @param {Feature} feature The feature drawn.
@@ -52652,25 +52449,25 @@ function getCumulativeSquaredDistance(coordinates, startIndex, endIndex) {
  * @param {Array<TraceTarget>} targets The trace targets.
  */
 function appendGeometryTraceTargets(coordinate, geometry, targets) {
-  if (geometry instanceof LineString$1) {
+  if (geometry instanceof LineString) {
     appendTraceTarget(coordinate, geometry.getCoordinates(), false, targets);
     return;
   }
-  if (geometry instanceof MultiLineString$1) {
+  if (geometry instanceof MultiLineString) {
     const coordinates = geometry.getCoordinates();
     for (let i = 0, ii = coordinates.length; i < ii; ++i) {
       appendTraceTarget(coordinate, coordinates[i], false, targets);
     }
     return;
   }
-  if (geometry instanceof Polygon$1) {
+  if (geometry instanceof Polygon) {
     const coordinates = geometry.getCoordinates();
     for (let i = 0, ii = coordinates.length; i < ii; ++i) {
       appendTraceTarget(coordinate, coordinates[i], true, targets);
     }
     return;
   }
-  if (geometry instanceof MultiPolygon$1) {
+  if (geometry instanceof MultiPolygon) {
     const polys = geometry.getCoordinates();
     for (let i = 0, ii = polys.length; i < ii; ++i) {
       const coordinates = polys[i];
@@ -52680,7 +52477,7 @@ function appendGeometryTraceTargets(coordinate, geometry, targets) {
     }
     return;
   }
-  if (geometry instanceof GeometryCollection$1) {
+  if (geometry instanceof GeometryCollection) {
     const geometries = geometry.getGeometries();
     for (let i = 0; i < geometries.length; ++i) {
       appendGeometryTraceTargets(coordinate, geometries[i], targets);
@@ -52932,7 +52729,7 @@ function interpolateCoordinate(coordinates, index) {
  * @fires DrawEvent
  * @api
  */
-class Draw extends PointerInteraction$1 {
+class Draw extends PointerInteraction {
   /**
    * @param {Options} options Options.
    */
@@ -53099,7 +52896,7 @@ class Draw extends PointerInteraction$1 {
         geometryFunction = function (coordinates, geometry, projection) {
           const circle = geometry
             ? /** @type {Circle} */ (geometry)
-            : new Circle$1([NaN, NaN]);
+            : new Circle([NaN, NaN]);
           const center = fromUserCoordinate(coordinates[0]);
           const squaredLength = squaredDistance(
             center,
@@ -53115,11 +52912,11 @@ class Draw extends PointerInteraction$1 {
       } else {
         let Constructor;
         if (mode === 'Point') {
-          Constructor = Point$2;
+          Constructor = Point$1;
         } else if (mode === 'LineString') {
-          Constructor = LineString$1;
+          Constructor = LineString;
         } else if (mode === 'Polygon') {
-          Constructor = Polygon$1;
+          Constructor = Polygon;
         }
         /**
          * @param {!LineCoordType} coordinates The coordinates.
@@ -53222,8 +53019,8 @@ class Draw extends PointerInteraction$1 {
      * @type {VectorLayer}
      * @private
      */
-    this.overlay_ = new VectorLayer$1({
-      source: new VectorSource$1({
+    this.overlay_ = new VectorLayer({
+      source: new VectorSource({
         useSpatialIndex: false,
         wrapX: options.wrapX ? options.wrapX : false,
       }),
@@ -53407,7 +53204,7 @@ class Draw extends PointerInteraction$1 {
     this.lastDragTime_ = Date.now();
     this.downTimeout_ = setTimeout(() => {
       this.handlePointerMove_(
-        new MapBrowserEvent$1(
+        new MapBrowserEvent(
           MapBrowserEventType.POINTERMOVE,
           event.map,
           event.originalEvent,
@@ -53777,7 +53574,7 @@ class Draw extends PointerInteraction$1 {
    */
   createOrUpdateSketchPoint_(coordinates) {
     if (!this.sketchPoint_) {
-      this.sketchPoint_ = new Feature$1(new Point$2(coordinates));
+      this.sketchPoint_ = new Feature(new Point$1(coordinates));
       this.updateSketchFeatures_();
     } else {
       const sketchPointGeom = this.sketchPoint_.getGeometry();
@@ -53791,12 +53588,12 @@ class Draw extends PointerInteraction$1 {
    */
   createOrUpdateCustomSketchLine_(geometry) {
     if (!this.sketchLine_) {
-      this.sketchLine_ = new Feature$1();
+      this.sketchLine_ = new Feature();
     }
     const ring = geometry.getLinearRing(0);
     let sketchLineGeom = this.sketchLine_.getGeometry();
     if (!sketchLineGeom) {
-      sketchLineGeom = new LineString$1(
+      sketchLineGeom = new LineString(
         ring.getFlatCoordinates(),
         ring.getLayout(),
       );
@@ -53831,14 +53628,14 @@ class Draw extends PointerInteraction$1 {
       this.sketchCoords_ = [start.slice(), start.slice()];
     }
     if (this.sketchLineCoords_) {
-      this.sketchLine_ = new Feature$1(new LineString$1(this.sketchLineCoords_));
+      this.sketchLine_ = new Feature(new LineString(this.sketchLineCoords_));
     }
     const geometry = this.geometryFunction_(
       this.sketchCoords_,
       undefined,
       projection,
     );
-    this.sketchFeature_ = new Feature$1();
+    this.sketchFeature_ = new Feature();
     if (this.geometryName_) {
       this.sketchFeature_.setGeometryName(this.geometryName_);
     }
@@ -54030,15 +53827,15 @@ class Draw extends PointerInteraction$1 {
     // cast multi-part geometries
     if (this.type_ === 'MultiPoint') {
       sketchFeature.setGeometry(
-        new MultiPoint$1([/** @type {PointCoordType} */ (coordinates)]),
+        new MultiPoint([/** @type {PointCoordType} */ (coordinates)]),
       );
     } else if (this.type_ === 'MultiLineString') {
       sketchFeature.setGeometry(
-        new MultiLineString$1([/** @type {LineCoordType} */ (coordinates)]),
+        new MultiLineString([/** @type {LineCoordType} */ (coordinates)]),
       );
     } else if (this.type_ === 'MultiPolygon') {
       sketchFeature.setGeometry(
-        new MultiPolygon$1([/** @type {PolyCoordType} */ (coordinates)]),
+        new MultiPolygon([/** @type {PolyCoordType} */ (coordinates)]),
       );
     }
 
@@ -54148,7 +53945,7 @@ class Draw extends PointerInteraction$1 {
     const last = this.sketchCoords_[this.sketchCoords_.length - 1];
     this.finishCoordinate_ = last.slice();
     this.sketchCoords_.push(last.slice());
-    this.sketchPoint_ = new Feature$1(new Point$2(last));
+    this.sketchPoint_ = new Feature(new Point$1(last));
     this.updateSketchFeatures_();
     this.dispatchEvent(
       new DrawEvent(DrawEventType.DRAWSTART, this.sketchFeature_),
@@ -54221,8 +54018,6 @@ function getMode(type) {
       throw new Error('Invalid type: ' + type);
   }
 }
-
-var Draw$1 = Draw;
 
 /**
  * @module ol/format/Feature
@@ -54337,7 +54132,7 @@ class FeatureFormat {
      * @protected
      * @type {T}
      */
-    this.featureClass = /** @type {T} */ (Feature$1);
+    this.featureClass = /** @type {T} */ (Feature);
 
     /**
      * A list media types supported by the format in descending order of preference.
@@ -54542,12 +54337,12 @@ function transformGeometryWithOptions(geometry, write, options) {
 }
 
 const GeometryConstructor = {
-  Point: Point$2,
-  LineString: LineString$1,
-  Polygon: Polygon$1,
-  MultiPoint: MultiPoint$1,
-  MultiLineString: MultiLineString$1,
-  MultiPolygon: MultiPolygon$1,
+  Point: Point$1,
+  LineString: LineString,
+  Polygon: Polygon,
+  MultiPoint: MultiPoint,
+  MultiLineString: MultiLineString,
+  MultiPolygon: MultiPolygon,
 };
 
 function orientFlatCoordinates(flatCoordinates, ends, stride) {
@@ -54590,7 +54385,7 @@ function createRenderFeature(object, options) {
 
   const stride = geometry.layout.length;
   return transformGeometryWithOptions(
-    new RenderFeature$1(
+    new RenderFeature(
       geometryType,
       geometryType === 'Polygon'
         ? orientFlatCoordinates(geometry.flatCoordinates, geometry.ends, stride)
@@ -54618,7 +54413,7 @@ function createGeometry(object, options) {
     const geometries = object.map((geometry) =>
       createGeometry(geometry, options),
     );
-    return new GeometryCollection$1(geometries);
+    return new GeometryCollection(geometries);
   }
   const Geometry = GeometryConstructor[object.type];
   return transformGeometryWithOptions(
@@ -54841,8 +54636,6 @@ function getObject(source) {
   return null;
 }
 
-var JSONFeature$1 = JSONFeature;
-
 /**
  * @module ol/format/GeoJSON
  */
@@ -54888,7 +54681,7 @@ var JSONFeature$1 = JSONFeature;
  * @extends {JSONFeature<T>}
  * @api
  */
-class GeoJSON extends JSONFeature$1 {
+class GeoJSON extends JSONFeature {
   /**
    * @param {Options<T>} [options] Options.
    */
@@ -54957,7 +54750,7 @@ class GeoJSON extends JSONFeature$1 {
     }
 
     const geometry = readGeometryInternal(geoJSONFeature['geometry']);
-    if (this.featureClass === RenderFeature$1) {
+    if (this.featureClass === RenderFeature) {
       return createRenderFeature(
         {
           geometry,
@@ -54968,7 +54761,7 @@ class GeoJSON extends JSONFeature$1 {
       );
     }
 
-    const feature = new Feature$1();
+    const feature = new Feature();
     if (this.geometryName_) {
       feature.setGeometryName(this.geometryName_);
     } else if (this.extractGeometryName_ && geoJSONFeature['geometry_name']) {
@@ -55475,8 +55268,6 @@ function writePolygonGeometry(geometry, options) {
   };
 }
 
-var GeoJSON$1 = GeoJSON;
-
 const DrawInteraction = ({
   id,
   geometryType,
@@ -55485,18 +55276,18 @@ const DrawInteraction = ({
   const map = useMap();
   useEffect(() => {
     if (!map) return;
-    const source = new VectorSource$1();
-    const vector = new VectorLayer$1({
+    const source = new VectorSource();
+    const vector = new VectorLayer({
       source
     });
     map.addLayer(vector);
-    const draw = new Draw$1({
+    const draw = new Draw({
       source: source,
       type: geometryType
     });
     map.addInteraction(draw);
     draw.on('drawend', evt => {
-      const writer = new GeoJSON$1();
+      const writer = new GeoJSON();
       const geojson = writer.writeFeatureObject(evt.feature);
       if (setProps) {
         setProps({

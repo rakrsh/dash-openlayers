@@ -78,6 +78,7 @@ jobs:
         uses: astral-sh/setup-uv@v5
         with:
           version: ${{ vars.UV_VERSION }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Build wheel and sdist
         run: uv build
       - name: Verify clean-environment install
