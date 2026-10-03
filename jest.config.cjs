@@ -24,6 +24,8 @@ module.exports = {
     'src/lib/components/TileLayer.react.js',
     'src/lib/components/VectorLayer.react.js',
     'src/lib/components/VectorTileLayer.react.js',
+    'src/lib/components/TileWMS.react.js',
+    'src/lib/components/ImageWMS.react.js',
     'src/lib/components/DrawInteraction.react.js',
   ],
   coverageThreshold: {
@@ -31,6 +33,8 @@ module.exports = {
     [path.join(__dirname, 'src/lib/components/TileLayer.react.js')]: { statements: 80 },
     [path.join(__dirname, 'src/lib/components/VectorLayer.react.js')]: { statements: 80 },
     [path.join(__dirname, 'src/lib/components/VectorTileLayer.react.js')]: { statements: 80 },
+    [path.join(__dirname, 'src/lib/components/TileWMS.react.js')]: { statements: 80 },
+    [path.join(__dirname, 'src/lib/components/ImageWMS.react.js')]: { statements: 80 },
     [path.join(__dirname, 'src/lib/components/DrawInteraction.react.js')]: { statements: 80 },
   },
   coverageReporters: ['text', 'lcov'],

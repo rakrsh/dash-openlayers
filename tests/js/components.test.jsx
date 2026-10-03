@@ -4,6 +4,8 @@ import MapComponent from '../../src/lib/components/Map.react';
 import TileLayer from '../../src/lib/components/TileLayer.react';
 import VectorLayer from '../../src/lib/components/VectorLayer.react';
 import VectorTileLayer from '../../src/lib/components/VectorTileLayer.react';
+import TileWMSLayer from '../../src/lib/components/TileWMS.react';
+import ImageWMSLayer from '../../src/lib/components/ImageWMS.react';
 import DrawInteraction from '../../src/lib/components/DrawInteraction.react';
 import { OLContext, useMap } from '../../src/lib/context/OLContext';
 import Map from 'ol/Map';
@@ -21,6 +23,9 @@ import VectorSource from 'ol/source/Vector';
 import MVT from 'ol/format/MVT';
 import OpenLayersVectorTileLayer from 'ol/layer/VectorTile';
 import VectorTileSource from 'ol/source/VectorTile';
+import ImageLayer from 'ol/layer/Image';
+import TileWMSSource from 'ol/source/TileWMS';
+import ImageWMSSource from 'ol/source/ImageWMS';
 
 jest.mock('ol/Map', () => ({
   __esModule: true,
@@ -65,6 +70,31 @@ jest.mock('ol/layer/Tile', () => ({
   __esModule: true,
   default: jest.fn().mockImplementation(function MockTile(options) {
     this.options = options;
+    this.set = jest.fn();
+  }),
+}));
+
+jest.mock('ol/layer/Image', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockImageLayer(options) {
+    this.options = options;
+    this.set = jest.fn();
+  }),
+}));
+
+jest.mock('ol/source/TileWMS', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockTileWMSSource(options) {
+    this.options = options;
+    this.updateParams = jest.fn();
+  }),
+}));
+
+jest.mock('ol/source/ImageWMS', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockImageWMSSource(options) {
+    this.options = options;
+    this.updateParams = jest.fn();
   }),
 }));
 
@@ -425,6 +455,93 @@ describe('VectorTileLayer', () => {
       </OLContext.Provider>,
     );
     expect(map.addLayer).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('WMS layers', () => {
+  it('creates a tiled WMS layer and updates its request params without replacing the source', () => {
+    const map = makeMap();
+    const initialParams = { LAYERS: 'workspace:roads', STYLES: '' };
+    const { rerender, unmount } = render(
+      <OLContext.Provider value={map}>
+        <TileWMSLayer
+          id="tile-wms"
+          url="https://maps.example.com/geoserver/wms"
+          params={initialParams}
+          serverType="geoserver"
+        />
+      </OLContext.Provider>,
+    );
+
+    const source = TileWMSSource.mock.instances[0];
+    const layer = Tile.mock.instances[0];
+    expect(source.options).toEqual({
+      url: 'https://maps.example.com/geoserver/wms',
+      params: initialParams,
+      serverType: 'geoserver',
+    });
+    expect(layer.options).toEqual({ source });
+    expect(layer.set).toHaveBeenCalledWith('dashId', 'tile-wms');
+    expect(map.addLayer).toHaveBeenCalledWith(layer);
+
+    const updatedParams = { LAYERS: 'workspace:parcels', STYLES: 'outline' };
+    rerender(
+      <OLContext.Provider value={map}>
+        <TileWMSLayer
+          id="tile-wms"
+          url="https://maps.example.com/geoserver/wms"
+          params={updatedParams}
+          serverType="geoserver"
+        />
+      </OLContext.Provider>,
+    );
+    expect(source.updateParams).toHaveBeenCalledWith(updatedParams);
+    expect(TileWMSSource).toHaveBeenCalledTimes(1);
+
+    unmount();
+    expect(map.removeLayer).toHaveBeenCalledWith(layer);
+  });
+
+  it('creates an image WMS layer and refreshes it when params change', () => {
+    const map = makeMap();
+    const params = { LAYERS: 'workspace:boundaries' };
+    const { rerender, unmount } = render(
+      <OLContext.Provider value={map}>
+        <ImageWMSLayer
+          id="image-wms"
+          url="https://maps.example.com/wms"
+          params={params}
+          serverType="qgis"
+        />
+      </OLContext.Provider>,
+    );
+
+    const source = ImageWMSSource.mock.instances[0];
+    const layer = ImageLayer.mock.instances[0];
+    expect(source.options).toEqual({
+      url: 'https://maps.example.com/wms',
+      params,
+      serverType: 'qgis',
+    });
+    expect(layer.options).toEqual({ source });
+    expect(map.addLayer).toHaveBeenCalledWith(layer);
+
+    const updatedParams = { LAYERS: 'workspace:buildings' };
+    rerender(
+      <OLContext.Provider value={map}>
+        <ImageWMSLayer
+          id="image-wms"
+          url="https://maps.example.com/wms"
+          params={updatedParams}
+          serverType="qgis"
+        />
+      </OLContext.Provider>,
+    );
+    expect(source.updateParams).toHaveBeenCalledWith(updatedParams);
+    expect(ImageWMSSource).toHaveBeenCalledTimes(1);
+
+    unmount();
+    expect(map.removeLayer).toHaveBeenCalledWith(layer);
   });
 });
 

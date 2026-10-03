@@ -7,8 +7,10 @@ def test_components_exported():
     mod = importlib.import_module("dash_openlayers")
     assert hasattr(mod, "Map")
     assert hasattr(mod, "DrawInteraction")
+    assert hasattr(mod, "ImageWMS")
     assert hasattr(mod, "ModifyInteraction")
     assert hasattr(mod, "TileLayer")
+    assert hasattr(mod, "TileWMS")
     assert hasattr(mod, "VectorLayer")
     assert hasattr(mod, "VectorTileLayer")
     assert hasattr(mod, "__version__")
@@ -48,6 +50,36 @@ def test_component_props_serialize():
             dol.TileLayer(id="tiles", source="OSM"),
             {"id": "tiles", "source": "OSM"},
             "TileLayer",
+        ),
+        (
+            dol.TileWMS(
+                id="tile-wms",
+                url="https://maps.example.com/geoserver/wms",
+                params={"LAYERS": "workspace:roads"},
+                serverType="geoserver",
+            ),
+            {
+                "id": "tile-wms",
+                "url": "https://maps.example.com/geoserver/wms",
+                "params": {"LAYERS": "workspace:roads"},
+                "serverType": "geoserver",
+            },
+            "TileWMS",
+        ),
+        (
+            dol.ImageWMS(
+                id="image-wms",
+                url="https://maps.example.com/wms",
+                params={"LAYERS": "workspace:boundaries"},
+                serverType="qgis",
+            ),
+            {
+                "id": "image-wms",
+                "url": "https://maps.example.com/wms",
+                "params": {"LAYERS": "workspace:boundaries"},
+                "serverType": "qgis",
+            },
+            "ImageWMS",
         ),
         (
             dol.VectorLayer(
