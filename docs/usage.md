@@ -16,6 +16,39 @@ dol.Map(
 )
 ```
 
+`TileWMS` requests tiled WMS images. `ImageWMS` requests one image for the map
+viewport. Both accept a WMS endpoint, request `params` (including `LAYERS`),
+and an optional `serverType` (`geoserver`, `mapserver`, `carmentaserver`, or
+`qgis`). Changing the `params` prop calls OpenLayers `updateParams`, causing the
+source to request the updated layer:
+
+```python
+dol.Map(
+    id="wms-map",
+    center=[0, 0],
+    zoom=2,
+    children=[
+        dol.TileWMS(
+            id="roads-wms",
+            url="https://maps.example.com/geoserver/wms",
+            params={"LAYERS": "workspace:roads", "STYLES": ""},
+            serverType="geoserver",
+        ),
+        dol.ImageWMS(
+            id="boundaries-wms",
+            url="https://maps.example.com/geoserver/wms",
+            params={"LAYERS": "workspace:boundaries", "STYLES": ""},
+            serverType="geoserver",
+        ),
+    ],
+    style={"height": "500px"},
+)
+```
+
+For dynamic layer switching, update the full `params` object from a Dash
+callback, for example `Output("roads-wms", "params")`. WMS servers must allow
+cross-origin requests from the Dash app's origin.
+
 `VectorTileLayer` loads Mapbox Vector Tile (MVT/PBF) data from a URL template.
 Use `urls` instead of `url` to supply multiple templates for load balancing.
 The `style` prop is an OpenLayers flat-style object, not a Mapbox GL style

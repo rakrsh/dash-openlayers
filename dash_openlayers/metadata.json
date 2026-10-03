@@ -84,5 +84,29 @@
 			"style": { "type": { "name": "object" }, "required": false, "description": "OpenLayers flat-style object used to style MVT features.", "defaultValue": { "value": "null", "computed": false } },
 			"setProps": { "type": { "name": "func" }, "required": false, "description": "Dash-supplied callback used to write component state back to the layout." }
 		}
+	},
+	"src/lib/components/TileWMS.react.js": {
+		"description": "Render a tiled OGC Web Map Service layer.",
+		"displayName": "TileWMSLayer",
+		"methods": [],
+		"props": {
+			"id": { "type": { "name": "string" }, "required": false, "description": "Component ID used to identify this layer in the Dash layout." },
+			"url": { "type": { "name": "string" }, "required": false, "description": "OGC WMS endpoint URL.", "defaultValue": { "value": "null", "computed": false } },
+			"params": { "type": { "name": "object" }, "required": false, "description": "WMS request parameters, including LAYERS; changes refresh the source.", "defaultValue": { "value": "{}", "computed": false } },
+			"serverType": { "type": { "name": "enum", "value": [{ "value": "'carmentaserver'", "computed": false }, { "value": "'geoserver'", "computed": false }, { "value": "'mapserver'", "computed": false }, { "value": "'qgis'", "computed": false }] }, "required": false, "description": "WMS server type used for vendor-specific HiDPI request parameters.", "defaultValue": { "value": "null", "computed": false } },
+			"setProps": { "type": { "name": "func" }, "required": false, "description": "Dash-supplied callback used to write component state back to the layout." }
+		}
+	},
+	"src/lib/components/ImageWMS.react.js": {
+		"description": "Render a single-image OGC Web Map Service layer.",
+		"displayName": "ImageWMSLayer",
+		"methods": [],
+		"props": {
+			"id": { "type": { "name": "string" }, "required": false, "description": "Component ID used to identify this layer in the Dash layout." },
+			"url": { "type": { "name": "string" }, "required": false, "description": "OGC WMS endpoint URL.", "defaultValue": { "value": "null", "computed": false } },
+			"params": { "type": { "name": "object" }, "required": false, "description": "WMS request parameters, including LAYERS; changes refresh the source.", "defaultValue": { "value": "{}", "computed": false } },
+			"serverType": { "type": { "name": "enum", "value": [{ "value": "'carmentaserver'", "computed": false }, { "value": "'geoserver'", "computed": false }, { "value": "'mapserver'", "computed": false }, { "value": "'qgis'", "computed": false }] }, "required": false, "description": "WMS server type used for vendor-specific HiDPI request parameters.", "defaultValue": { "value": "null", "computed": false } },
+			"setProps": { "type": { "name": "func" }, "required": false, "description": "Dash-supplied callback used to write component state back to the layout." }
+		}
 	}
 }

@@ -1845,6 +1845,17 @@ function toFixed(n, decimals) {
 }
 
 /**
+ * Rounds a number to the nearest integer value considering only the given number
+ * of decimal digits (with rounding on the final digit).
+ * @param {number} n The input number.
+ * @param {number} decimals The maximum number of decimal digits.
+ * @return {number} The nearest integer.
+ */
+function round(n, decimals) {
+  return Math.round(toFixed(n, decimals));
+}
+
+/**
  * Rounds a number to the next smaller integer considering only the given number
  * of decimal digits (with rounding on the final digit).
  * @param {number} n The input number.
@@ -3691,6 +3702,36 @@ function wrapAndSliceX(extent, projection, multiWorld) {
   }
 
   return [extent];
+}
+
+/**
+ * @module ol/string
+ */
+
+
+/**
+ * Adapted from https://github.com/omichelsen/compare-versions/blob/master/index.js
+ * @param {string|number} v1 First version
+ * @param {string|number} v2 Second version
+ * @return {number} Value
+ */
+function compareVersions(v1, v2) {
+  const s1 = ('' + v1).split('.');
+  const s2 = ('' + v2).split('.');
+
+  for (let i = 0; i < Math.max(s1.length, s2.length); i++) {
+    const n1 = parseInt(s1[i] || '0', 10);
+    const n2 = parseInt(s2[i] || '0', 10);
+
+    if (n1 > n2) {
+      return 1;
+    }
+    if (n2 > n1) {
+      return -1;
+    }
+  }
+
+  return 0;
 }
 
 /**
@@ -11603,7 +11644,9 @@ var ImageState = {
   IDLE: 0,
   LOADING: 1,
   LOADED: 2,
-  ERROR: 3};
+  ERROR: 3,
+  EMPTY: 4,
+};
 
 /**
  * @module ol/size
@@ -14480,6 +14523,12 @@ const IMAGE_DECODE =
   typeof Image !== 'undefined' && Image.prototype.decode;
 
 /**
+ * createImageBitmap() is supported.
+ * @type {boolean}
+ */
+const CREATE_IMAGE_BITMAP = typeof createImageBitmap === 'function';
+
+/**
  * @type {boolean}
  */
 const PASSIVE_EVENT_LISTENERS = (function () {
@@ -14637,6 +14686,211 @@ function replaceChildren(node, children) {
  */
 
 /**
+ * A function that takes an {@link module:ol/Image~ImageWrapper} for the image and a
+ * `{string}` for the src as arguments. It is supposed to make it so the
+ * underlying image {@link module:ol/Image~ImageWrapper#getImage} is assigned the
+ * content specified by the src. If not specified, the default is
+ *
+ *     function(image, src) {
+ *       image.getImage().src = src;
+ *     }
+ *
+ * Providing a custom `imageLoadFunction` can be useful to load images with
+ * post requests or - in general - through XHR requests, where the src of the
+ * image element would be set to a data URI when the content is loaded.
+ *
+ * @typedef {function(import("./Image.js").default, string): void} LoadFunction
+ * @api
+ */
+
+/**
+ * @typedef {Object} ImageObject
+ * @property {import("./extent.js").Extent} [extent] Extent, if different from the requested one.
+ * @property {import("./resolution.js").ResolutionLike} [resolution] Resolution, if different from the requested one.
+ * When x and y resolution are different, use the array type (`[xResolution, yResolution]`).
+ * @property {number} [pixelRatio] Pixel ratio, if different from the requested one.
+ * @property {import('./DataTile.js').ImageLike} image Image.
+ */
+
+/**
+ * Loader function used for image sources. Receives extent, resolution and pixel ratio as arguments.
+ * For images that cover any extent and resolution (static images), the loader function should not accept
+ * any arguments. The function returns an {@link import("./DataTile.js").ImageLike image}, an
+ * {@link import("./Image.js").ImageObject image object}, or a promise for the same.
+ * For loaders that generate images, the promise should not resolve until the image is loaded.
+ * If the returned image does not match the extent, resolution or pixel ratio passed to the loader,
+ * it has to return an {@link import("./Image.js").ImageObject image object} with the `image` and the
+ * correct `extent`, `resolution` and `pixelRatio`.
+ *
+ * @typedef {function(import("./extent.js").Extent, number, number, (function(HTMLImageElement, string): void)=): import("./DataTile.js").ImageLike|ImageObject|Promise<import("./DataTile.js").ImageLike|ImageObject>} Loader
+ * @api
+ */
+
+/**
+ * Loader function used for image sources. Receives extent, resolution and pixel ratio as arguments.
+ * The function returns a promise for an  {@link import("./Image.js").ImageObject image object}.
+ *
+ * @typedef {function(import("./extent.js").Extent, number, number, (function(HTMLImageElement, string): void)=): import("./DataTile.js").ImageLike|ImageObject|Promise<import("./DataTile.js").ImageLike|ImageObject>} ImageObjectPromiseLoader
+ */
+
+class ImageWrapper extends Target {
+  /**
+   * @param {import("./extent.js").Extent} extent Extent.
+   * @param {number|Array<number>|undefined} resolution Resolution. If provided as array, x and y
+   * resolution will be assumed.
+   * @param {number} pixelRatio Pixel ratio.
+   * @param {import("./ImageState.js").default|import("./Image.js").Loader} stateOrLoader State.
+   */
+  constructor(extent, resolution, pixelRatio, stateOrLoader) {
+    super();
+
+    /**
+     * @protected
+     * @type {import("./extent.js").Extent}
+     */
+    this.extent = extent;
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.pixelRatio_ = pixelRatio;
+
+    /**
+     * @protected
+     * @type {number|Array<number>|undefined}
+     */
+    this.resolution = resolution;
+
+    /**
+     * @protected
+     * @type {import("./ImageState.js").default}
+     */
+    this.state =
+      typeof stateOrLoader === 'function' ? ImageState.IDLE : stateOrLoader;
+
+    /**
+     * @private
+     * @type {import('./DataTile.js').ImageLike|null}
+     */
+    this.image_ = null;
+
+    /**
+     * @protected
+     * @type {import("./Image.js").Loader}
+     */
+    this.loader = typeof stateOrLoader === 'function' ? stateOrLoader : null;
+  }
+
+  /**
+   * @protected
+   */
+  changed() {
+    this.dispatchEvent(EventType.CHANGE);
+  }
+
+  /**
+   * @return {import("./extent.js").Extent} Extent.
+   */
+  getExtent() {
+    return this.extent;
+  }
+
+  /**
+   * @return {import('./DataTile.js').ImageLike} Image.
+   */
+  getImage() {
+    return this.image_;
+  }
+
+  /**
+   * @return {number} PixelRatio.
+   */
+  getPixelRatio() {
+    return this.pixelRatio_;
+  }
+
+  /**
+   * @return {number|Array<number>} Resolution.
+   */
+  getResolution() {
+    return /** @type {number} */ (this.resolution);
+  }
+
+  /**
+   * @return {import("./ImageState.js").default} State.
+   */
+  getState() {
+    return this.state;
+  }
+
+  /**
+   * Load not yet loaded URI.
+   */
+  load() {
+    if (this.state == ImageState.IDLE) {
+      if (this.loader) {
+        this.state = ImageState.LOADING;
+        this.changed();
+        const resolution = this.getResolution();
+        const requestResolution = Array.isArray(resolution)
+          ? resolution[0]
+          : resolution;
+        toPromise(() =>
+          this.loader(
+            this.getExtent(),
+            requestResolution,
+            this.getPixelRatio(),
+          ),
+        )
+          .then((image) => {
+            if ('image' in image) {
+              this.image_ = image.image;
+            }
+            if ('extent' in image) {
+              this.extent = image.extent;
+            }
+            if ('resolution' in image) {
+              this.resolution = image.resolution;
+            }
+            if ('pixelRatio' in image) {
+              this.pixelRatio_ = image.pixelRatio;
+            }
+            if (
+              image instanceof HTMLImageElement ||
+              image instanceof ImageBitmap ||
+              image instanceof HTMLCanvasElement ||
+              image instanceof HTMLVideoElement
+            ) {
+              this.image_ = image;
+            }
+            this.state = ImageState.LOADED;
+          })
+          .catch((error) => {
+            this.state = ImageState.ERROR;
+            console.error(error); // eslint-disable-line no-console
+          })
+          .finally(() => this.changed());
+      }
+    }
+  }
+
+  /**
+   * @param {import('./DataTile.js').ImageLike} image The image.
+   */
+  setImage(image) {
+    this.image_ = image;
+  }
+
+  /**
+   * @param {number|Array<number>} resolution Resolution.
+   */
+  setResolution(resolution) {
+    this.resolution = resolution;
+  }
+}
+
+/**
  * @param {import('./DataTile.js').ImageLike} image Image element.
  * @param {function():any} loadHandler Load callback function.
  * @param {function():any} errorHandler Error callback function.
@@ -14730,6 +14984,32 @@ function decodeFallback(image, src) {
           ),
       )
     : load(image);
+}
+
+/**
+ * Loads an image and decodes it to an `ImageBitmap` if `createImageBitmap()` is supported. Returns
+ * the loaded image otherwise.
+ * @param {HTMLImageElement} image Image, not yet loaded.
+ * @param {string} [src] `src` attribute of the image. Optional, not required if already present.
+ * @return {Promise<ImageBitmap|HTMLImageElement>} Promise resolving to an `ImageBitmap` or an
+ * `HTMLImageElement` if `createImageBitmap()` is not supported.
+ * @api
+ */
+function decode$1(image, src) {
+  if (src) {
+    image.src = src;
+  }
+  return image.src && IMAGE_DECODE && CREATE_IMAGE_BITMAP
+    ? image
+        .decode()
+        .then(() => createImageBitmap(image))
+        .catch((e) => {
+          if (image.complete && image.width) {
+            return image;
+          }
+          throw e;
+        })
+    : decodeFallback(image);
 }
 
 /**
@@ -55804,6 +56084,2560 @@ DrawInteraction.propTypes = {
 };
 
 /**
+ * @module ol/layer/BaseImage
+ */
+
+/**
+ * @template {import("../source/Image.js").default} ImageSourceType
+ * @typedef {Object} Options
+ * @property {string} [className='ol-layer'] A CSS class name to set to the layer element.
+ * @property {number} [opacity=1] Opacity (0, 1).
+ * @property {boolean} [visible=true] Visibility.
+ * @property {import("../extent.js").Extent} [extent] The bounding extent for layer rendering.  The layer will not be
+ * rendered outside of this extent.
+ * @property {number} [zIndex] The z-index for layer rendering.  At rendering time, the layers
+ * will be ordered, first by Z-index and then by position. When `undefined`, a `zIndex` of 0 is assumed
+ * for layers that are added to the map's `layers` collection, or `Infinity` when the layer's `setMap()`
+ * method was used.
+ * @property {number} [minResolution] The minimum resolution (inclusive) at which this layer will be
+ * visible.
+ * @property {number} [maxResolution] The maximum resolution (exclusive) below which this layer will
+ * be visible.
+ * @property {number} [minZoom] The minimum view zoom level (exclusive) above which this layer will be
+ * visible.
+ * @property {number} [maxZoom] The maximum view zoom level (inclusive) at which this layer will
+ * be visible.
+ * @property {import("../Map.js").default} [map] Sets the layer as overlay on a map. The map will not manage
+ * this layer in its layers collection, and the layer will be rendered on top. This is useful for
+ * temporary layers. The standard way to add a layer to a map and have it managed by the map is to
+ * use {@link import("../Map.js").default#addLayer map.addLayer()}.
+ * @property {ImageSourceType} [source] Source for this layer.
+ * @property {Object<string, *>} [properties] Arbitrary observable properties. Can be accessed with `#get()` and `#set()`.
+ */
+
+/**
+ * @classdesc
+ * Server-rendered images that are available for arbitrary extents and
+ * resolutions.
+ * Note that any property set in the options is set as a {@link module:ol/Object~BaseObject}
+ * property on the layer object; for example, setting `title: 'My Title'` in the
+ * options means that `title` is observable, and has get/set accessors.
+ *
+ * @template {import("../source/Image.js").default} ImageSourceType
+ * @template {import("../renderer/Layer.js").default} RendererType
+ * @extends {Layer<ImageSourceType, RendererType>}
+ * @api
+ */
+class BaseImageLayer extends Layer {
+  /**
+   * @param {Options<ImageSourceType>} [options] Layer options.
+   */
+  constructor(options) {
+    options = options ? options : {};
+    super(options);
+  }
+}
+
+/**
+ * @module ol/renderer/canvas/ImageLayer
+ */
+
+/**
+ * @classdesc
+ * Canvas renderer for image layers.
+ * @api
+ */
+class CanvasImageLayerRenderer extends CanvasLayerRenderer {
+  /**
+   * @param {import("../../layer/Image.js").default} imageLayer Image layer.
+   */
+  constructor(imageLayer) {
+    super(imageLayer);
+
+    /**
+     * @protected
+     * @type {?import("../../Image.js").default}
+     */
+    this.image_ = null;
+  }
+
+  /**
+   * @return {import('../../DataTile.js').ImageLike} Image.
+   */
+  getImage() {
+    return !this.image_ ? null : this.image_.getImage();
+  }
+
+  /**
+   * Determine whether render should be called.
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   * @return {boolean} Layer is ready to be rendered.
+   */
+  prepareFrame(frameState) {
+    const layerState = frameState.layerStatesArray[frameState.layerIndex];
+    const pixelRatio = frameState.pixelRatio;
+    const viewState = frameState.viewState;
+    const viewResolution = viewState.resolution;
+
+    const imageSource = this.getLayer().getSource();
+
+    const hints = frameState.viewHints;
+
+    let renderedExtent = frameState.extent;
+    if (layerState.extent !== undefined) {
+      renderedExtent = getIntersection(
+        renderedExtent,
+        fromUserExtent(layerState.extent, viewState.projection),
+      );
+    }
+
+    if (
+      !hints[ViewHint.ANIMATING] &&
+      !hints[ViewHint.INTERACTING] &&
+      !isEmpty(renderedExtent)
+    ) {
+      if (imageSource) {
+        const projection = viewState.projection;
+        const image = imageSource.getImage(
+          renderedExtent,
+          viewResolution,
+          pixelRatio,
+          projection,
+        );
+        if (image) {
+          if (this.loadImage(image)) {
+            this.image_ = image;
+          } else if (image.getState() === ImageState.EMPTY) {
+            this.image_ = null;
+          }
+        }
+      } else {
+        this.image_ = null;
+      }
+    }
+
+    return !!this.image_;
+  }
+
+  /**
+   * @param {import("../../pixel.js").Pixel} pixel Pixel.
+   * @return {Uint8ClampedArray} Data at the pixel location.
+   */
+  getData(pixel) {
+    const frameState = this.frameState;
+    if (!frameState) {
+      return null;
+    }
+
+    const layer = this.getLayer();
+    const coordinate = apply(
+      frameState.pixelToCoordinateTransform,
+      pixel.slice(),
+    );
+
+    const layerExtent = layer.getExtent();
+    if (layerExtent) {
+      if (!containsCoordinate(layerExtent, coordinate)) {
+        return null;
+      }
+    }
+
+    const imageExtent = this.image_.getExtent();
+    const img = this.image_.getImage();
+
+    const imageMapWidth = getWidth(imageExtent);
+    const col = Math.floor(
+      img.width * ((coordinate[0] - imageExtent[0]) / imageMapWidth),
+    );
+    if (col < 0 || col >= img.width) {
+      return null;
+    }
+
+    const imageMapHeight = getHeight(imageExtent);
+    const row = Math.floor(
+      img.height * ((imageExtent[3] - coordinate[1]) / imageMapHeight),
+    );
+    if (row < 0 || row >= img.height) {
+      return null;
+    }
+
+    return this.getImageData(img, col, row);
+  }
+
+  /**
+   * Render the layer.
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   * @param {HTMLElement} target Target that may be used to render content to.
+   * @return {HTMLElement} The rendered element.
+   */
+  renderFrame(frameState, target) {
+    const image = this.image_;
+    const imageExtent = image.getExtent();
+    const imageResolution = image.getResolution();
+    const [imageResolutionX, imageResolutionY] = Array.isArray(imageResolution)
+      ? imageResolution
+      : [imageResolution, imageResolution];
+    const imagePixelRatio = image.getPixelRatio();
+    const layerState = frameState.layerStatesArray[frameState.layerIndex];
+    const pixelRatio = frameState.pixelRatio;
+    const viewState = frameState.viewState;
+    const viewCenter = viewState.center;
+    const viewResolution = viewState.resolution;
+    const scaleX =
+      (pixelRatio * imageResolutionX) / (viewResolution * imagePixelRatio);
+    const scaleY =
+      (pixelRatio * imageResolutionY) / (viewResolution * imagePixelRatio);
+
+    this.prepareContainer(frameState, target);
+
+    // desired dimensions of the canvas in pixels
+    const width = this.context.canvas.width;
+    const height = this.context.canvas.height;
+
+    const context = this.getRenderContext(frameState);
+
+    // clipped rendering if layer extent is set
+    let clipped = false;
+    let render = true;
+    if (layerState.extent) {
+      const layerExtent = fromUserExtent(
+        layerState.extent,
+        viewState.projection,
+      );
+      render = intersects$1(layerExtent, frameState.extent);
+      clipped = render && !containsExtent(layerExtent, frameState.extent);
+      if (clipped) {
+        this.clipUnrotated(context, frameState, layerExtent);
+      }
+    }
+
+    const img = image.getImage();
+
+    const transform = compose(
+      this.tempTransform,
+      width / 2,
+      height / 2,
+      scaleX,
+      scaleY,
+      0,
+      (imagePixelRatio * (imageExtent[0] - viewCenter[0])) / imageResolutionX,
+      (imagePixelRatio * (viewCenter[1] - imageExtent[3])) / imageResolutionY,
+    );
+
+    this.renderedResolution = (imageResolutionY * pixelRatio) / imagePixelRatio;
+
+    const dw = img.width * transform[0];
+    const dh = img.height * transform[3];
+
+    if (!this.getLayer().getSource().getInterpolate()) {
+      context.imageSmoothingEnabled = false;
+    }
+
+    this.preRender(context, frameState);
+    if (render && dw >= 0.5 && dh >= 0.5) {
+      const dx = transform[4];
+      const dy = transform[5];
+      const opacity = layerState.opacity;
+      if (opacity !== 1) {
+        context.save();
+        context.globalAlpha = opacity;
+      }
+      context.drawImage(img, 0, 0, +img.width, +img.height, dx, dy, dw, dh);
+      if (opacity !== 1) {
+        context.restore();
+      }
+    }
+    this.postRender(this.context, frameState);
+
+    if (clipped) {
+      context.restore();
+    }
+    context.imageSmoothingEnabled = true;
+
+    return this.container;
+  }
+}
+
+/**
+ * @module ol/layer/Image
+ */
+
+/**
+ * @classdesc
+ * Server-rendered images that are available for arbitrary extents and
+ * resolutions.
+ * Note that any property set in the options is set as a {@link module:ol/Object~BaseObject}
+ * property on the layer object; for example, setting `title: 'My Title'` in the
+ * options means that `title` is observable, and has get/set accessors.
+ *
+ * @template {import("../source/Image.js").default} ImageSourceType
+ * @extends {BaseImageLayer<ImageSourceType, CanvasImageLayerRenderer>}
+ * @api
+ */
+class ImageLayer extends BaseImageLayer {
+  /**
+   * @param {import("./BaseImage.js").Options<ImageSourceType>} [options] Layer options.
+   */
+  constructor(options) {
+    super(options);
+  }
+
+  createRenderer() {
+    return new CanvasImageLayerRenderer(this);
+  }
+
+  /**
+   * Get data for a pixel location.  A four element RGBA array will be returned.  For requests outside the
+   * layer extent, `null` will be returned.  Data for an image can only be retrieved if the
+   * source's `crossOrigin` property is set.
+   *
+   * ```js
+   * // display layer data on every pointer move
+   * map.on('pointermove', (event) => {
+   *   console.log(layer.getData(event.pixel));
+   * });
+   * ```
+   * @param {import("../pixel").Pixel} pixel Pixel.
+   * @return {Uint8ClampedArray|Uint8Array|Float32Array|DataView|null} Pixel data.
+   * @api
+   */
+  getData(pixel) {
+    return super.getData(pixel);
+  }
+}
+
+/**
+ * @module ol/reproj/common
+ */
+
+/**
+ * Default maximum allowed threshold  (in pixels) for reprojection
+ * triangulation.
+ * @type {number}
+ */
+const ERROR_THRESHOLD = 0.5;
+
+/**
+ * @module ol/reproj/Triangulation
+ */
+
+/**
+ * Single triangle; consists of 3 source points and 3 target points.
+ * @typedef {Object} Triangle
+ * @property {Array<import("../coordinate.js").Coordinate>} source Source.
+ * @property {Array<import("../coordinate.js").Coordinate>} target Target.
+ */
+
+/**
+ * Maximum number of subdivision steps during raster reprojection triangulation.
+ * Prevents high memory usage and large number of proj4 calls (for certain
+ * transformations and areas). At most `2*(2^this)` triangles are created for
+ * each triangulated extent (tile/image).
+ * @type {number}
+ */
+const MAX_SUBDIVISION = 10;
+
+/**
+ * Maximum allowed size of triangle relative to world width. When transforming
+ * corners of world extent between certain projections, the resulting
+ * triangulation seems to have zero error and no subdivision is performed. If
+ * the triangle width is more than this (relative to world width; 0-1),
+ * subdivison is forced (up to `MAX_SUBDIVISION`). Default is `0.25`.
+ * @type {number}
+ */
+const MAX_TRIANGLE_WIDTH = 0.25;
+
+/**
+ * @classdesc
+ * Class containing triangulation of the given target extent.
+ * Used for determining source data and the reprojection itself.
+ */
+class Triangulation {
+  /**
+   * @param {import("../proj/Projection.js").default} sourceProj Source projection.
+   * @param {import("../proj/Projection.js").default} targetProj Target projection.
+   * @param {import("../extent.js").Extent} targetExtent Target extent to triangulate.
+   * @param {import("../extent.js").Extent} maxSourceExtent Maximal source extent that can be used.
+   * @param {number} errorThreshold Acceptable error (in source units).
+   * @param {?number} destinationResolution The (optional) resolution of the destination.
+   */
+  constructor(
+    sourceProj,
+    targetProj,
+    targetExtent,
+    maxSourceExtent,
+    errorThreshold,
+    destinationResolution,
+  ) {
+    /**
+     * @type {import("../proj/Projection.js").default}
+     * @private
+     */
+    this.sourceProj_ = sourceProj;
+
+    /**
+     * @type {import("../proj/Projection.js").default}
+     * @private
+     */
+    this.targetProj_ = targetProj;
+
+    /** @type {!Object<string, import("../coordinate.js").Coordinate>} */
+    let transformInvCache = {};
+    const transformInv = getTransform(this.targetProj_, this.sourceProj_);
+
+    /**
+     * @param {import("../coordinate.js").Coordinate} c A coordinate.
+     * @return {import("../coordinate.js").Coordinate} Transformed coordinate.
+     * @private
+     */
+    this.transformInv_ = function (c) {
+      const key = c[0] + '/' + c[1];
+      if (!transformInvCache[key]) {
+        transformInvCache[key] = transformInv(c);
+      }
+      return transformInvCache[key];
+    };
+
+    /**
+     * @type {import("../extent.js").Extent}
+     * @private
+     */
+    this.maxSourceExtent_ = maxSourceExtent;
+
+    /**
+     * @type {number}
+     * @private
+     */
+    this.errorThresholdSquared_ = errorThreshold * errorThreshold;
+
+    /**
+     * @type {Array<Triangle>}
+     * @private
+     */
+    this.triangles_ = [];
+
+    /**
+     * Indicates that the triangulation crosses edge of the source projection.
+     * @type {boolean}
+     * @private
+     */
+    this.wrapsXInSource_ = false;
+
+    /**
+     * @type {boolean}
+     * @private
+     */
+    this.canWrapXInSource_ =
+      this.sourceProj_.canWrapX() &&
+      !!maxSourceExtent &&
+      !!this.sourceProj_.getExtent() &&
+      getWidth(maxSourceExtent) >= getWidth(this.sourceProj_.getExtent());
+
+    /**
+     * @type {?number}
+     * @private
+     */
+    this.sourceWorldWidth_ = this.sourceProj_.getExtent()
+      ? getWidth(this.sourceProj_.getExtent())
+      : null;
+
+    /**
+     * @type {?number}
+     * @private
+     */
+    this.targetWorldWidth_ = this.targetProj_.getExtent()
+      ? getWidth(this.targetProj_.getExtent())
+      : null;
+
+    const destinationTopLeft = getTopLeft(targetExtent);
+    const destinationTopRight = getTopRight(targetExtent);
+    const destinationBottomRight = getBottomRight(targetExtent);
+    const destinationBottomLeft = getBottomLeft(targetExtent);
+    const sourceTopLeft = this.transformInv_(destinationTopLeft);
+    const sourceTopRight = this.transformInv_(destinationTopRight);
+    const sourceBottomRight = this.transformInv_(destinationBottomRight);
+    const sourceBottomLeft = this.transformInv_(destinationBottomLeft);
+
+    /*
+     * The maxSubdivision controls how many splittings of the target area can
+     * be done. The idea here is to do a linear mapping of the target areas
+     * but the actual overall reprojection (can be) extremely non-linear. The
+     * default value of MAX_SUBDIVISION was chosen based on mapping a 256x256
+     * tile size. However this function is also called to remap canvas rendered
+     * layers which can be much larger. This calculation increases the maxSubdivision
+     * value by the right factor so that each 256x256 pixel area has
+     * MAX_SUBDIVISION divisions.
+     */
+    const maxSubdivision =
+      MAX_SUBDIVISION +
+      (destinationResolution
+        ? Math.max(
+            0,
+            Math.ceil(
+              Math.log2(
+                getArea(targetExtent) /
+                  (destinationResolution * destinationResolution * 256 * 256),
+              ),
+            ),
+          )
+        : 0);
+
+    this.addQuad_(
+      destinationTopLeft,
+      destinationTopRight,
+      destinationBottomRight,
+      destinationBottomLeft,
+      sourceTopLeft,
+      sourceTopRight,
+      sourceBottomRight,
+      sourceBottomLeft,
+      maxSubdivision,
+    );
+
+    if (this.wrapsXInSource_) {
+      let leftBound = Infinity;
+      this.triangles_.forEach(function (triangle, i, arr) {
+        leftBound = Math.min(
+          leftBound,
+          triangle.source[0][0],
+          triangle.source[1][0],
+          triangle.source[2][0],
+        );
+      });
+
+      // Shift triangles to be as close to `leftBound` as possible
+      // (if the distance is more than `worldWidth / 2` it can be closer.
+      this.triangles_.forEach((triangle) => {
+        if (
+          Math.max(
+            triangle.source[0][0],
+            triangle.source[1][0],
+            triangle.source[2][0],
+          ) -
+            leftBound >
+          this.sourceWorldWidth_ / 2
+        ) {
+          const newTriangle = [
+            [triangle.source[0][0], triangle.source[0][1]],
+            [triangle.source[1][0], triangle.source[1][1]],
+            [triangle.source[2][0], triangle.source[2][1]],
+          ];
+          if (newTriangle[0][0] - leftBound > this.sourceWorldWidth_ / 2) {
+            newTriangle[0][0] -= this.sourceWorldWidth_;
+          }
+          if (newTriangle[1][0] - leftBound > this.sourceWorldWidth_ / 2) {
+            newTriangle[1][0] -= this.sourceWorldWidth_;
+          }
+          if (newTriangle[2][0] - leftBound > this.sourceWorldWidth_ / 2) {
+            newTriangle[2][0] -= this.sourceWorldWidth_;
+          }
+
+          // Rarely (if the extent contains both the dateline and prime meridian)
+          // the shift can in turn break some triangles.
+          // Detect this here and don't shift in such cases.
+          const minX = Math.min(
+            newTriangle[0][0],
+            newTriangle[1][0],
+            newTriangle[2][0],
+          );
+          const maxX = Math.max(
+            newTriangle[0][0],
+            newTriangle[1][0],
+            newTriangle[2][0],
+          );
+          if (maxX - minX < this.sourceWorldWidth_ / 2) {
+            triangle.source = newTriangle;
+          }
+        }
+      });
+    }
+
+    transformInvCache = {};
+  }
+
+  /**
+   * Adds triangle to the triangulation.
+   * @param {import("../coordinate.js").Coordinate} a The target a coordinate.
+   * @param {import("../coordinate.js").Coordinate} b The target b coordinate.
+   * @param {import("../coordinate.js").Coordinate} c The target c coordinate.
+   * @param {import("../coordinate.js").Coordinate} aSrc The source a coordinate.
+   * @param {import("../coordinate.js").Coordinate} bSrc The source b coordinate.
+   * @param {import("../coordinate.js").Coordinate} cSrc The source c coordinate.
+   * @private
+   */
+  addTriangle_(a, b, c, aSrc, bSrc, cSrc) {
+    this.triangles_.push({
+      source: [aSrc, bSrc, cSrc],
+      target: [a, b, c],
+    });
+  }
+
+  /**
+   * Adds quad (points in clock-wise order) to the triangulation
+   * (and reprojects the vertices) if valid.
+   * Performs quad subdivision if needed to increase precision.
+   *
+   * @param {import("../coordinate.js").Coordinate} a The target a coordinate.
+   * @param {import("../coordinate.js").Coordinate} b The target b coordinate.
+   * @param {import("../coordinate.js").Coordinate} c The target c coordinate.
+   * @param {import("../coordinate.js").Coordinate} d The target d coordinate.
+   * @param {import("../coordinate.js").Coordinate} aSrc The source a coordinate.
+   * @param {import("../coordinate.js").Coordinate} bSrc The source b coordinate.
+   * @param {import("../coordinate.js").Coordinate} cSrc The source c coordinate.
+   * @param {import("../coordinate.js").Coordinate} dSrc The source d coordinate.
+   * @param {number} maxSubdivision Maximal allowed subdivision of the quad.
+   * @private
+   */
+  addQuad_(a, b, c, d, aSrc, bSrc, cSrc, dSrc, maxSubdivision) {
+    const sourceQuadExtent = boundingExtent([aSrc, bSrc, cSrc, dSrc]);
+    const sourceCoverageX = this.sourceWorldWidth_
+      ? getWidth(sourceQuadExtent) / this.sourceWorldWidth_
+      : null;
+    const sourceWorldWidth = /** @type {number} */ (this.sourceWorldWidth_);
+
+    // when the quad is wrapped in the source projection
+    // it covers most of the projection extent, but not fully
+    const wrapsX =
+      this.sourceProj_.canWrapX() &&
+      sourceCoverageX > 0.5 &&
+      sourceCoverageX < 1;
+
+    let needsSubdivision = false;
+
+    if (maxSubdivision > 0) {
+      if (this.targetProj_.isGlobal() && this.targetWorldWidth_) {
+        const targetQuadExtent = boundingExtent([a, b, c, d]);
+        const targetCoverageX =
+          getWidth(targetQuadExtent) / this.targetWorldWidth_;
+        needsSubdivision =
+          targetCoverageX > MAX_TRIANGLE_WIDTH || needsSubdivision;
+      }
+      if (!wrapsX && this.sourceProj_.isGlobal() && sourceCoverageX) {
+        needsSubdivision =
+          sourceCoverageX > MAX_TRIANGLE_WIDTH || needsSubdivision;
+      }
+    }
+
+    if (!needsSubdivision && this.maxSourceExtent_) {
+      if (
+        isFinite(sourceQuadExtent[0]) &&
+        isFinite(sourceQuadExtent[1]) &&
+        isFinite(sourceQuadExtent[2]) &&
+        isFinite(sourceQuadExtent[3])
+      ) {
+        if (!intersects$1(sourceQuadExtent, this.maxSourceExtent_)) {
+          // whole quad outside source projection extent -> ignore
+          return;
+        }
+      }
+    }
+
+    let isNotFinite = 0;
+
+    if (!needsSubdivision) {
+      if (
+        !isFinite(aSrc[0]) ||
+        !isFinite(aSrc[1]) ||
+        !isFinite(bSrc[0]) ||
+        !isFinite(bSrc[1]) ||
+        !isFinite(cSrc[0]) ||
+        !isFinite(cSrc[1]) ||
+        !isFinite(dSrc[0]) ||
+        !isFinite(dSrc[1])
+      ) {
+        if (maxSubdivision > 0) {
+          needsSubdivision = true;
+        } else {
+          // It might be the case that only 1 of the points is infinite. In this case
+          // we can draw a single triangle with the other three points
+          isNotFinite =
+            (!isFinite(aSrc[0]) || !isFinite(aSrc[1]) ? 8 : 0) +
+            (!isFinite(bSrc[0]) || !isFinite(bSrc[1]) ? 4 : 0) +
+            (!isFinite(cSrc[0]) || !isFinite(cSrc[1]) ? 2 : 0) +
+            (!isFinite(dSrc[0]) || !isFinite(dSrc[1]) ? 1 : 0);
+          if (
+            isNotFinite != 1 &&
+            isNotFinite != 2 &&
+            isNotFinite != 4 &&
+            isNotFinite != 8
+          ) {
+            return;
+          }
+        }
+      }
+    }
+
+    if (maxSubdivision > 0) {
+      if (!needsSubdivision) {
+        const center = [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2];
+        const centerSrc = this.transformInv_(center);
+
+        let dx;
+        if (wrapsX) {
+          const centerSrcEstimX =
+            (modulo(aSrc[0], sourceWorldWidth) +
+              modulo(cSrc[0], sourceWorldWidth)) /
+            2;
+          dx = centerSrcEstimX - modulo(centerSrc[0], sourceWorldWidth);
+        } else {
+          dx = (aSrc[0] + cSrc[0]) / 2 - centerSrc[0];
+        }
+        const dy = (aSrc[1] + cSrc[1]) / 2 - centerSrc[1];
+        const centerSrcErrorSquared = dx * dx + dy * dy;
+        needsSubdivision = centerSrcErrorSquared > this.errorThresholdSquared_;
+      }
+      if (needsSubdivision) {
+        if (Math.abs(a[0] - c[0]) <= Math.abs(a[1] - c[1])) {
+          // split horizontally (top & bottom)
+          const bc = [(b[0] + c[0]) / 2, (b[1] + c[1]) / 2];
+          const bcSrc = this.transformInv_(bc);
+          const da = [(d[0] + a[0]) / 2, (d[1] + a[1]) / 2];
+          const daSrc = this.transformInv_(da);
+
+          this.addQuad_(
+            a,
+            b,
+            bc,
+            da,
+            aSrc,
+            bSrc,
+            bcSrc,
+            daSrc,
+            maxSubdivision - 1,
+          );
+          this.addQuad_(
+            da,
+            bc,
+            c,
+            d,
+            daSrc,
+            bcSrc,
+            cSrc,
+            dSrc,
+            maxSubdivision - 1,
+          );
+        } else {
+          // split vertically (left & right)
+          const ab = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+          const abSrc = this.transformInv_(ab);
+          const cd = [(c[0] + d[0]) / 2, (c[1] + d[1]) / 2];
+          const cdSrc = this.transformInv_(cd);
+
+          this.addQuad_(
+            a,
+            ab,
+            cd,
+            d,
+            aSrc,
+            abSrc,
+            cdSrc,
+            dSrc,
+            maxSubdivision - 1,
+          );
+          this.addQuad_(
+            ab,
+            b,
+            c,
+            cd,
+            abSrc,
+            bSrc,
+            cSrc,
+            cdSrc,
+            maxSubdivision - 1,
+          );
+        }
+        return;
+      }
+    }
+
+    if (wrapsX) {
+      if (!this.canWrapXInSource_) {
+        return;
+      }
+      this.wrapsXInSource_ = true;
+    }
+
+    // Exactly zero or one of *Src is not finite
+    // The triangles must have the diagonal line as the first side
+    // This is to allow easy code in reproj.s to make it straight for broken
+    // browsers that can't handle diagonal clipping
+    if ((isNotFinite & 0xb) == 0) {
+      this.addTriangle_(a, c, d, aSrc, cSrc, dSrc);
+    }
+    if ((isNotFinite & 0xe) == 0) {
+      this.addTriangle_(a, c, b, aSrc, cSrc, bSrc);
+    }
+    if (isNotFinite) {
+      // Try the other two triangles
+      if ((isNotFinite & 0xd) == 0) {
+        this.addTriangle_(b, d, a, bSrc, dSrc, aSrc);
+      }
+      if ((isNotFinite & 0x7) == 0) {
+        this.addTriangle_(b, d, c, bSrc, dSrc, cSrc);
+      }
+    }
+  }
+
+  /**
+   * Calculates extent of the `source` coordinates from all the triangles.
+   *
+   * @return {import("../extent.js").Extent} Calculated extent.
+   */
+  calculateSourceExtent() {
+    const extent = createEmpty();
+
+    this.triangles_.forEach(function (triangle, i, arr) {
+      const src = triangle.source;
+      extendCoordinate(extent, src[0]);
+      extendCoordinate(extent, src[1]);
+      extendCoordinate(extent, src[2]);
+    });
+
+    return extent;
+  }
+
+  /**
+   * @return {Array<Triangle>} Array of the calculated triangles.
+   */
+  getTriangles() {
+    return this.triangles_;
+  }
+}
+
+/**
+ * @module ol/reproj
+ */
+
+let brokenDiagonalRendering_;
+
+/**
+ * @type {Array<HTMLCanvasElement>}
+ */
+const canvasPool$1 = [];
+
+/**
+ * This draws a small triangle into a canvas by setting the triangle as the clip region
+ * and then drawing a (too large) rectangle
+ *
+ * @param {CanvasRenderingContext2D} ctx The context in which to draw the triangle
+ * @param {number} u1 The x-coordinate of the second point. The first point is 0,0.
+ * @param {number} v1 The y-coordinate of the second point.
+ * @param {number} u2 The x-coordinate of the third point.
+ * @param {number} v2 The y-coordinate of the third point.
+ */
+function drawTestTriangle(ctx, u1, v1, u2, v2) {
+  ctx.beginPath();
+  ctx.moveTo(0, 0);
+  ctx.lineTo(u1, v1);
+  ctx.lineTo(u2, v2);
+  ctx.closePath();
+  ctx.save();
+  ctx.clip();
+  ctx.fillRect(0, 0, Math.max(u1, u2) + 1, Math.max(v1, v2));
+  ctx.restore();
+}
+
+/**
+ * Given the data from getImageData, see if the right values appear at the provided offset.
+ * Returns true if either the color or transparency is off
+ *
+ * @param {Uint8ClampedArray} data The data returned from getImageData
+ * @param {number} offset The pixel offset from the start of data.
+ * @return {boolean} true if the diagonal rendering is broken
+ */
+function verifyBrokenDiagonalRendering(data, offset) {
+  // the values ought to be close to the rgba(210, 0, 0, 0.75)
+  return (
+    Math.abs(data[offset * 4] - 210) > 2 ||
+    Math.abs(data[offset * 4 + 3] - 0.75 * 255) > 2
+  );
+}
+
+/**
+ * Determines if the current browser configuration can render triangular clip regions correctly.
+ * This value is cached so the function is only expensive the first time called.
+ * Firefox on Windows (as of now) does not if HWA is enabled. See https://bugzilla.mozilla.org/show_bug.cgi?id=1606976
+ * Chrome works, and everything seems to work on OSX and Android. This function caches the
+ * result. I suppose that it is conceivably possible that a browser might flip modes while the app is
+ * running, but lets hope not.
+ *
+ * @return {boolean} true if the Diagonal Rendering is broken.
+ */
+function isBrokenDiagonalRendering() {
+  if (brokenDiagonalRendering_ === undefined) {
+    const ctx = createCanvasContext2D(6, 6, canvasPool$1);
+    ctx.globalCompositeOperation = 'lighter';
+    ctx.fillStyle = 'rgba(210, 0, 0, 0.75)';
+    drawTestTriangle(ctx, 4, 5, 4, 0);
+    drawTestTriangle(ctx, 4, 5, 0, 5);
+    const data = ctx.getImageData(0, 0, 3, 3).data;
+    brokenDiagonalRendering_ =
+      verifyBrokenDiagonalRendering(data, 0) ||
+      verifyBrokenDiagonalRendering(data, 4) ||
+      verifyBrokenDiagonalRendering(data, 8);
+    releaseCanvas(ctx);
+    canvasPool$1.push(ctx.canvas);
+  }
+
+  return brokenDiagonalRendering_;
+}
+
+/**
+ * Calculates ideal resolution to use from the source in order to achieve
+ * pixel mapping as close as possible to 1:1 during reprojection.
+ * The resolution is calculated regardless of what resolutions
+ * are actually available in the dataset (TileGrid, Image, ...).
+ *
+ * @param {import("./proj/Projection.js").default} sourceProj Source projection.
+ * @param {import("./proj/Projection.js").default} targetProj Target projection.
+ * @param {import("./coordinate.js").Coordinate} targetCenter Target center.
+ * @param {number} targetResolution Target resolution.
+ * @return {number} The best resolution to use. Can be +-Infinity, NaN or 0.
+ */
+function calculateSourceResolution(
+  sourceProj,
+  targetProj,
+  targetCenter,
+  targetResolution,
+) {
+  const sourceCenter = transform$1(targetCenter, targetProj, sourceProj);
+
+  // calculate the ideal resolution of the source data
+  let sourceResolution = getPointResolution(
+    targetProj,
+    targetResolution,
+    targetCenter,
+  );
+
+  const targetMetersPerUnit = targetProj.getMetersPerUnit();
+  if (targetMetersPerUnit !== undefined) {
+    sourceResolution *= targetMetersPerUnit;
+  }
+  const sourceMetersPerUnit = sourceProj.getMetersPerUnit();
+  if (sourceMetersPerUnit !== undefined) {
+    sourceResolution /= sourceMetersPerUnit;
+  }
+
+  // Based on the projection properties, the point resolution at the specified
+  // coordinates may be slightly different. We need to reverse-compensate this
+  // in order to achieve optimal results.
+
+  const sourceExtent = sourceProj.getExtent();
+  if (!sourceExtent || containsCoordinate(sourceExtent, sourceCenter)) {
+    const compensationFactor =
+      getPointResolution(sourceProj, sourceResolution, sourceCenter) /
+      sourceResolution;
+    if (isFinite(compensationFactor) && compensationFactor > 0) {
+      sourceResolution /= compensationFactor;
+    }
+  }
+
+  return sourceResolution;
+}
+
+/**
+ * Calculates ideal resolution to use from the source in order to achieve
+ * pixel mapping as close as possible to 1:1 during reprojection.
+ * The resolution is calculated regardless of what resolutions
+ * are actually available in the dataset (TileGrid, Image, ...).
+ *
+ * @param {import("./proj/Projection.js").default} sourceProj Source projection.
+ * @param {import("./proj/Projection.js").default} targetProj Target projection.
+ * @param {import("./extent.js").Extent} targetExtent Target extent
+ * @param {number} targetResolution Target resolution.
+ * @return {number} The best resolution to use. Can be +-Infinity, NaN or 0.
+ */
+function calculateSourceExtentResolution(
+  sourceProj,
+  targetProj,
+  targetExtent,
+  targetResolution,
+) {
+  const targetCenter = getCenter(targetExtent);
+  let sourceResolution = calculateSourceResolution(
+    sourceProj,
+    targetProj,
+    targetCenter,
+    targetResolution,
+  );
+
+  if (!isFinite(sourceResolution) || sourceResolution <= 0) {
+    forEachCorner(targetExtent, function (corner) {
+      sourceResolution = calculateSourceResolution(
+        sourceProj,
+        targetProj,
+        corner,
+        targetResolution,
+      );
+      return isFinite(sourceResolution) && sourceResolution > 0;
+    });
+  }
+
+  return sourceResolution;
+}
+
+/**
+ * @typedef {Object} ImageExtent
+ * @property {import("./extent.js").Extent} extent Extent.
+ * @property {import("./extent.js").Extent} [clipExtent] Clip extent.
+ * @property {import('./DataTile.js').ImageLike} image Image.
+ */
+
+/**
+ * Renders the source data into new canvas based on the triangulation.
+ *
+ * @param {number} width Width of the canvas.
+ * @param {number} height Height of the canvas.
+ * @param {number} pixelRatio Pixel ratio.
+ * @param {number} sourceResolution Source resolution.
+ * @param {import("./extent.js").Extent} sourceExtent Extent of the data source.
+ * @param {number} targetResolution Target resolution.
+ * @param {import("./extent.js").Extent} targetExtent Target extent.
+ * @param {import("./reproj/Triangulation.js").default} triangulation Calculated triangulation.
+ * @param {Array<ImageExtent>} sources Array of sources.
+ * @param {number} gutter Gutter of the sources.
+ * @param {boolean} [renderEdges] Render reprojection edges.
+ * @param {boolean} [interpolate] Use linear interpolation when resampling.
+ * @param {boolean} [drawSingle] Draw single source images directly without stitchContext.
+ * @param {boolean} [clipExtent] Clip stitchContext to sourceExtent.
+ * @return {HTMLCanvasElement} Canvas with reprojected data.
+ */
+function render(
+  width,
+  height,
+  pixelRatio,
+  sourceResolution,
+  sourceExtent,
+  targetResolution,
+  targetExtent,
+  triangulation,
+  sources,
+  gutter,
+  renderEdges,
+  interpolate,
+  drawSingle,
+  clipExtent,
+) {
+  const context = createCanvasContext2D(
+    Math.round(pixelRatio * width),
+    Math.round(pixelRatio * height),
+    canvasPool$1,
+  );
+
+  if (!interpolate) {
+    context.imageSmoothingEnabled = false;
+  }
+
+  if (sources.length === 0) {
+    return context.canvas;
+  }
+
+  context.scale(pixelRatio, pixelRatio);
+
+  function pixelRound(value) {
+    return Math.round(value * pixelRatio) / pixelRatio;
+  }
+
+  context.globalCompositeOperation = 'lighter';
+
+  const sourceDataExtent = createEmpty();
+  sources.forEach(function (src, i, arr) {
+    extend$2(sourceDataExtent, src.extent);
+  });
+
+  let stitchContext;
+  const stitchScale = pixelRatio / sourceResolution;
+  // Round up Float32 scale values to prevent interpolation in Firefox.
+  const inverseScale = (interpolate ? 1 : 1 + Math.pow(2, -24)) / stitchScale;
+
+  if (!drawSingle || sources.length !== 1 || gutter !== 0) {
+    stitchContext = createCanvasContext2D(
+      Math.round(getWidth(sourceDataExtent) * stitchScale),
+      Math.round(getHeight(sourceDataExtent) * stitchScale),
+      canvasPool$1,
+    );
+
+    if (!interpolate) {
+      stitchContext.imageSmoothingEnabled = false;
+    }
+
+    sources.forEach(function (src, i, arr) {
+      // This test should never fail -- but it does. Need to find a fix the upstream condition
+      if (src.image.width > 0 && src.image.height > 0) {
+        if (src.clipExtent) {
+          stitchContext.save();
+          const xPos = (src.clipExtent[0] - sourceDataExtent[0]) * stitchScale;
+          const yPos = -(src.clipExtent[3] - sourceDataExtent[3]) * stitchScale;
+          const width = getWidth(src.clipExtent) * stitchScale;
+          const height = getHeight(src.clipExtent) * stitchScale;
+          stitchContext.rect(
+            interpolate ? xPos : Math.round(xPos),
+            interpolate ? yPos : Math.round(yPos),
+            interpolate ? width : Math.round(xPos + width) - Math.round(xPos),
+            interpolate ? height : Math.round(yPos + height) - Math.round(yPos),
+          );
+          stitchContext.clip();
+        }
+
+        const xPos = (src.extent[0] - sourceDataExtent[0]) * stitchScale;
+        const yPos = -(src.extent[3] - sourceDataExtent[3]) * stitchScale;
+        const srcWidth = getWidth(src.extent) * stitchScale;
+        const srcHeight = getHeight(src.extent) * stitchScale;
+        stitchContext.drawImage(
+          src.image,
+          gutter,
+          gutter,
+          src.image.width - 2 * gutter,
+          src.image.height - 2 * gutter,
+          interpolate ? xPos : Math.round(xPos),
+          interpolate ? yPos : Math.round(yPos),
+          interpolate
+            ? srcWidth
+            : Math.round(xPos + srcWidth) - Math.round(xPos),
+          interpolate
+            ? srcHeight
+            : Math.round(yPos + srcHeight) - Math.round(yPos),
+        );
+
+        if (src.clipExtent) {
+          stitchContext.restore();
+        }
+      }
+    });
+  }
+  const targetTopLeft = getTopLeft(targetExtent);
+
+  triangulation.getTriangles().forEach(function (triangle, i, arr) {
+    /* Calculate affine transform (src -> dst)
+     * Resulting matrix can be used to transform coordinate
+     * from `sourceProjection` to destination pixels.
+     *
+     * To optimize number of context calls and increase numerical stability,
+     * we also do the following operations:
+     * trans(-topLeftExtentCorner), scale(1 / targetResolution), scale(1, -1)
+     * here before solving the linear system so [ui, vi] are pixel coordinates.
+     *
+     * Src points: xi, yi
+     * Dst points: ui, vi
+     * Affine coefficients: aij
+     *
+     * | x0 y0 1  0  0 0 |   |a00|   |u0|
+     * | x1 y1 1  0  0 0 |   |a01|   |u1|
+     * | x2 y2 1  0  0 0 | x |a02| = |u2|
+     * |  0  0 0 x0 y0 1 |   |a10|   |v0|
+     * |  0  0 0 x1 y1 1 |   |a11|   |v1|
+     * |  0  0 0 x2 y2 1 |   |a12|   |v2|
+     */
+    const source = triangle.source;
+    const target = triangle.target;
+    let x0 = source[0][0],
+      y0 = source[0][1];
+    let x1 = source[1][0],
+      y1 = source[1][1];
+    let x2 = source[2][0],
+      y2 = source[2][1];
+    // Make sure that everything is on pixel boundaries
+    const u0 = pixelRound((target[0][0] - targetTopLeft[0]) / targetResolution);
+    const v0 = pixelRound(
+      -(target[0][1] - targetTopLeft[1]) / targetResolution,
+    );
+    const u1 = pixelRound((target[1][0] - targetTopLeft[0]) / targetResolution);
+    const v1 = pixelRound(
+      -(target[1][1] - targetTopLeft[1]) / targetResolution,
+    );
+    const u2 = pixelRound((target[2][0] - targetTopLeft[0]) / targetResolution);
+    const v2 = pixelRound(
+      -(target[2][1] - targetTopLeft[1]) / targetResolution,
+    );
+
+    // Shift all the source points to improve numerical stability
+    // of all the subsequent calculations. The [x0, y0] is used here.
+    // This is also used to simplify the linear system.
+    const sourceNumericalShiftX = x0;
+    const sourceNumericalShiftY = y0;
+    x0 = 0;
+    y0 = 0;
+    x1 -= sourceNumericalShiftX;
+    y1 -= sourceNumericalShiftY;
+    x2 -= sourceNumericalShiftX;
+    y2 -= sourceNumericalShiftY;
+
+    const augmentedMatrix = [
+      [x1, y1, 0, 0, u1 - u0],
+      [x2, y2, 0, 0, u2 - u0],
+      [0, 0, x1, y1, v1 - v0],
+      [0, 0, x2, y2, v2 - v0],
+    ];
+    const affineCoefs = solveLinearSystem(augmentedMatrix);
+    if (!affineCoefs) {
+      return;
+    }
+
+    context.save();
+    context.beginPath();
+
+    if (isBrokenDiagonalRendering() || !interpolate) {
+      // Make sure that all lines are horizontal or vertical
+      context.moveTo(u1, v1);
+      // This is the diagonal line. Do it in 4 steps
+      const steps = 4;
+      const ud = u0 - u1;
+      const vd = v0 - v1;
+      for (let step = 0; step < steps; step++) {
+        // Go horizontally
+        context.lineTo(
+          u1 + pixelRound(((step + 1) * ud) / steps),
+          v1 + pixelRound((step * vd) / (steps - 1)),
+        );
+        // Go vertically
+        if (step != steps - 1) {
+          context.lineTo(
+            u1 + pixelRound(((step + 1) * ud) / steps),
+            v1 + pixelRound(((step + 1) * vd) / (steps - 1)),
+          );
+        }
+      }
+      // We are almost at u0r, v0r
+      context.lineTo(u2, v2);
+    } else {
+      context.moveTo(u1, v1);
+      context.lineTo(u0, v0);
+      context.lineTo(u2, v2);
+    }
+
+    context.clip();
+
+    context.transform(
+      affineCoefs[0],
+      affineCoefs[2],
+      affineCoefs[1],
+      affineCoefs[3],
+      u0,
+      v0,
+    );
+
+    context.translate(
+      sourceDataExtent[0] - sourceNumericalShiftX,
+      sourceDataExtent[3] - sourceNumericalShiftY,
+    );
+
+    let image;
+    if (stitchContext) {
+      image = stitchContext.canvas;
+      context.scale(inverseScale, -inverseScale);
+    } else {
+      const source = sources[0];
+      const extent = source.extent;
+      image = source.image;
+      context.scale(
+        getWidth(extent) / image.width,
+        -getHeight(extent) / image.height,
+      );
+    }
+
+    context.drawImage(image, 0, 0);
+    context.restore();
+  });
+
+  if (stitchContext) {
+    releaseCanvas(stitchContext);
+    canvasPool$1.push(stitchContext.canvas);
+  }
+
+  if (renderEdges) {
+    context.save();
+
+    context.globalCompositeOperation = 'source-over';
+    context.strokeStyle = 'black';
+    context.lineWidth = 1;
+
+    triangulation.getTriangles().forEach(function (triangle, i, arr) {
+      const target = triangle.target;
+      const u0 = (target[0][0] - targetTopLeft[0]) / targetResolution;
+      const v0 = -(target[0][1] - targetTopLeft[1]) / targetResolution;
+      const u1 = (target[1][0] - targetTopLeft[0]) / targetResolution;
+      const v1 = -(target[1][1] - targetTopLeft[1]) / targetResolution;
+      const u2 = (target[2][0] - targetTopLeft[0]) / targetResolution;
+      const v2 = -(target[2][1] - targetTopLeft[1]) / targetResolution;
+
+      context.beginPath();
+      context.moveTo(u1, v1);
+      context.lineTo(u0, v0);
+      context.lineTo(u2, v2);
+      context.closePath();
+      context.stroke();
+    });
+
+    context.restore();
+  }
+  return context.canvas;
+}
+
+/**
+ * @module ol/resolution
+ */
+
+/**
+ * @typedef {number|Array<number>} ResolutionLike
+ */
+
+/**
+ * @param {ResolutionLike} resolution Resolution.
+ * @return {number} Resolution.
+ */
+function fromResolutionLike(resolution) {
+  if (Array.isArray(resolution)) {
+    return Math.min(...resolution);
+  }
+  return resolution;
+}
+
+/**
+ * @module ol/reproj/Image
+ */
+
+/**
+ * @typedef {function(import("../extent.js").Extent, number, number) : import("../Image.js").default} FunctionType
+ */
+
+/**
+ * @classdesc
+ * Class encapsulating single reprojected image.
+ * See {@link module:ol/source/Image~ImageSource}.
+ */
+class ReprojImage extends ImageWrapper {
+  /**
+   * @param {import("../proj/Projection.js").default} sourceProj Source projection (of the data).
+   * @param {import("../proj/Projection.js").default} targetProj Target projection.
+   * @param {import("../extent.js").Extent} targetExtent Target extent.
+   * @param {number} targetResolution Target resolution.
+   * @param {number} pixelRatio Pixel ratio.
+   * @param {FunctionType} getImageFunction
+   *     Function returning source images (extent, resolution, pixelRatio).
+   * @param {boolean} interpolate Use linear interpolation when resampling.
+   */
+  constructor(
+    sourceProj,
+    targetProj,
+    targetExtent,
+    targetResolution,
+    pixelRatio,
+    getImageFunction,
+    interpolate,
+  ) {
+    let maxSourceExtent = sourceProj.getExtent();
+    if (maxSourceExtent && sourceProj.canWrapX()) {
+      maxSourceExtent = maxSourceExtent.slice();
+      maxSourceExtent[0] = -Infinity;
+      maxSourceExtent[2] = Infinity;
+    }
+    let maxTargetExtent = targetProj.getExtent();
+    if (maxTargetExtent && targetProj.canWrapX()) {
+      maxTargetExtent = maxTargetExtent.slice();
+      maxTargetExtent[0] = -Infinity;
+      maxTargetExtent[2] = Infinity;
+    }
+
+    const limitedTargetExtent = maxTargetExtent
+      ? getIntersection(targetExtent, maxTargetExtent)
+      : targetExtent;
+
+    const targetCenter = getCenter(limitedTargetExtent);
+    const sourceResolution = calculateSourceResolution(
+      sourceProj,
+      targetProj,
+      targetCenter,
+      targetResolution,
+    );
+
+    const errorThresholdInPixels = ERROR_THRESHOLD;
+
+    const triangulation = new Triangulation(
+      sourceProj,
+      targetProj,
+      limitedTargetExtent,
+      maxSourceExtent,
+      sourceResolution * errorThresholdInPixels,
+      targetResolution,
+    );
+
+    const sourceExtent = triangulation.calculateSourceExtent();
+    const sourceImage = isEmpty(sourceExtent)
+      ? null
+      : getImageFunction(sourceExtent, sourceResolution, pixelRatio);
+    const state = sourceImage ? ImageState.IDLE : ImageState.EMPTY;
+    const sourcePixelRatio = sourceImage ? sourceImage.getPixelRatio() : 1;
+
+    super(targetExtent, targetResolution, sourcePixelRatio, state);
+
+    /**
+     * @private
+     * @type {import("../proj/Projection.js").default}
+     */
+    this.targetProj_ = targetProj;
+
+    /**
+     * @private
+     * @type {import("../extent.js").Extent}
+     */
+    this.maxSourceExtent_ = maxSourceExtent;
+
+    /**
+     * @private
+     * @type {!import("./Triangulation.js").default}
+     */
+    this.triangulation_ = triangulation;
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.targetResolution_ = targetResolution;
+
+    /**
+     * @private
+     * @type {import("../extent.js").Extent}
+     */
+    this.targetExtent_ = targetExtent;
+
+    /**
+     * @private
+     * @type {import("../Image.js").default}
+     */
+    this.sourceImage_ = sourceImage;
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.sourcePixelRatio_ = sourcePixelRatio;
+
+    /**
+     * @private
+     * @type {boolean}
+     */
+    this.interpolate_ = interpolate;
+
+    /**
+     * @private
+     * @type {HTMLCanvasElement}
+     */
+    this.canvas_ = null;
+
+    /**
+     * @private
+     * @type {?import("../events.js").EventsKey}
+     */
+    this.sourceListenerKey_ = null;
+  }
+
+  /**
+   * Clean up.
+   */
+  disposeInternal() {
+    if (this.state == ImageState.LOADING) {
+      this.unlistenSource_();
+    }
+    super.disposeInternal();
+  }
+
+  /**
+   * @return {HTMLCanvasElement} Image.
+   */
+  getImage() {
+    return this.canvas_;
+  }
+
+  /**
+   * @return {import("../proj/Projection.js").default} Projection.
+   */
+  getProjection() {
+    return this.targetProj_;
+  }
+
+  /**
+   * @private
+   */
+  reproject_() {
+    const sourceState = this.sourceImage_.getState();
+    if (sourceState == ImageState.LOADED) {
+      const width = getWidth(this.targetExtent_) / this.targetResolution_;
+      const height = getHeight(this.targetExtent_) / this.targetResolution_;
+      this.canvas_ = render(
+        width,
+        height,
+        this.sourcePixelRatio_,
+        fromResolutionLike(this.sourceImage_.getResolution()),
+        this.maxSourceExtent_,
+        this.targetResolution_,
+        this.targetExtent_,
+        this.triangulation_,
+        [
+          {
+            extent: this.sourceImage_.getExtent(),
+            image: this.sourceImage_.getImage(),
+          },
+        ],
+        0,
+        undefined,
+        this.interpolate_,
+        true,
+      );
+    }
+    this.state = sourceState;
+    this.changed();
+  }
+
+  /**
+   * Load not yet loaded URI.
+   */
+  load() {
+    if (this.state == ImageState.IDLE) {
+      this.state = ImageState.LOADING;
+      this.changed();
+
+      const sourceState = this.sourceImage_.getState();
+      if (sourceState == ImageState.LOADED || sourceState == ImageState.ERROR) {
+        this.reproject_();
+      } else {
+        this.sourceListenerKey_ = listen(
+          this.sourceImage_,
+          EventType.CHANGE,
+          function (e) {
+            const sourceState = this.sourceImage_.getState();
+            if (
+              sourceState == ImageState.LOADED ||
+              sourceState == ImageState.ERROR
+            ) {
+              this.unlistenSource_();
+              this.reproject_();
+            }
+          },
+          this,
+        );
+        this.sourceImage_.load();
+      }
+    }
+  }
+
+  /**
+   * @private
+   */
+  unlistenSource_() {
+    unlistenByKey(
+      /** @type {!import("../events.js").EventsKey} */ (
+        this.sourceListenerKey_
+      ),
+    );
+    this.sourceListenerKey_ = null;
+  }
+}
+
+/**
+ * @module ol/source/common
+ */
+
+
+/**
+ * Number of decimal digits to consider in integer values when rounding.
+ * @type {number}
+ */
+const DECIMALS$1 = 4;
+
+/**
+ * @module ol/source/Image
+ */
+
+/**
+ * @enum {string}
+ */
+const ImageSourceEventType = {
+  /**
+   * Triggered when an image starts loading.
+   * @event module:ol/source/Image.ImageSourceEvent#imageloadstart
+   * @api
+   */
+  IMAGELOADSTART: 'imageloadstart',
+
+  /**
+   * Triggered when an image finishes loading.
+   * @event module:ol/source/Image.ImageSourceEvent#imageloadend
+   * @api
+   */
+  IMAGELOADEND: 'imageloadend',
+
+  /**
+   * Triggered if image loading results in an error.
+   * @event module:ol/source/Image.ImageSourceEvent#imageloaderror
+   * @api
+   */
+  IMAGELOADERROR: 'imageloaderror',
+};
+
+/**
+ * @typedef {'imageloadend'|'imageloaderror'|'imageloadstart'} ImageSourceEventTypes
+ */
+
+/**
+ * @classdesc
+ * Events emitted by {@link module:ol/source/Image~ImageSource} instances are instances of this
+ * type.
+ */
+class ImageSourceEvent extends BaseEvent {
+  /**
+   * @param {string} type Type.
+   * @param {import("../Image.js").default} image The image.
+   */
+  constructor(type, image) {
+    super(type);
+
+    /**
+     * The image related to the event.
+     * @type {import("../Image.js").default}
+     * @api
+     */
+    this.image = image;
+  }
+}
+
+/***
+ * @template Return
+ * @typedef {import("../Observable").OnSignature<import("../Observable").EventTypes, import("../events/Event.js").default, Return> &
+ *   import("../Observable").OnSignature<import("../ObjectEventType").Types, import("../Object").ObjectEvent, Return> &
+ *   import("../Observable").OnSignature<ImageSourceEventTypes, ImageSourceEvent, Return> &
+ *   import("../Observable").CombinedOnSignature<import("../Observable").EventTypes|import("../ObjectEventType").Types
+ *     |ImageSourceEventTypes, Return>} ImageSourceOnSignature
+ */
+
+/**
+ * @typedef {Object} Options
+ * @property {import("./Source.js").AttributionLike} [attributions] Attributions.
+ * @property {boolean} [interpolate=true] Use interpolated values when resampling.  By default,
+ * linear interpolation is used when resampling.  Set to false to use the nearest neighbor instead.
+ * @property {import("../Image.js").Loader} [loader] Loader. Can either be a custom loader, or one of the
+ * loaders created with a `createLoader()` function ({@link module:ol/source/wms.createLoader wms},
+ * {@link module:ol/source/arcgisRest.createLoader arcgisRest}, {@link module:ol/source/mapguide.createLoader mapguide},
+ * {@link module:ol/source/static.createLoader static}).
+ * @property {import("../proj.js").ProjectionLike} [projection] Projection.
+ * @property {Array<number>} [resolutions] Resolutions.
+ * @property {import("./Source.js").State} [state] State.
+ */
+
+/**
+ * @classdesc
+ * Base class for sources providing a single image.
+ * @fires module:ol/source/Image.ImageSourceEvent
+ * @api
+ */
+class ImageSource extends Source {
+  /**
+   * @param {Options} options Single image source options.
+   */
+  constructor(options) {
+    super({
+      attributions: options.attributions,
+      projection: options.projection,
+      state: options.state,
+      interpolate:
+        options.interpolate !== undefined ? options.interpolate : true,
+    });
+
+    /***
+     * @type {ImageSourceOnSignature<import("../events").EventsKey>}
+     */
+    this.on;
+
+    /***
+     * @type {ImageSourceOnSignature<import("../events").EventsKey>}
+     */
+    this.once;
+
+    /***
+     * @type {ImageSourceOnSignature<void>}
+     */
+    this.un;
+
+    /**
+     * @protected
+     * @type {import("../Image.js").Loader}
+     */
+    this.loader = options.loader || null;
+
+    /**
+     * @private
+     * @type {Array<number>|null}
+     */
+    this.resolutions_ =
+      options.resolutions !== undefined ? options.resolutions : null;
+
+    /**
+     * @private
+     * @type {import("../reproj/Image.js").default}
+     */
+    this.reprojectedImage_ = null;
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.reprojectedRevision_ = 0;
+
+    /**
+     * @protected
+     * @type {import("../Image.js").default}
+     */
+    this.image = null;
+
+    /**
+     * @private
+     * @type {import("../extent.js").Extent}
+     */
+    this.wantedExtent_;
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.wantedResolution_;
+
+    /**
+     * @private
+     * @type {boolean}
+     */
+    this.static_ = options.loader ? options.loader.length === 0 : false;
+
+    /**
+     * @private
+     * @type {import("../proj/Projection.js").default}
+     */
+    this.wantedProjection_ = null;
+  }
+
+  /**
+   * @return {Array<number>|null} Resolutions.
+   */
+  getResolutions() {
+    return this.resolutions_;
+  }
+
+  /**
+   * @param {Array<number>|null} resolutions Resolutions.
+   */
+  setResolutions(resolutions) {
+    this.resolutions_ = resolutions;
+  }
+
+  /**
+   * @protected
+   * @param {number} resolution Resolution.
+   * @return {number} Resolution.
+   */
+  findNearestResolution(resolution) {
+    const resolutions = this.getResolutions();
+    if (resolutions) {
+      const idx = linearFindNearest(resolutions, resolution, 0);
+      resolution = resolutions[idx];
+    }
+    return resolution;
+  }
+
+  /**
+   * @param {import("../extent.js").Extent} extent Extent.
+   * @param {number} resolution Resolution.
+   * @param {number} pixelRatio Pixel ratio.
+   * @param {import("../proj/Projection.js").default} projection Projection.
+   * @return {import("../Image.js").default} Single image.
+   */
+  getImage(extent, resolution, pixelRatio, projection) {
+    const sourceProjection = this.getProjection();
+    if (
+      !sourceProjection ||
+      !projection ||
+      equivalent(sourceProjection, projection)
+    ) {
+      if (sourceProjection) {
+        projection = sourceProjection;
+      }
+
+      return this.getImageInternal(extent, resolution, pixelRatio, projection);
+    }
+    if (this.reprojectedImage_) {
+      if (
+        this.reprojectedRevision_ == this.getRevision() &&
+        equivalent(this.reprojectedImage_.getProjection(), projection) &&
+        this.reprojectedImage_.getResolution() == resolution &&
+        equals$1(this.reprojectedImage_.getExtent(), extent)
+      ) {
+        return this.reprojectedImage_;
+      }
+      this.reprojectedImage_.dispose();
+      this.reprojectedImage_ = null;
+    }
+
+    this.reprojectedImage_ = new ReprojImage(
+      sourceProjection,
+      projection,
+      extent,
+      resolution,
+      pixelRatio,
+      (extent, resolution, pixelRatio) =>
+        this.getImageInternal(extent, resolution, pixelRatio, sourceProjection),
+      this.getInterpolate(),
+    );
+    this.reprojectedRevision_ = this.getRevision();
+
+    return this.reprojectedImage_;
+  }
+
+  /**
+   * @abstract
+   * @param {import("../extent.js").Extent} extent Extent.
+   * @param {number} resolution Resolution.
+   * @param {number} pixelRatio Pixel ratio.
+   * @param {import("../proj/Projection.js").default} projection Projection.
+   * @return {import("../Image.js").default} Single image.
+   * @protected
+   */
+  getImageInternal(extent, resolution, pixelRatio, projection) {
+    if (this.loader) {
+      const requestExtent = getRequestExtent(extent, resolution, pixelRatio, 1);
+      const requestResolution = this.findNearestResolution(resolution);
+      if (
+        this.image &&
+        (this.static_ ||
+          (this.wantedProjection_ === projection &&
+            ((this.wantedExtent_ &&
+              containsExtent(this.wantedExtent_, requestExtent)) ||
+              containsExtent(this.image.getExtent(), requestExtent)) &&
+            ((this.wantedResolution_ &&
+              fromResolutionLike(this.wantedResolution_) ===
+                requestResolution) ||
+              fromResolutionLike(this.image.getResolution()) ===
+                requestResolution)))
+      ) {
+        return this.image;
+      }
+      this.wantedProjection_ = projection;
+      this.wantedExtent_ = requestExtent;
+      this.wantedResolution_ = requestResolution;
+      this.image = new ImageWrapper(
+        requestExtent,
+        requestResolution,
+        pixelRatio,
+        this.loader,
+      );
+      this.image.addEventListener(
+        EventType.CHANGE,
+        this.handleImageChange.bind(this),
+      );
+    }
+    return this.image;
+  }
+
+  /**
+   * Handle image change events.
+   * @param {import("../events/Event.js").default} event Event.
+   * @protected
+   */
+  handleImageChange(event) {
+    const image = /** @type {import("../Image.js").default} */ (event.target);
+    let type;
+    switch (image.getState()) {
+      case ImageState.LOADING:
+        this.loading = true;
+        type = ImageSourceEventType.IMAGELOADSTART;
+        break;
+      case ImageState.LOADED:
+        this.loading = false;
+        type = ImageSourceEventType.IMAGELOADEND;
+        break;
+      case ImageState.ERROR:
+        this.loading = false;
+        type = ImageSourceEventType.IMAGELOADERROR;
+        break;
+      default:
+        return;
+    }
+    if (this.hasListener(type)) {
+      this.dispatchEvent(new ImageSourceEvent(type, image));
+    }
+  }
+}
+
+/**
+ * Default image load function for image sources that use import("../Image.js").Image image
+ * instances.
+ * @param {import("../Image.js").default} image Image.
+ * @param {string} src Source.
+ */
+function defaultImageLoadFunction(image, src) {
+  /** @type {HTMLImageElement|HTMLVideoElement} */ (image.getImage()).src = src;
+}
+
+/**
+ * Adjusts the extent so it aligns with pixel boundaries.
+ * @param {import("../extent.js").Extent} extent Extent.
+ * @param {number} resolution Reolution.
+ * @param {number} pixelRatio Pixel ratio.
+ * @param {number} ratio Ratio between request size and view size.
+ * @return {import("../extent.js").Extent} Request extent.
+ */
+function getRequestExtent(extent, resolution, pixelRatio, ratio) {
+  const imageResolution = resolution / pixelRatio;
+  const center = getCenter(extent);
+  const viewWidth = ceil(getWidth(extent) / imageResolution, DECIMALS$1);
+  const viewHeight = ceil(getHeight(extent) / imageResolution, DECIMALS$1);
+  const marginWidth = ceil(((ratio - 1) * viewWidth) / 2, DECIMALS$1);
+  const requestWidth = viewWidth + 2 * marginWidth;
+  const marginHeight = ceil(((ratio - 1) * viewHeight) / 2, DECIMALS$1);
+  const requestHeight = viewHeight + 2 * marginHeight;
+  return getForViewAndSize(center, imageResolution, 0, [
+    requestWidth,
+    requestHeight,
+  ]);
+}
+
+/**
+ * @module ol/uri
+ */
+
+/**
+ * Appends query parameters to a URI.
+ *
+ * @param {string} uri The original URI, which may already have query data.
+ * @param {!Object} params An object where keys are URI-encoded parameter keys,
+ *     and the values are arbitrary types or arrays.
+ * @return {string} The new URI.
+ */
+function appendParams(uri, params) {
+  /** @type {Array<string>} */
+  const keyParams = [];
+  // Skip any null or undefined parameter values
+  Object.keys(params).forEach(function (k) {
+    if (params[k] !== null && params[k] !== undefined) {
+      keyParams.push(k + '=' + encodeURIComponent(params[k]));
+    }
+  });
+  const qs = keyParams.join('&');
+  // remove any trailing ? or &
+  uri = uri.replace(/[?&]$/, '');
+  // append ? or & depending on whether uri has existing parameters
+  uri += uri.includes('?') ? '&' : '?';
+  return uri + qs;
+}
+
+/**
+ * @module ol/source/wms
+ */
+
+
+/**
+ * Default WMS version.
+ * @type {string}
+ */
+const DEFAULT_VERSION = '1.3.0';
+
+/**
+ * @const
+ * @type {import("../size.js").Size}
+ */
+const GETFEATUREINFO_IMAGE_SIZE = [101, 101];
+
+/**
+ * @api
+ * @typedef {'carmentaserver' | 'geoserver' | 'mapserver' | 'qgis'} ServerType
+ * Set the server type to use implementation-specific parameters beyond the WMS specification.
+ *  - `'carmentaserver'`: HiDPI support for [Carmenta Server](https://www.carmenta.com/en/products/carmenta-server)
+ *  - `'geoserver'`: HiDPI support for [GeoServer](https://geoserver.org/)
+ *  - `'mapserver'`: HiDPI support for [MapServer](https://mapserver.org/)
+ *  - `'qgis'`: HiDPI support for [QGIS](https://qgis.org/)
+ */
+
+/**
+ * @param {string} baseUrl Base URL.
+ * @param {import("../extent.js").Extent} extent Extent.
+ * @param {import("../size.js").Size} size Size.
+ * @param {import("../proj/Projection.js").default} projection Projection.
+ * @param {Object} params WMS params. Will be modified in place.
+ * @return {string} Request URL.
+ */
+function getRequestUrl(baseUrl, extent, size, projection, params) {
+  params['WIDTH'] = size[0];
+  params['HEIGHT'] = size[1];
+
+  const axisOrientation = projection.getAxisOrientation();
+  let bbox;
+  const v13 = compareVersions(params['VERSION'], '1.3') >= 0;
+  params[v13 ? 'CRS' : 'SRS'] = projection.getCode();
+  if (v13 && axisOrientation.substr(0, 2) == 'ne') {
+    bbox = [extent[1], extent[0], extent[3], extent[2]];
+  } else {
+    bbox = extent;
+  }
+  params['BBOX'] = bbox.join(',');
+
+  return appendParams(/** @type {string} */ (baseUrl), params);
+}
+
+/**
+ * @param {import("../extent").Extent} extent Extent.
+ * @param {number} resolution Resolution.
+ * @param {number} pixelRatio pixel ratio.
+ * @param {import("../proj.js").Projection} projection Projection.
+ * @param {string} url WMS service url.
+ * @param {Object} params WMS params.
+ * @param {import("./wms.js").ServerType} serverType The type of the remote WMS server.
+ * @return {string} Image src.
+ */
+function getImageSrc(
+  extent,
+  resolution,
+  pixelRatio,
+  projection,
+  url,
+  params,
+  serverType,
+) {
+  params = Object.assign({REQUEST: 'GetMap'}, params);
+
+  const imageResolution = resolution / pixelRatio;
+
+  const imageSize = [
+    round(getWidth(extent) / imageResolution, DECIMALS$1),
+    round(getHeight(extent) / imageResolution, DECIMALS$1),
+  ];
+
+  if (pixelRatio != 1) {
+    switch (serverType) {
+      case 'geoserver':
+        const dpi = (90 * pixelRatio + 0.5) | 0;
+        if ('FORMAT_OPTIONS' in params) {
+          params['FORMAT_OPTIONS'] += ';dpi:' + dpi;
+        } else {
+          params['FORMAT_OPTIONS'] = 'dpi:' + dpi;
+        }
+        break;
+      case 'mapserver':
+        params['MAP_RESOLUTION'] = 90 * pixelRatio;
+        break;
+      case 'carmentaserver':
+      case 'qgis':
+        params['DPI'] = 90 * pixelRatio;
+        break;
+      default:
+        throw new Error('Unknown `serverType` configured');
+    }
+  }
+
+  const src = getRequestUrl(url, extent, imageSize, projection, params);
+  return src;
+}
+
+/**
+ * @param {Object} params WMS params.
+ * @param {string} request WMS `REQUEST`.
+ * @return {Object} WMS params with required properties set.
+ */
+function getRequestParams(params, request) {
+  return Object.assign(
+    {
+      'REQUEST': request,
+      'SERVICE': 'WMS',
+      'VERSION': DEFAULT_VERSION,
+      'FORMAT': 'image/png',
+      'STYLES': '',
+      'TRANSPARENT': true,
+    },
+    params,
+  );
+}
+
+/**
+ * @typedef {Object} LoaderOptions
+ * @property {null|string} [crossOrigin] The `crossOrigin` attribute for loaded images.  Note that
+ * you must provide a `crossOrigin` value if you want to access pixel data with the Canvas renderer.
+ * See https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_enabled_image for more detail.
+ * @property {boolean} [hidpi=true] Use the `ol/Map#pixelRatio` value when requesting
+ * the image from the remote server.
+ * @property {Object<string,*>} [params] WMS request parameters.
+ * At least a `LAYERS` param is required. `STYLES` is
+ * `''` by default. `VERSION` is `1.3.0` by default. `WIDTH`, `HEIGHT` and `BBOX` will be set
+ * dynamically. `CRS` (`SRS` for WMS version < 1.3.0) will is derived from the `proection` config.
+ * @property {import("../proj.js").ProjectionLike} [projection] Projection. Default is 'EPSG:3857'.
+ * @property {number} [ratio=1.5] Ratio. `1` means image requests are the size of the map viewport, `2` means
+ * twice the width and height of the map viewport, and so on. Must be `1` or higher.
+ * @property {import("./wms.js").ServerType} [serverType] The type of
+ * the remote WMS server: `mapserver`, `geoserver`, `carmentaserver`, or `qgis`.
+ * Only needed if `hidpi` is `true`.
+ * @property {string} url WMS service URL.
+ * @property {function(HTMLImageElement, string): Promise<import('../DataTile.js').ImageLike>} [load] Function
+ * to perform loading of the image. Receives the created `HTMLImageElement` and the desired `src` as argument and
+ * returns a promise resolving to the loaded or decoded image. Default is {@link module:ol/Image.decode}.
+ */
+
+/**
+ * Creates a loader for WMS images.
+ * @param {LoaderOptions} options Loader options.
+ * @return {import("../Image.js").ImageObjectPromiseLoader} Loader.
+ * @api
+ */
+function createLoader(options) {
+  const hidpi = options.hidpi === undefined ? true : options.hidpi;
+  const projection = get$2(options.projection || 'EPSG:3857');
+  const ratio = options.ratio || 1.5;
+  const load = options.load || decode$1;
+
+  /**
+   * @type {import("../Image.js").Loader}
+   */
+  return (extent, resolution, pixelRatio) => {
+    extent = getRequestExtent(extent, resolution, pixelRatio, ratio);
+    if (pixelRatio != 1 && (!hidpi || options.serverType === undefined)) {
+      pixelRatio = 1;
+    }
+    const src = getImageSrc(
+      extent,
+      resolution,
+      pixelRatio,
+      projection,
+      options.url,
+      getRequestParams(options.params, 'GetMap'),
+      options.serverType,
+    );
+    const image = new Image();
+    if (options.crossOrigin !== null) {
+      image.crossOrigin = options.crossOrigin;
+    }
+    return load(image, src).then((image) => ({image, extent, pixelRatio}));
+  };
+}
+
+/**
+ * Get the GetFeatureInfo URL for the passed coordinate and resolution. Returns `undefined` if the
+ * GetFeatureInfo URL cannot be constructed.
+ * @param {LoaderOptions} options Options passed the `createWMSLoader()` function. In addition to
+ * the params required by the loader, `INFO_FORMAT` should be specified, it defaults to
+ * `application/json`. If `QUERY_LAYERS` is not provided, then the layers specified in the `LAYERS`
+ * parameter will be used.
+ * @param {import("../coordinate.js").Coordinate} coordinate Coordinate.
+ * @param {number} resolution Resolution.
+ * @return {string|undefined} GetFeatureInfo URL.
+ * @api
+ */
+function getFeatureInfoUrl(options, coordinate, resolution) {
+  if (options.url === undefined) {
+    return undefined;
+  }
+
+  const projectionObj = get$2(options.projection || 'EPSG:3857');
+
+  const extent = getForViewAndSize(
+    coordinate,
+    resolution,
+    0,
+    GETFEATUREINFO_IMAGE_SIZE,
+  );
+
+  const baseParams = {
+    'QUERY_LAYERS': options.params['LAYERS'],
+    'INFO_FORMAT': 'application/json',
+  };
+  Object.assign(
+    baseParams,
+    getRequestParams(options.params, 'GetFeatureInfo'),
+    options.params,
+  );
+
+  const x = floor((coordinate[0] - extent[0]) / resolution, DECIMALS$1);
+  const y = floor((extent[3] - coordinate[1]) / resolution, DECIMALS$1);
+  const v13 = compareVersions(baseParams['VERSION'], '1.3') >= 0;
+  baseParams[v13 ? 'I' : 'X'] = x;
+  baseParams[v13 ? 'J' : 'Y'] = y;
+
+  return getRequestUrl(
+    options.url,
+    extent,
+    GETFEATUREINFO_IMAGE_SIZE,
+    projectionObj,
+    baseParams,
+  );
+}
+
+/**
+ * Get the GetLegendGraphic URL, optionally optimized for the passed resolution and possibly
+ * including any passed specific parameters. Returns `undefined` if the GetLegendGraphic URL
+ * cannot be constructed.
+ *
+ * @param {LoaderOptions} options Options passed the `createWMSLoader()` function.
+ * @param {number} [resolution] Resolution. If not provided, `SCALE` will not be calculated and
+ * included in URL.
+ * @return {string|undefined} GetLegendGraphic URL.
+ * @api
+ */
+function getLegendUrl(options, resolution) {
+  if (options.url === undefined) {
+    return undefined;
+  }
+
+  const baseParams = {
+    'SERVICE': 'WMS',
+    'VERSION': DEFAULT_VERSION,
+    'REQUEST': 'GetLegendGraphic',
+    'FORMAT': 'image/png',
+  };
+
+  if (options.params === undefined || options.params['LAYER'] === undefined) {
+    const layers = options.params.LAYERS;
+    const isSingleLayer = !Array.isArray(layers) || layers.length === 1;
+    if (!isSingleLayer) {
+      return undefined;
+    }
+    baseParams['LAYER'] = layers;
+  }
+
+  if (resolution !== undefined) {
+    const mpu =
+      get$2(options.projection || 'EPSG:3857').getMetersPerUnit() || 1;
+    const pixelSize = 0.00028;
+    baseParams['SCALE'] = (resolution * mpu) / pixelSize;
+  }
+
+  Object.assign(baseParams, options.params);
+
+  return appendParams(options.url, baseParams);
+}
+
+/**
+ * @module ol/source/ImageWMS
+ */
+
+
+/**
+ * @typedef {Object} Options
+ * @property {import("./Source.js").AttributionLike} [attributions] Attributions.
+ * @property {null|string} [crossOrigin] The `crossOrigin` attribute for loaded images.  Note that
+ * you must provide a `crossOrigin` value if you want to access pixel data with the Canvas renderer.
+ * See https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_enabled_image for more detail.
+ * @property {boolean} [hidpi=true] Use the `ol/Map#pixelRatio` value when requesting
+ * the image from the remote server.
+ * @property {import("./wms.js").ServerType} [serverType] The type of
+ * the remote WMS server: `mapserver`, `geoserver`, `carmentaserver`, or `qgis`.
+ * Only needed if `hidpi` is `true`.
+ * @property {import("../Image.js").LoadFunction} [imageLoadFunction] Optional function to load an image given a URL.
+ * @property {boolean} [interpolate=true] Use interpolated values when resampling.  By default,
+ * linear interpolation is used when resampling.  Set to false to use the nearest neighbor instead.
+ * @property {Object<string,*>} [params] WMS request parameters.
+ * At least a `LAYERS` param is required. `STYLES` is
+ * `''` by default. `VERSION` is `1.3.0` by default. `WIDTH`, `HEIGHT`, `BBOX`
+ * and `CRS` (`SRS` for WMS version < 1.3.0) will be set dynamically.
+ * @property {import("../proj.js").ProjectionLike} [projection] Projection. Default is the view projection.
+ * @property {number} [ratio=1.5] Ratio. `1` means image requests are the size of the map viewport, `2` means
+ * twice the width and height of the map viewport, and so on. Must be `1` or higher.
+ * @property {Array<number>} [resolutions] Resolutions.
+ * If specified, requests will be made for these resolutions only.
+ * @property {string} [url] WMS service URL.
+ */
+
+/**
+ * @classdesc
+ * Source for WMS servers providing single, untiled images.
+ *
+ * @fires module:ol/source/Image.ImageSourceEvent
+ * @api
+ */
+class ImageWMS extends ImageSource {
+  /**
+   * @param {Options} [options] ImageWMS options.
+   */
+  constructor(options) {
+    options = options ? options : {};
+
+    super({
+      attributions: options.attributions,
+      interpolate: options.interpolate,
+      projection: options.projection,
+      resolutions: options.resolutions,
+    });
+
+    /**
+     * @private
+     * @type {?string}
+     */
+    this.crossOrigin_ =
+      options.crossOrigin !== undefined ? options.crossOrigin : null;
+
+    /**
+     * @private
+     * @type {string|undefined}
+     */
+    this.url_ = options.url;
+
+    /**
+     * @private
+     * @type {import("../Image.js").LoadFunction}
+     */
+    this.imageLoadFunction_ =
+      options.imageLoadFunction !== undefined
+        ? options.imageLoadFunction
+        : defaultImageLoadFunction;
+
+    /**
+     * @private
+     * @type {!Object}
+     */
+    this.params_ = Object.assign({}, options.params);
+
+    /**
+     * @private
+     * @type {import("./wms.js").ServerType}
+     */
+    this.serverType_ = options.serverType;
+
+    /**
+     * @private
+     * @type {boolean}
+     */
+    this.hidpi_ = options.hidpi !== undefined ? options.hidpi : true;
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.renderedRevision_ = 0;
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.ratio_ = options.ratio !== undefined ? options.ratio : 1.5;
+
+    /**
+     * @private
+     * @type {import("../proj/Projection.js").default}
+     */
+    this.loaderProjection_ = null;
+  }
+
+  /**
+   * Return the GetFeatureInfo URL for the passed coordinate, resolution, and
+   * projection. Return `undefined` if the GetFeatureInfo URL cannot be
+   * constructed.
+   * @param {import("../coordinate.js").Coordinate} coordinate Coordinate.
+   * @param {number} resolution Resolution.
+   * @param {import("../proj.js").ProjectionLike} projection Projection.
+   * @param {!Object} params GetFeatureInfo params. `INFO_FORMAT` at least should
+   *     be provided. If `QUERY_LAYERS` is not provided then the layers specified
+   *     in the `LAYERS` parameter will be used. `VERSION` should not be
+   *     specified here.
+   * @return {string|undefined} GetFeatureInfo URL.
+   * @api
+   */
+  getFeatureInfoUrl(coordinate, resolution, projection, params) {
+    const projectionObj = get$2(projection);
+    const sourceProjectionObj = this.getProjection();
+
+    if (sourceProjectionObj && sourceProjectionObj !== projectionObj) {
+      resolution = calculateSourceResolution(
+        sourceProjectionObj,
+        projectionObj,
+        coordinate,
+        resolution,
+      );
+      coordinate = transform$1(coordinate, projectionObj, sourceProjectionObj);
+    }
+
+    const options = {
+      url: this.url_,
+      params: {
+        ...this.params_,
+        ...params,
+      },
+      projection: sourceProjectionObj || projectionObj,
+    };
+    return getFeatureInfoUrl(options, coordinate, resolution);
+  }
+
+  /**
+   * Return the GetLegendGraphic URL, optionally optimized for the passed
+   * resolution and possibly including any passed specific parameters. Returns
+   * `undefined` if the GetLegendGraphic URL cannot be constructed.
+   *
+   * @param {number} [resolution] Resolution. If set to undefined, `SCALE`
+   *     will not be calculated and included in URL.
+   * @param {Object} [params] GetLegendGraphic params. If `LAYER` is set, the
+   *     request is generated for this wms layer, else it will try to use the
+   *     configured wms layer. Default `FORMAT` is `image/png`.
+   *     `VERSION` should not be specified here.
+   * @return {string|undefined} GetLegendGraphic URL.
+   * @api
+   */
+  getLegendUrl(resolution, params) {
+    return getLegendUrl(
+      {
+        url: this.url_,
+        params: {
+          ...this.params_,
+          ...params,
+        },
+      },
+      resolution,
+    );
+  }
+
+  /**
+   * Get the user-provided params, i.e. those passed to the constructor through
+   * the "params" option, and possibly updated using the updateParams method.
+   * @return {Object} Params.
+   * @api
+   */
+  getParams() {
+    return this.params_;
+  }
+
+  /**
+   * @param {import("../extent.js").Extent} extent Extent.
+   * @param {number} resolution Resolution.
+   * @param {number} pixelRatio Pixel ratio.
+   * @param {import("../proj/Projection.js").default} projection Projection.
+   * @return {import("../Image.js").default} Single image.
+   */
+  getImageInternal(extent, resolution, pixelRatio, projection) {
+    if (this.url_ === undefined) {
+      return null;
+    }
+    if (!this.loader || this.loaderProjection_ !== projection) {
+      // Lazily create loader to pick up the view projection and to allow `params` updates
+      this.loaderProjection_ = projection;
+      this.loader = createLoader({
+        crossOrigin: this.crossOrigin_,
+        params: this.params_,
+        projection: projection,
+        serverType: this.serverType_,
+        hidpi: this.hidpi_,
+        url: this.url_,
+        ratio: this.ratio_,
+        load: (image, src) => {
+          this.image.setImage(image);
+          this.imageLoadFunction_(this.image, src);
+          return decode$1(image);
+        },
+      });
+    }
+
+    return super.getImageInternal(extent, resolution, pixelRatio, projection);
+  }
+
+  /**
+   * Return the image load function of the source.
+   * @return {import("../Image.js").LoadFunction} The image load function.
+   * @api
+   */
+  getImageLoadFunction() {
+    return this.imageLoadFunction_;
+  }
+
+  /**
+   * Return the URL used for this WMS source.
+   * @return {string|undefined} URL.
+   * @api
+   */
+  getUrl() {
+    return this.url_;
+  }
+
+  /**
+   * Set the image load function of the source.
+   * @param {import("../Image.js").LoadFunction} imageLoadFunction Image load function.
+   * @api
+   */
+  setImageLoadFunction(imageLoadFunction) {
+    this.imageLoadFunction_ = imageLoadFunction;
+    this.changed();
+  }
+
+  /**
+   * Set the URL to use for requests.
+   * @param {string|undefined} url URL.
+   * @api
+   */
+  setUrl(url) {
+    if (url != this.url_) {
+      this.url_ = url;
+      this.loader = null;
+      this.changed();
+    }
+  }
+
+  /**
+   * Update the user-provided params.
+   * @param {Object} params Params.
+   * @api
+   */
+  updateParams(params) {
+    Object.assign(this.params_, params);
+    this.changed();
+  }
+
+  changed() {
+    this.image = null;
+    super.changed();
+  }
+}
+
+/** Render a single-image OGC Web Map Service layer. */
+var ImageWMSLayer = _ref => {
+  var id = _ref.id,
+    url = _ref.url,
+    params = _ref.params,
+    serverType = _ref.serverType;
+  var map = useMap();
+  var sourceRef = useRef(null);
+  var paramsRef = useRef(params);
+  useEffect(() => {
+    paramsRef.current = params;
+    if (sourceRef.current) {
+      sourceRef.current.updateParams(params);
+    }
+  }, [params]);
+  useEffect(() => {
+    if (!map || !url) return undefined;
+    var source = new ImageWMS({
+      url,
+      params: paramsRef.current,
+      serverType
+    });
+    var layer = new ImageLayer({
+      source
+    });
+    layer.set('dashId', id);
+    sourceRef.current = source;
+    map.addLayer(layer);
+    return () => {
+      map.removeLayer(layer);
+      sourceRef.current = null;
+    };
+  }, [id, map, serverType, url]);
+  return null;
+};
+ImageWMSLayer.defaultProps = {
+  url: null,
+  params: {},
+  serverType: null
+};
+ImageWMSLayer.propTypes = {
+  /** Component ID used to identify this layer in the Dash layout. */
+  id: PropTypes.string,
+  /** OGC WMS endpoint URL. */
+  url: PropTypes.string,
+  /** WMS request parameters, including LAYERS; changes refresh the source. */
+  params: PropTypes.object,
+  /** WMS server type used for vendor-specific HiDPI request parameters. */
+  serverType: PropTypes.oneOf(['carmentaserver', 'geoserver', 'mapserver', 'qgis']),
+  /** Dash-supplied callback used to write component state back to the layout. */
+  setProps: PropTypes.func
+};
+
+/**
  * @module ol/interaction/Modify
  */
 
@@ -58079,973 +60913,6 @@ function getBlankImage() {
   ctx.fillStyle = 'rgba(0,0,0,0)';
   ctx.fillRect(0, 0, 1, 1);
   return ctx.canvas;
-}
-
-/**
- * @module ol/reproj/common
- */
-
-/**
- * Default maximum allowed threshold  (in pixels) for reprojection
- * triangulation.
- * @type {number}
- */
-const ERROR_THRESHOLD = 0.5;
-
-/**
- * @module ol/reproj/Triangulation
- */
-
-/**
- * Single triangle; consists of 3 source points and 3 target points.
- * @typedef {Object} Triangle
- * @property {Array<import("../coordinate.js").Coordinate>} source Source.
- * @property {Array<import("../coordinate.js").Coordinate>} target Target.
- */
-
-/**
- * Maximum number of subdivision steps during raster reprojection triangulation.
- * Prevents high memory usage and large number of proj4 calls (for certain
- * transformations and areas). At most `2*(2^this)` triangles are created for
- * each triangulated extent (tile/image).
- * @type {number}
- */
-const MAX_SUBDIVISION = 10;
-
-/**
- * Maximum allowed size of triangle relative to world width. When transforming
- * corners of world extent between certain projections, the resulting
- * triangulation seems to have zero error and no subdivision is performed. If
- * the triangle width is more than this (relative to world width; 0-1),
- * subdivison is forced (up to `MAX_SUBDIVISION`). Default is `0.25`.
- * @type {number}
- */
-const MAX_TRIANGLE_WIDTH = 0.25;
-
-/**
- * @classdesc
- * Class containing triangulation of the given target extent.
- * Used for determining source data and the reprojection itself.
- */
-class Triangulation {
-  /**
-   * @param {import("../proj/Projection.js").default} sourceProj Source projection.
-   * @param {import("../proj/Projection.js").default} targetProj Target projection.
-   * @param {import("../extent.js").Extent} targetExtent Target extent to triangulate.
-   * @param {import("../extent.js").Extent} maxSourceExtent Maximal source extent that can be used.
-   * @param {number} errorThreshold Acceptable error (in source units).
-   * @param {?number} destinationResolution The (optional) resolution of the destination.
-   */
-  constructor(
-    sourceProj,
-    targetProj,
-    targetExtent,
-    maxSourceExtent,
-    errorThreshold,
-    destinationResolution,
-  ) {
-    /**
-     * @type {import("../proj/Projection.js").default}
-     * @private
-     */
-    this.sourceProj_ = sourceProj;
-
-    /**
-     * @type {import("../proj/Projection.js").default}
-     * @private
-     */
-    this.targetProj_ = targetProj;
-
-    /** @type {!Object<string, import("../coordinate.js").Coordinate>} */
-    let transformInvCache = {};
-    const transformInv = getTransform(this.targetProj_, this.sourceProj_);
-
-    /**
-     * @param {import("../coordinate.js").Coordinate} c A coordinate.
-     * @return {import("../coordinate.js").Coordinate} Transformed coordinate.
-     * @private
-     */
-    this.transformInv_ = function (c) {
-      const key = c[0] + '/' + c[1];
-      if (!transformInvCache[key]) {
-        transformInvCache[key] = transformInv(c);
-      }
-      return transformInvCache[key];
-    };
-
-    /**
-     * @type {import("../extent.js").Extent}
-     * @private
-     */
-    this.maxSourceExtent_ = maxSourceExtent;
-
-    /**
-     * @type {number}
-     * @private
-     */
-    this.errorThresholdSquared_ = errorThreshold * errorThreshold;
-
-    /**
-     * @type {Array<Triangle>}
-     * @private
-     */
-    this.triangles_ = [];
-
-    /**
-     * Indicates that the triangulation crosses edge of the source projection.
-     * @type {boolean}
-     * @private
-     */
-    this.wrapsXInSource_ = false;
-
-    /**
-     * @type {boolean}
-     * @private
-     */
-    this.canWrapXInSource_ =
-      this.sourceProj_.canWrapX() &&
-      !!maxSourceExtent &&
-      !!this.sourceProj_.getExtent() &&
-      getWidth(maxSourceExtent) >= getWidth(this.sourceProj_.getExtent());
-
-    /**
-     * @type {?number}
-     * @private
-     */
-    this.sourceWorldWidth_ = this.sourceProj_.getExtent()
-      ? getWidth(this.sourceProj_.getExtent())
-      : null;
-
-    /**
-     * @type {?number}
-     * @private
-     */
-    this.targetWorldWidth_ = this.targetProj_.getExtent()
-      ? getWidth(this.targetProj_.getExtent())
-      : null;
-
-    const destinationTopLeft = getTopLeft(targetExtent);
-    const destinationTopRight = getTopRight(targetExtent);
-    const destinationBottomRight = getBottomRight(targetExtent);
-    const destinationBottomLeft = getBottomLeft(targetExtent);
-    const sourceTopLeft = this.transformInv_(destinationTopLeft);
-    const sourceTopRight = this.transformInv_(destinationTopRight);
-    const sourceBottomRight = this.transformInv_(destinationBottomRight);
-    const sourceBottomLeft = this.transformInv_(destinationBottomLeft);
-
-    /*
-     * The maxSubdivision controls how many splittings of the target area can
-     * be done. The idea here is to do a linear mapping of the target areas
-     * but the actual overall reprojection (can be) extremely non-linear. The
-     * default value of MAX_SUBDIVISION was chosen based on mapping a 256x256
-     * tile size. However this function is also called to remap canvas rendered
-     * layers which can be much larger. This calculation increases the maxSubdivision
-     * value by the right factor so that each 256x256 pixel area has
-     * MAX_SUBDIVISION divisions.
-     */
-    const maxSubdivision =
-      MAX_SUBDIVISION +
-      (destinationResolution
-        ? Math.max(
-            0,
-            Math.ceil(
-              Math.log2(
-                getArea(targetExtent) /
-                  (destinationResolution * destinationResolution * 256 * 256),
-              ),
-            ),
-          )
-        : 0);
-
-    this.addQuad_(
-      destinationTopLeft,
-      destinationTopRight,
-      destinationBottomRight,
-      destinationBottomLeft,
-      sourceTopLeft,
-      sourceTopRight,
-      sourceBottomRight,
-      sourceBottomLeft,
-      maxSubdivision,
-    );
-
-    if (this.wrapsXInSource_) {
-      let leftBound = Infinity;
-      this.triangles_.forEach(function (triangle, i, arr) {
-        leftBound = Math.min(
-          leftBound,
-          triangle.source[0][0],
-          triangle.source[1][0],
-          triangle.source[2][0],
-        );
-      });
-
-      // Shift triangles to be as close to `leftBound` as possible
-      // (if the distance is more than `worldWidth / 2` it can be closer.
-      this.triangles_.forEach((triangle) => {
-        if (
-          Math.max(
-            triangle.source[0][0],
-            triangle.source[1][0],
-            triangle.source[2][0],
-          ) -
-            leftBound >
-          this.sourceWorldWidth_ / 2
-        ) {
-          const newTriangle = [
-            [triangle.source[0][0], triangle.source[0][1]],
-            [triangle.source[1][0], triangle.source[1][1]],
-            [triangle.source[2][0], triangle.source[2][1]],
-          ];
-          if (newTriangle[0][0] - leftBound > this.sourceWorldWidth_ / 2) {
-            newTriangle[0][0] -= this.sourceWorldWidth_;
-          }
-          if (newTriangle[1][0] - leftBound > this.sourceWorldWidth_ / 2) {
-            newTriangle[1][0] -= this.sourceWorldWidth_;
-          }
-          if (newTriangle[2][0] - leftBound > this.sourceWorldWidth_ / 2) {
-            newTriangle[2][0] -= this.sourceWorldWidth_;
-          }
-
-          // Rarely (if the extent contains both the dateline and prime meridian)
-          // the shift can in turn break some triangles.
-          // Detect this here and don't shift in such cases.
-          const minX = Math.min(
-            newTriangle[0][0],
-            newTriangle[1][0],
-            newTriangle[2][0],
-          );
-          const maxX = Math.max(
-            newTriangle[0][0],
-            newTriangle[1][0],
-            newTriangle[2][0],
-          );
-          if (maxX - minX < this.sourceWorldWidth_ / 2) {
-            triangle.source = newTriangle;
-          }
-        }
-      });
-    }
-
-    transformInvCache = {};
-  }
-
-  /**
-   * Adds triangle to the triangulation.
-   * @param {import("../coordinate.js").Coordinate} a The target a coordinate.
-   * @param {import("../coordinate.js").Coordinate} b The target b coordinate.
-   * @param {import("../coordinate.js").Coordinate} c The target c coordinate.
-   * @param {import("../coordinate.js").Coordinate} aSrc The source a coordinate.
-   * @param {import("../coordinate.js").Coordinate} bSrc The source b coordinate.
-   * @param {import("../coordinate.js").Coordinate} cSrc The source c coordinate.
-   * @private
-   */
-  addTriangle_(a, b, c, aSrc, bSrc, cSrc) {
-    this.triangles_.push({
-      source: [aSrc, bSrc, cSrc],
-      target: [a, b, c],
-    });
-  }
-
-  /**
-   * Adds quad (points in clock-wise order) to the triangulation
-   * (and reprojects the vertices) if valid.
-   * Performs quad subdivision if needed to increase precision.
-   *
-   * @param {import("../coordinate.js").Coordinate} a The target a coordinate.
-   * @param {import("../coordinate.js").Coordinate} b The target b coordinate.
-   * @param {import("../coordinate.js").Coordinate} c The target c coordinate.
-   * @param {import("../coordinate.js").Coordinate} d The target d coordinate.
-   * @param {import("../coordinate.js").Coordinate} aSrc The source a coordinate.
-   * @param {import("../coordinate.js").Coordinate} bSrc The source b coordinate.
-   * @param {import("../coordinate.js").Coordinate} cSrc The source c coordinate.
-   * @param {import("../coordinate.js").Coordinate} dSrc The source d coordinate.
-   * @param {number} maxSubdivision Maximal allowed subdivision of the quad.
-   * @private
-   */
-  addQuad_(a, b, c, d, aSrc, bSrc, cSrc, dSrc, maxSubdivision) {
-    const sourceQuadExtent = boundingExtent([aSrc, bSrc, cSrc, dSrc]);
-    const sourceCoverageX = this.sourceWorldWidth_
-      ? getWidth(sourceQuadExtent) / this.sourceWorldWidth_
-      : null;
-    const sourceWorldWidth = /** @type {number} */ (this.sourceWorldWidth_);
-
-    // when the quad is wrapped in the source projection
-    // it covers most of the projection extent, but not fully
-    const wrapsX =
-      this.sourceProj_.canWrapX() &&
-      sourceCoverageX > 0.5 &&
-      sourceCoverageX < 1;
-
-    let needsSubdivision = false;
-
-    if (maxSubdivision > 0) {
-      if (this.targetProj_.isGlobal() && this.targetWorldWidth_) {
-        const targetQuadExtent = boundingExtent([a, b, c, d]);
-        const targetCoverageX =
-          getWidth(targetQuadExtent) / this.targetWorldWidth_;
-        needsSubdivision =
-          targetCoverageX > MAX_TRIANGLE_WIDTH || needsSubdivision;
-      }
-      if (!wrapsX && this.sourceProj_.isGlobal() && sourceCoverageX) {
-        needsSubdivision =
-          sourceCoverageX > MAX_TRIANGLE_WIDTH || needsSubdivision;
-      }
-    }
-
-    if (!needsSubdivision && this.maxSourceExtent_) {
-      if (
-        isFinite(sourceQuadExtent[0]) &&
-        isFinite(sourceQuadExtent[1]) &&
-        isFinite(sourceQuadExtent[2]) &&
-        isFinite(sourceQuadExtent[3])
-      ) {
-        if (!intersects$1(sourceQuadExtent, this.maxSourceExtent_)) {
-          // whole quad outside source projection extent -> ignore
-          return;
-        }
-      }
-    }
-
-    let isNotFinite = 0;
-
-    if (!needsSubdivision) {
-      if (
-        !isFinite(aSrc[0]) ||
-        !isFinite(aSrc[1]) ||
-        !isFinite(bSrc[0]) ||
-        !isFinite(bSrc[1]) ||
-        !isFinite(cSrc[0]) ||
-        !isFinite(cSrc[1]) ||
-        !isFinite(dSrc[0]) ||
-        !isFinite(dSrc[1])
-      ) {
-        if (maxSubdivision > 0) {
-          needsSubdivision = true;
-        } else {
-          // It might be the case that only 1 of the points is infinite. In this case
-          // we can draw a single triangle with the other three points
-          isNotFinite =
-            (!isFinite(aSrc[0]) || !isFinite(aSrc[1]) ? 8 : 0) +
-            (!isFinite(bSrc[0]) || !isFinite(bSrc[1]) ? 4 : 0) +
-            (!isFinite(cSrc[0]) || !isFinite(cSrc[1]) ? 2 : 0) +
-            (!isFinite(dSrc[0]) || !isFinite(dSrc[1]) ? 1 : 0);
-          if (
-            isNotFinite != 1 &&
-            isNotFinite != 2 &&
-            isNotFinite != 4 &&
-            isNotFinite != 8
-          ) {
-            return;
-          }
-        }
-      }
-    }
-
-    if (maxSubdivision > 0) {
-      if (!needsSubdivision) {
-        const center = [(a[0] + c[0]) / 2, (a[1] + c[1]) / 2];
-        const centerSrc = this.transformInv_(center);
-
-        let dx;
-        if (wrapsX) {
-          const centerSrcEstimX =
-            (modulo(aSrc[0], sourceWorldWidth) +
-              modulo(cSrc[0], sourceWorldWidth)) /
-            2;
-          dx = centerSrcEstimX - modulo(centerSrc[0], sourceWorldWidth);
-        } else {
-          dx = (aSrc[0] + cSrc[0]) / 2 - centerSrc[0];
-        }
-        const dy = (aSrc[1] + cSrc[1]) / 2 - centerSrc[1];
-        const centerSrcErrorSquared = dx * dx + dy * dy;
-        needsSubdivision = centerSrcErrorSquared > this.errorThresholdSquared_;
-      }
-      if (needsSubdivision) {
-        if (Math.abs(a[0] - c[0]) <= Math.abs(a[1] - c[1])) {
-          // split horizontally (top & bottom)
-          const bc = [(b[0] + c[0]) / 2, (b[1] + c[1]) / 2];
-          const bcSrc = this.transformInv_(bc);
-          const da = [(d[0] + a[0]) / 2, (d[1] + a[1]) / 2];
-          const daSrc = this.transformInv_(da);
-
-          this.addQuad_(
-            a,
-            b,
-            bc,
-            da,
-            aSrc,
-            bSrc,
-            bcSrc,
-            daSrc,
-            maxSubdivision - 1,
-          );
-          this.addQuad_(
-            da,
-            bc,
-            c,
-            d,
-            daSrc,
-            bcSrc,
-            cSrc,
-            dSrc,
-            maxSubdivision - 1,
-          );
-        } else {
-          // split vertically (left & right)
-          const ab = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-          const abSrc = this.transformInv_(ab);
-          const cd = [(c[0] + d[0]) / 2, (c[1] + d[1]) / 2];
-          const cdSrc = this.transformInv_(cd);
-
-          this.addQuad_(
-            a,
-            ab,
-            cd,
-            d,
-            aSrc,
-            abSrc,
-            cdSrc,
-            dSrc,
-            maxSubdivision - 1,
-          );
-          this.addQuad_(
-            ab,
-            b,
-            c,
-            cd,
-            abSrc,
-            bSrc,
-            cSrc,
-            cdSrc,
-            maxSubdivision - 1,
-          );
-        }
-        return;
-      }
-    }
-
-    if (wrapsX) {
-      if (!this.canWrapXInSource_) {
-        return;
-      }
-      this.wrapsXInSource_ = true;
-    }
-
-    // Exactly zero or one of *Src is not finite
-    // The triangles must have the diagonal line as the first side
-    // This is to allow easy code in reproj.s to make it straight for broken
-    // browsers that can't handle diagonal clipping
-    if ((isNotFinite & 0xb) == 0) {
-      this.addTriangle_(a, c, d, aSrc, cSrc, dSrc);
-    }
-    if ((isNotFinite & 0xe) == 0) {
-      this.addTriangle_(a, c, b, aSrc, cSrc, bSrc);
-    }
-    if (isNotFinite) {
-      // Try the other two triangles
-      if ((isNotFinite & 0xd) == 0) {
-        this.addTriangle_(b, d, a, bSrc, dSrc, aSrc);
-      }
-      if ((isNotFinite & 0x7) == 0) {
-        this.addTriangle_(b, d, c, bSrc, dSrc, cSrc);
-      }
-    }
-  }
-
-  /**
-   * Calculates extent of the `source` coordinates from all the triangles.
-   *
-   * @return {import("../extent.js").Extent} Calculated extent.
-   */
-  calculateSourceExtent() {
-    const extent = createEmpty();
-
-    this.triangles_.forEach(function (triangle, i, arr) {
-      const src = triangle.source;
-      extendCoordinate(extent, src[0]);
-      extendCoordinate(extent, src[1]);
-      extendCoordinate(extent, src[2]);
-    });
-
-    return extent;
-  }
-
-  /**
-   * @return {Array<Triangle>} Array of the calculated triangles.
-   */
-  getTriangles() {
-    return this.triangles_;
-  }
-}
-
-/**
- * @module ol/reproj
- */
-
-let brokenDiagonalRendering_;
-
-/**
- * @type {Array<HTMLCanvasElement>}
- */
-const canvasPool$1 = [];
-
-/**
- * This draws a small triangle into a canvas by setting the triangle as the clip region
- * and then drawing a (too large) rectangle
- *
- * @param {CanvasRenderingContext2D} ctx The context in which to draw the triangle
- * @param {number} u1 The x-coordinate of the second point. The first point is 0,0.
- * @param {number} v1 The y-coordinate of the second point.
- * @param {number} u2 The x-coordinate of the third point.
- * @param {number} v2 The y-coordinate of the third point.
- */
-function drawTestTriangle(ctx, u1, v1, u2, v2) {
-  ctx.beginPath();
-  ctx.moveTo(0, 0);
-  ctx.lineTo(u1, v1);
-  ctx.lineTo(u2, v2);
-  ctx.closePath();
-  ctx.save();
-  ctx.clip();
-  ctx.fillRect(0, 0, Math.max(u1, u2) + 1, Math.max(v1, v2));
-  ctx.restore();
-}
-
-/**
- * Given the data from getImageData, see if the right values appear at the provided offset.
- * Returns true if either the color or transparency is off
- *
- * @param {Uint8ClampedArray} data The data returned from getImageData
- * @param {number} offset The pixel offset from the start of data.
- * @return {boolean} true if the diagonal rendering is broken
- */
-function verifyBrokenDiagonalRendering(data, offset) {
-  // the values ought to be close to the rgba(210, 0, 0, 0.75)
-  return (
-    Math.abs(data[offset * 4] - 210) > 2 ||
-    Math.abs(data[offset * 4 + 3] - 0.75 * 255) > 2
-  );
-}
-
-/**
- * Determines if the current browser configuration can render triangular clip regions correctly.
- * This value is cached so the function is only expensive the first time called.
- * Firefox on Windows (as of now) does not if HWA is enabled. See https://bugzilla.mozilla.org/show_bug.cgi?id=1606976
- * Chrome works, and everything seems to work on OSX and Android. This function caches the
- * result. I suppose that it is conceivably possible that a browser might flip modes while the app is
- * running, but lets hope not.
- *
- * @return {boolean} true if the Diagonal Rendering is broken.
- */
-function isBrokenDiagonalRendering() {
-  if (brokenDiagonalRendering_ === undefined) {
-    const ctx = createCanvasContext2D(6, 6, canvasPool$1);
-    ctx.globalCompositeOperation = 'lighter';
-    ctx.fillStyle = 'rgba(210, 0, 0, 0.75)';
-    drawTestTriangle(ctx, 4, 5, 4, 0);
-    drawTestTriangle(ctx, 4, 5, 0, 5);
-    const data = ctx.getImageData(0, 0, 3, 3).data;
-    brokenDiagonalRendering_ =
-      verifyBrokenDiagonalRendering(data, 0) ||
-      verifyBrokenDiagonalRendering(data, 4) ||
-      verifyBrokenDiagonalRendering(data, 8);
-    releaseCanvas(ctx);
-    canvasPool$1.push(ctx.canvas);
-  }
-
-  return brokenDiagonalRendering_;
-}
-
-/**
- * Calculates ideal resolution to use from the source in order to achieve
- * pixel mapping as close as possible to 1:1 during reprojection.
- * The resolution is calculated regardless of what resolutions
- * are actually available in the dataset (TileGrid, Image, ...).
- *
- * @param {import("./proj/Projection.js").default} sourceProj Source projection.
- * @param {import("./proj/Projection.js").default} targetProj Target projection.
- * @param {import("./coordinate.js").Coordinate} targetCenter Target center.
- * @param {number} targetResolution Target resolution.
- * @return {number} The best resolution to use. Can be +-Infinity, NaN or 0.
- */
-function calculateSourceResolution(
-  sourceProj,
-  targetProj,
-  targetCenter,
-  targetResolution,
-) {
-  const sourceCenter = transform$1(targetCenter, targetProj, sourceProj);
-
-  // calculate the ideal resolution of the source data
-  let sourceResolution = getPointResolution(
-    targetProj,
-    targetResolution,
-    targetCenter,
-  );
-
-  const targetMetersPerUnit = targetProj.getMetersPerUnit();
-  if (targetMetersPerUnit !== undefined) {
-    sourceResolution *= targetMetersPerUnit;
-  }
-  const sourceMetersPerUnit = sourceProj.getMetersPerUnit();
-  if (sourceMetersPerUnit !== undefined) {
-    sourceResolution /= sourceMetersPerUnit;
-  }
-
-  // Based on the projection properties, the point resolution at the specified
-  // coordinates may be slightly different. We need to reverse-compensate this
-  // in order to achieve optimal results.
-
-  const sourceExtent = sourceProj.getExtent();
-  if (!sourceExtent || containsCoordinate(sourceExtent, sourceCenter)) {
-    const compensationFactor =
-      getPointResolution(sourceProj, sourceResolution, sourceCenter) /
-      sourceResolution;
-    if (isFinite(compensationFactor) && compensationFactor > 0) {
-      sourceResolution /= compensationFactor;
-    }
-  }
-
-  return sourceResolution;
-}
-
-/**
- * Calculates ideal resolution to use from the source in order to achieve
- * pixel mapping as close as possible to 1:1 during reprojection.
- * The resolution is calculated regardless of what resolutions
- * are actually available in the dataset (TileGrid, Image, ...).
- *
- * @param {import("./proj/Projection.js").default} sourceProj Source projection.
- * @param {import("./proj/Projection.js").default} targetProj Target projection.
- * @param {import("./extent.js").Extent} targetExtent Target extent
- * @param {number} targetResolution Target resolution.
- * @return {number} The best resolution to use. Can be +-Infinity, NaN or 0.
- */
-function calculateSourceExtentResolution(
-  sourceProj,
-  targetProj,
-  targetExtent,
-  targetResolution,
-) {
-  const targetCenter = getCenter(targetExtent);
-  let sourceResolution = calculateSourceResolution(
-    sourceProj,
-    targetProj,
-    targetCenter,
-    targetResolution,
-  );
-
-  if (!isFinite(sourceResolution) || sourceResolution <= 0) {
-    forEachCorner(targetExtent, function (corner) {
-      sourceResolution = calculateSourceResolution(
-        sourceProj,
-        targetProj,
-        corner,
-        targetResolution,
-      );
-      return isFinite(sourceResolution) && sourceResolution > 0;
-    });
-  }
-
-  return sourceResolution;
-}
-
-/**
- * @typedef {Object} ImageExtent
- * @property {import("./extent.js").Extent} extent Extent.
- * @property {import("./extent.js").Extent} [clipExtent] Clip extent.
- * @property {import('./DataTile.js').ImageLike} image Image.
- */
-
-/**
- * Renders the source data into new canvas based on the triangulation.
- *
- * @param {number} width Width of the canvas.
- * @param {number} height Height of the canvas.
- * @param {number} pixelRatio Pixel ratio.
- * @param {number} sourceResolution Source resolution.
- * @param {import("./extent.js").Extent} sourceExtent Extent of the data source.
- * @param {number} targetResolution Target resolution.
- * @param {import("./extent.js").Extent} targetExtent Target extent.
- * @param {import("./reproj/Triangulation.js").default} triangulation Calculated triangulation.
- * @param {Array<ImageExtent>} sources Array of sources.
- * @param {number} gutter Gutter of the sources.
- * @param {boolean} [renderEdges] Render reprojection edges.
- * @param {boolean} [interpolate] Use linear interpolation when resampling.
- * @param {boolean} [drawSingle] Draw single source images directly without stitchContext.
- * @param {boolean} [clipExtent] Clip stitchContext to sourceExtent.
- * @return {HTMLCanvasElement} Canvas with reprojected data.
- */
-function render(
-  width,
-  height,
-  pixelRatio,
-  sourceResolution,
-  sourceExtent,
-  targetResolution,
-  targetExtent,
-  triangulation,
-  sources,
-  gutter,
-  renderEdges,
-  interpolate,
-  drawSingle,
-  clipExtent,
-) {
-  const context = createCanvasContext2D(
-    Math.round(pixelRatio * width),
-    Math.round(pixelRatio * height),
-    canvasPool$1,
-  );
-
-  if (!interpolate) {
-    context.imageSmoothingEnabled = false;
-  }
-
-  if (sources.length === 0) {
-    return context.canvas;
-  }
-
-  context.scale(pixelRatio, pixelRatio);
-
-  function pixelRound(value) {
-    return Math.round(value * pixelRatio) / pixelRatio;
-  }
-
-  context.globalCompositeOperation = 'lighter';
-
-  const sourceDataExtent = createEmpty();
-  sources.forEach(function (src, i, arr) {
-    extend$2(sourceDataExtent, src.extent);
-  });
-
-  let stitchContext;
-  const stitchScale = pixelRatio / sourceResolution;
-  // Round up Float32 scale values to prevent interpolation in Firefox.
-  const inverseScale = (interpolate ? 1 : 1 + Math.pow(2, -24)) / stitchScale;
-
-  {
-    stitchContext = createCanvasContext2D(
-      Math.round(getWidth(sourceDataExtent) * stitchScale),
-      Math.round(getHeight(sourceDataExtent) * stitchScale),
-      canvasPool$1,
-    );
-
-    if (!interpolate) {
-      stitchContext.imageSmoothingEnabled = false;
-    }
-
-    sources.forEach(function (src, i, arr) {
-      // This test should never fail -- but it does. Need to find a fix the upstream condition
-      if (src.image.width > 0 && src.image.height > 0) {
-        if (src.clipExtent) {
-          stitchContext.save();
-          const xPos = (src.clipExtent[0] - sourceDataExtent[0]) * stitchScale;
-          const yPos = -(src.clipExtent[3] - sourceDataExtent[3]) * stitchScale;
-          const width = getWidth(src.clipExtent) * stitchScale;
-          const height = getHeight(src.clipExtent) * stitchScale;
-          stitchContext.rect(
-            interpolate ? xPos : Math.round(xPos),
-            interpolate ? yPos : Math.round(yPos),
-            interpolate ? width : Math.round(xPos + width) - Math.round(xPos),
-            interpolate ? height : Math.round(yPos + height) - Math.round(yPos),
-          );
-          stitchContext.clip();
-        }
-
-        const xPos = (src.extent[0] - sourceDataExtent[0]) * stitchScale;
-        const yPos = -(src.extent[3] - sourceDataExtent[3]) * stitchScale;
-        const srcWidth = getWidth(src.extent) * stitchScale;
-        const srcHeight = getHeight(src.extent) * stitchScale;
-        stitchContext.drawImage(
-          src.image,
-          gutter,
-          gutter,
-          src.image.width - 2 * gutter,
-          src.image.height - 2 * gutter,
-          interpolate ? xPos : Math.round(xPos),
-          interpolate ? yPos : Math.round(yPos),
-          interpolate
-            ? srcWidth
-            : Math.round(xPos + srcWidth) - Math.round(xPos),
-          interpolate
-            ? srcHeight
-            : Math.round(yPos + srcHeight) - Math.round(yPos),
-        );
-
-        if (src.clipExtent) {
-          stitchContext.restore();
-        }
-      }
-    });
-  }
-  const targetTopLeft = getTopLeft(targetExtent);
-
-  triangulation.getTriangles().forEach(function (triangle, i, arr) {
-    /* Calculate affine transform (src -> dst)
-     * Resulting matrix can be used to transform coordinate
-     * from `sourceProjection` to destination pixels.
-     *
-     * To optimize number of context calls and increase numerical stability,
-     * we also do the following operations:
-     * trans(-topLeftExtentCorner), scale(1 / targetResolution), scale(1, -1)
-     * here before solving the linear system so [ui, vi] are pixel coordinates.
-     *
-     * Src points: xi, yi
-     * Dst points: ui, vi
-     * Affine coefficients: aij
-     *
-     * | x0 y0 1  0  0 0 |   |a00|   |u0|
-     * | x1 y1 1  0  0 0 |   |a01|   |u1|
-     * | x2 y2 1  0  0 0 | x |a02| = |u2|
-     * |  0  0 0 x0 y0 1 |   |a10|   |v0|
-     * |  0  0 0 x1 y1 1 |   |a11|   |v1|
-     * |  0  0 0 x2 y2 1 |   |a12|   |v2|
-     */
-    const source = triangle.source;
-    const target = triangle.target;
-    let x0 = source[0][0],
-      y0 = source[0][1];
-    let x1 = source[1][0],
-      y1 = source[1][1];
-    let x2 = source[2][0],
-      y2 = source[2][1];
-    // Make sure that everything is on pixel boundaries
-    const u0 = pixelRound((target[0][0] - targetTopLeft[0]) / targetResolution);
-    const v0 = pixelRound(
-      -(target[0][1] - targetTopLeft[1]) / targetResolution,
-    );
-    const u1 = pixelRound((target[1][0] - targetTopLeft[0]) / targetResolution);
-    const v1 = pixelRound(
-      -(target[1][1] - targetTopLeft[1]) / targetResolution,
-    );
-    const u2 = pixelRound((target[2][0] - targetTopLeft[0]) / targetResolution);
-    const v2 = pixelRound(
-      -(target[2][1] - targetTopLeft[1]) / targetResolution,
-    );
-
-    // Shift all the source points to improve numerical stability
-    // of all the subsequent calculations. The [x0, y0] is used here.
-    // This is also used to simplify the linear system.
-    const sourceNumericalShiftX = x0;
-    const sourceNumericalShiftY = y0;
-    x0 = 0;
-    y0 = 0;
-    x1 -= sourceNumericalShiftX;
-    y1 -= sourceNumericalShiftY;
-    x2 -= sourceNumericalShiftX;
-    y2 -= sourceNumericalShiftY;
-
-    const augmentedMatrix = [
-      [x1, y1, 0, 0, u1 - u0],
-      [x2, y2, 0, 0, u2 - u0],
-      [0, 0, x1, y1, v1 - v0],
-      [0, 0, x2, y2, v2 - v0],
-    ];
-    const affineCoefs = solveLinearSystem(augmentedMatrix);
-    if (!affineCoefs) {
-      return;
-    }
-
-    context.save();
-    context.beginPath();
-
-    if (isBrokenDiagonalRendering() || !interpolate) {
-      // Make sure that all lines are horizontal or vertical
-      context.moveTo(u1, v1);
-      // This is the diagonal line. Do it in 4 steps
-      const steps = 4;
-      const ud = u0 - u1;
-      const vd = v0 - v1;
-      for (let step = 0; step < steps; step++) {
-        // Go horizontally
-        context.lineTo(
-          u1 + pixelRound(((step + 1) * ud) / steps),
-          v1 + pixelRound((step * vd) / (steps - 1)),
-        );
-        // Go vertically
-        if (step != steps - 1) {
-          context.lineTo(
-            u1 + pixelRound(((step + 1) * ud) / steps),
-            v1 + pixelRound(((step + 1) * vd) / (steps - 1)),
-          );
-        }
-      }
-      // We are almost at u0r, v0r
-      context.lineTo(u2, v2);
-    } else {
-      context.moveTo(u1, v1);
-      context.lineTo(u0, v0);
-      context.lineTo(u2, v2);
-    }
-
-    context.clip();
-
-    context.transform(
-      affineCoefs[0],
-      affineCoefs[2],
-      affineCoefs[1],
-      affineCoefs[3],
-      u0,
-      v0,
-    );
-
-    context.translate(
-      sourceDataExtent[0] - sourceNumericalShiftX,
-      sourceDataExtent[3] - sourceNumericalShiftY,
-    );
-
-    let image;
-    if (stitchContext) {
-      image = stitchContext.canvas;
-      context.scale(inverseScale, -inverseScale);
-    } else {
-      const source = sources[0];
-      const extent = source.extent;
-      image = source.image;
-      context.scale(
-        getWidth(extent) / image.width,
-        -getHeight(extent) / image.height,
-      );
-    }
-
-    context.drawImage(image, 0, 0);
-    context.restore();
-  });
-
-  if (stitchContext) {
-    releaseCanvas(stitchContext);
-    canvasPool$1.push(stitchContext.canvas);
-  }
-
-  if (renderEdges) {
-    context.save();
-
-    context.globalCompositeOperation = 'source-over';
-    context.strokeStyle = 'black';
-    context.lineWidth = 1;
-
-    triangulation.getTriangles().forEach(function (triangle, i, arr) {
-      const target = triangle.target;
-      const u0 = (target[0][0] - targetTopLeft[0]) / targetResolution;
-      const v0 = -(target[0][1] - targetTopLeft[1]) / targetResolution;
-      const u1 = (target[1][0] - targetTopLeft[0]) / targetResolution;
-      const v1 = -(target[1][1] - targetTopLeft[1]) / targetResolution;
-      const u2 = (target[2][0] - targetTopLeft[0]) / targetResolution;
-      const v2 = -(target[2][1] - targetTopLeft[1]) / targetResolution;
-
-      context.beginPath();
-      context.moveTo(u1, v1);
-      context.lineTo(u0, v0);
-      context.lineTo(u2, v2);
-      context.closePath();
-      context.stroke();
-    });
-
-    context.restore();
-  }
-  return context.canvas;
 }
 
 /**
@@ -63028,6 +64895,456 @@ TileLayer.propTypes = {
   setProps: PropTypes.func
 };
 
+/**
+ * @module ol/source/TileWMS
+ */
+
+
+/**
+ * @typedef {Object} Options
+ * @property {import("./Source.js").AttributionLike} [attributions] Attributions.
+ * @property {boolean} [attributionsCollapsible=true] Attributions are collapsible.
+ * @property {number} [cacheSize] Initial tile cache size. Will auto-grow to hold at least the number of tiles in the viewport.
+ * @property {null|string} [crossOrigin] The `crossOrigin` attribute for loaded images.  Note that
+ * you must provide a `crossOrigin` value if you want to access pixel data with the Canvas renderer.
+ * See https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_enabled_image for more detail.
+ * @property {boolean} [interpolate=true] Use interpolated values when resampling.  By default,
+ * linear interpolation is used when resampling.  Set to false to use the nearest neighbor instead.
+ * @property {Object<string,*>} params WMS request parameters.
+ * At least a `LAYERS` param is required. `STYLES` is
+ * `''` by default. `VERSION` is `1.3.0` by default. `WIDTH`, `HEIGHT`, `BBOX`
+ * and `CRS` (`SRS` for WMS version < 1.3.0) will be set dynamically.
+ * @property {number} [gutter=0]
+ * The size in pixels of the gutter around image tiles to ignore. By setting
+ * this property to a non-zero value, images will be requested that are wider
+ * and taller than the tile size by a value of `2 x gutter`.
+ * Using a non-zero value allows artifacts of rendering at tile edges to be
+ * ignored. If you control the WMS service it is recommended to address
+ * "artifacts at tile edges" issues by properly configuring the WMS service. For
+ * example, MapServer has a `tile_map_edge_buffer` configuration parameter for
+ * this. See https://mapserver.org/output/tile_mode.html.
+ * @property {boolean} [hidpi=true] Use the `ol/Map#pixelRatio` value when requesting
+ * the image from the remote server.
+ * @property {import("../proj.js").ProjectionLike} [projection] Projection. Default is the view projection.
+ * @property {number} [reprojectionErrorThreshold=0.5] Maximum allowed reprojection error (in pixels).
+ * Higher values can increase reprojection performance, but decrease precision.
+ * @property {typeof import("../ImageTile.js").default} [tileClass] Class used to instantiate image tiles.
+ * Default is {@link module:ol/ImageTile~ImageTile}.
+ * @property {import("../tilegrid/TileGrid.js").default} [tileGrid] Tile grid. Base this on the resolutions,
+ * tilesize and extent supported by the server.
+ * If this is not defined, a default grid will be used: if there is a projection
+ * extent, the grid will be based on that; if not, a grid based on a global
+ * extent with origin at 0,0 will be used.
+ * @property {import("./wms.js").ServerType} [serverType] The type of
+ * the remote WMS server: `mapserver`, `geoserver`, `carmentaserver`, or `qgis`.
+ * Only needed if `hidpi` is `true`.
+ * @property {import("../Tile.js").LoadFunction} [tileLoadFunction] Optional function to load a tile given a URL. The default is
+ * ```js
+ * function(imageTile, src) {
+ *   imageTile.getImage().src = src;
+ * };
+ * ```
+ * @property {string} [url] WMS service URL.
+ * @property {Array<string>} [urls] WMS service urls.
+ * Use this instead of `url` when the WMS supports multiple urls for GetMap requests.
+ * @property {boolean} [wrapX=true] Whether to wrap the world horizontally.
+ * When set to `false`, only one world
+ * will be rendered. When `true`, tiles will be requested for one world only,
+ * but they will be wrapped horizontally to render multiple worlds.
+ * @property {number} [transition] Duration of the opacity transition for rendering.
+ * To disable the opacity transition, pass `transition: 0`.
+ * @property {number|import("../array.js").NearestDirectionFunction} [zDirection=0]
+ * Choose whether to use tiles with a higher or lower zoom level when between integer
+ * zoom levels. See {@link module:ol/tilegrid/TileGrid~TileGrid#getZForResolution}.
+ */
+
+/**
+ * @classdesc
+ * Layer source for tile data from WMS servers.
+ * @api
+ */
+class TileWMS extends TileImage {
+  /**
+   * @param {Options} [options] Tile WMS options.
+   */
+  constructor(options) {
+    options = options ? options : /** @type {Options} */ ({});
+
+    const params = Object.assign({}, options.params);
+
+    const transparent = 'TRANSPARENT' in params ? params['TRANSPARENT'] : true;
+
+    super({
+      attributions: options.attributions,
+      attributionsCollapsible: options.attributionsCollapsible,
+      cacheSize: options.cacheSize,
+      crossOrigin: options.crossOrigin,
+      interpolate: options.interpolate,
+      opaque: !transparent,
+      projection: options.projection,
+      reprojectionErrorThreshold: options.reprojectionErrorThreshold,
+      tileClass: options.tileClass,
+      tileGrid: options.tileGrid,
+      tileLoadFunction: options.tileLoadFunction,
+      url: options.url,
+      urls: options.urls,
+      wrapX: options.wrapX !== undefined ? options.wrapX : true,
+      transition: options.transition,
+      zDirection: options.zDirection,
+    });
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.gutter_ = options.gutter !== undefined ? options.gutter : 0;
+
+    /**
+     * @private
+     * @type {!Object}
+     */
+    this.params_ = params;
+
+    /**
+     * @private
+     * @type {boolean}
+     */
+    this.v13_ = true;
+
+    /**
+     * @private
+     * @type {import("./wms.js").ServerType}
+     */
+    this.serverType_ = options.serverType;
+
+    /**
+     * @private
+     * @type {boolean}
+     */
+    this.hidpi_ = options.hidpi !== undefined ? options.hidpi : true;
+
+    /**
+     * @private
+     * @type {import("../extent.js").Extent}
+     */
+    this.tmpExtent_ = createEmpty();
+
+    this.updateV13_();
+    this.setKey(this.getKeyForParams_());
+  }
+
+  /**
+   * Return the GetFeatureInfo URL for the passed coordinate, resolution, and
+   * projection. Return `undefined` if the GetFeatureInfo URL cannot be
+   * constructed.
+   * @param {import("../coordinate.js").Coordinate} coordinate Coordinate.
+   * @param {number} resolution Resolution.
+   * @param {import("../proj.js").ProjectionLike} projection Projection.
+   * @param {!Object} params GetFeatureInfo params. `INFO_FORMAT` at least should
+   *     be provided. If `QUERY_LAYERS` is not provided then the layers specified
+   *     in the `LAYERS` parameter will be used. `VERSION` should not be
+   *     specified here.
+   * @return {string|undefined} GetFeatureInfo URL.
+   * @api
+   */
+  getFeatureInfoUrl(coordinate, resolution, projection, params) {
+    const projectionObj = get$2(projection);
+    const sourceProjectionObj = this.getProjection() || projectionObj;
+
+    let tileGrid = this.getTileGrid();
+    if (!tileGrid) {
+      tileGrid = this.getTileGridForProjection(sourceProjectionObj);
+    }
+
+    const sourceProjCoord = transform$1(
+      coordinate,
+      projectionObj,
+      sourceProjectionObj,
+    );
+    const sourceResolution = calculateSourceResolution(
+      sourceProjectionObj,
+      projectionObj,
+      coordinate,
+      resolution,
+    );
+
+    const z = tileGrid.getZForResolution(sourceResolution, this.zDirection);
+    const tileResolution = tileGrid.getResolution(z);
+    const tileCoord = tileGrid.getTileCoordForCoordAndZ(sourceProjCoord, z);
+
+    if (tileGrid.getResolutions().length <= tileCoord[0]) {
+      return undefined;
+    }
+
+    let tileExtent = tileGrid.getTileCoordExtent(tileCoord, this.tmpExtent_);
+
+    const gutter = this.gutter_;
+    if (gutter !== 0) {
+      tileExtent = buffer(tileExtent, tileResolution * gutter, tileExtent);
+    }
+
+    const baseParams = {
+      'QUERY_LAYERS': this.params_['LAYERS'],
+    };
+    Object.assign(
+      baseParams,
+      getRequestParams(this.params_, 'GetFeatureInfo'),
+      params,
+    );
+
+    const x = Math.floor((sourceProjCoord[0] - tileExtent[0]) / tileResolution);
+    const y = Math.floor((tileExtent[3] - sourceProjCoord[1]) / tileResolution);
+
+    baseParams[this.v13_ ? 'I' : 'X'] = x;
+    baseParams[this.v13_ ? 'J' : 'Y'] = y;
+
+    return this.getRequestUrl_(
+      tileCoord,
+      tileExtent,
+      1,
+      sourceProjectionObj || projectionObj,
+      baseParams,
+    );
+  }
+
+  /**
+   * Return the GetLegendGraphic URL, optionally optimized for the passed
+   * resolution and possibly including any passed specific parameters. Returns
+   * `undefined` if the GetLegendGraphic URL cannot be constructed.
+   *
+   * @param {number} [resolution] Resolution. If set to undefined, `SCALE`
+   *     will not be calculated and included in URL.
+   * @param {Object} [params] GetLegendGraphic params. If `LAYER` is set, the
+   *     request is generated for this wms layer, else it will try to use the
+   *     configured wms layer. Default `FORMAT` is `image/png`.
+   *     `VERSION` should not be specified here.
+   * @return {string|undefined} GetLegendGraphic URL.
+   * @api
+   */
+  getLegendUrl(resolution, params) {
+    if (this.urls[0] === undefined) {
+      return undefined;
+    }
+
+    const baseParams = {
+      'SERVICE': 'WMS',
+      'VERSION': DEFAULT_VERSION,
+      'REQUEST': 'GetLegendGraphic',
+      'FORMAT': 'image/png',
+    };
+
+    if (params === undefined || params['LAYER'] === undefined) {
+      const layers = this.params_.LAYERS;
+      const isSingleLayer = !Array.isArray(layers) || layers.length === 1;
+      if (!isSingleLayer) {
+        return undefined;
+      }
+      baseParams['LAYER'] = layers;
+    }
+
+    if (resolution !== undefined) {
+      const mpu = this.getProjection()
+        ? this.getProjection().getMetersPerUnit()
+        : 1;
+      const pixelSize = 0.00028;
+      baseParams['SCALE'] = (resolution * mpu) / pixelSize;
+    }
+
+    Object.assign(baseParams, params);
+
+    return appendParams(/** @type {string} */ (this.urls[0]), baseParams);
+  }
+
+  /**
+   * @return {number} Gutter.
+   */
+  getGutter() {
+    return this.gutter_;
+  }
+
+  /**
+   * Get the user-provided params, i.e. those passed to the constructor through
+   * the "params" option, and possibly updated using the updateParams method.
+   * @return {Object} Params.
+   * @api
+   */
+  getParams() {
+    return this.params_;
+  }
+
+  /**
+   * @param {import("../tilecoord.js").TileCoord} tileCoord Tile coordinate.
+   * @param {import("../extent.js").Extent} tileExtent Tile extent.
+   * @param {number} pixelRatio Pixel ratio.
+   * @param {import("../proj/Projection.js").default} projection Projection.
+   * @param {Object} params Params.
+   * @return {string|undefined} Request URL.
+   * @private
+   */
+  getRequestUrl_(tileCoord, tileExtent, pixelRatio, projection, params) {
+    const urls = this.urls;
+    if (!urls) {
+      return undefined;
+    }
+    let url;
+    if (urls.length == 1) {
+      url = urls[0];
+    } else {
+      const index = modulo(hash(tileCoord), urls.length);
+      url = urls[index];
+    }
+
+    return getImageSrc(
+      tileExtent,
+      (
+        this.tileGrid || this.getTileGridForProjection(projection)
+      ).getResolution(tileCoord[0]),
+      pixelRatio,
+      projection,
+      url,
+      params,
+      this.serverType_,
+    );
+  }
+
+  /**
+   * Get the tile pixel ratio for this source.
+   * @param {number} pixelRatio Pixel ratio.
+   * @return {number} Tile pixel ratio.
+   */
+  getTilePixelRatio(pixelRatio) {
+    return !this.hidpi_ || this.serverType_ === undefined ? 1 : pixelRatio;
+  }
+
+  /**
+   * @private
+   * @return {string} The key for the current params.
+   */
+  getKeyForParams_() {
+    let i = 0;
+    const res = [];
+    for (const key in this.params_) {
+      res[i++] = key + '-' + this.params_[key];
+    }
+    return res.join('/');
+  }
+
+  /**
+   * Update the user-provided params.
+   * @param {Object} params Params.
+   * @api
+   */
+  updateParams(params) {
+    Object.assign(this.params_, params);
+    this.updateV13_();
+    this.setKey(this.getKeyForParams_());
+  }
+
+  /**
+   * @private
+   */
+  updateV13_() {
+    const version = this.params_['VERSION'] || DEFAULT_VERSION;
+    this.v13_ = compareVersions(version, '1.3') >= 0;
+  }
+
+  /**
+   * @param {import("../tilecoord.js").TileCoord} tileCoord The tile coordinate
+   * @param {number} pixelRatio The pixel ratio
+   * @param {import("../proj/Projection.js").default} projection The projection
+   * @return {string|undefined} The tile URL
+   * @override
+   */
+  tileUrlFunction(tileCoord, pixelRatio, projection) {
+    let tileGrid = this.getTileGrid();
+    if (!tileGrid) {
+      tileGrid = this.getTileGridForProjection(projection);
+    }
+
+    if (tileGrid.getResolutions().length <= tileCoord[0]) {
+      return undefined;
+    }
+
+    if (pixelRatio != 1 && (!this.hidpi_ || this.serverType_ === undefined)) {
+      pixelRatio = 1;
+    }
+
+    const tileResolution = tileGrid.getResolution(tileCoord[0]);
+    let tileExtent = tileGrid.getTileCoordExtent(tileCoord, this.tmpExtent_);
+
+    const gutter = this.gutter_;
+    if (gutter !== 0) {
+      tileExtent = buffer(tileExtent, tileResolution * gutter, tileExtent);
+    }
+
+    const baseParams = Object.assign(
+      {},
+      getRequestParams(this.params_, 'GetMap'),
+    );
+
+    return this.getRequestUrl_(
+      tileCoord,
+      tileExtent,
+      pixelRatio,
+      projection,
+      baseParams,
+    );
+  }
+}
+
+/** Render a tiled OGC Web Map Service layer. */
+var TileWMSLayer = _ref => {
+  var id = _ref.id,
+    url = _ref.url,
+    params = _ref.params,
+    serverType = _ref.serverType;
+  var map = useMap();
+  var sourceRef = useRef(null);
+  var paramsRef = useRef(params);
+  useEffect(() => {
+    paramsRef.current = params;
+    if (sourceRef.current) {
+      sourceRef.current.updateParams(params);
+    }
+  }, [params]);
+  useEffect(() => {
+    if (!map || !url) return undefined;
+    var source = new TileWMS({
+      url,
+      params: paramsRef.current,
+      serverType
+    });
+    var layer = new TileLayer$1({
+      source
+    });
+    layer.set('dashId', id);
+    sourceRef.current = source;
+    map.addLayer(layer);
+    return () => {
+      map.removeLayer(layer);
+      sourceRef.current = null;
+    };
+  }, [id, map, serverType, url]);
+  return null;
+};
+TileWMSLayer.defaultProps = {
+  url: null,
+  params: {},
+  serverType: null
+};
+TileWMSLayer.propTypes = {
+  /** Component ID used to identify this layer in the Dash layout. */
+  id: PropTypes.string,
+  /** OGC WMS endpoint URL. */
+  url: PropTypes.string,
+  /** WMS request parameters, including LAYERS; changes refresh the source. */
+  params: PropTypes.object,
+  /** WMS server type used for vendor-specific HiDPI request parameters. */
+  serverType: PropTypes.oneOf(['carmentaserver', 'geoserver', 'mapserver', 'qgis']),
+  /** Dash-supplied callback used to write component state back to the layout. */
+  setProps: PropTypes.func
+};
+
 /** Render GeoJSON features in a canvas-backed OpenLayers vector layer. */
 var VectorLayerComponent = _ref => {
   var id = _ref.id,
@@ -66231,4 +68548,4 @@ VectorTileLayer.propTypes = {
   setProps: PropTypes.func
 };
 
-export { DrawInteraction, MapComponent as Map, ModifyInteraction, OLContext, TileLayer, VectorLayerComponent as VectorLayer, VectorTileLayer };
+export { DrawInteraction, ImageWMSLayer as ImageWMS, MapComponent as Map, ModifyInteraction, OLContext, TileLayer, TileWMSLayer as TileWMS, VectorLayerComponent as VectorLayer, VectorTileLayer };
