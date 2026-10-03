@@ -152,6 +152,24 @@ dol.Map(
 Use `Input("modify", "modifiedGeoJSON")` in a Dash callback to receive the
 edited FeatureCollection.
 
+Draw and Modify snap to vector vertices and edges by default. Configure the
+targets and maximum pixel distance with `snapToVertex`, `snapToEdge`, and
+`snapTolerance`. `ModifyInteraction` also defaults to `preserveTopology=True`;
+polygon edits that introduce invalid rings or self-intersections are reverted
+and reported through its read-only `geometryValidation` prop. Set
+`preserveTopology=False` to allow those edits:
+
+```python
+dol.ModifyInteraction(
+    id="modify",
+    layerId="editable",
+    snapToVertex=True,
+    snapToEdge=False,
+    snapTolerance=16,
+    preserveTopology=True,
+)
+```
+
 Draw and Modify operations share an undo/redo stack owned by the map. Initialize
 the map with `undo=0` and `redo=0`, then increment a command counter to execute
 an operation. `canUndo` and `canRedo` are read-only outputs you can use to

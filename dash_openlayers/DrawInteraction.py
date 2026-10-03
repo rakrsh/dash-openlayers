@@ -1,8 +1,9 @@
 # AUTO GENERATED FILE - DO NOT EDIT
 
 import typing  # noqa: F401
-from typing_extensions import TypedDict, NotRequired, Literal # noqa: F401
+from typing_extensions import TypedDict, NotRequired, Literal  # noqa: F401
 from dash.development.base_component import Component, _explicitize_args
+
 try:
     from dash.types import NumberType  # noqa: F401
 except ImportError:
@@ -24,21 +25,27 @@ class DrawInteraction(Component):
     """A DrawInteraction component.
 
 
-Keyword arguments:
+    Keyword arguments:
 
-- id (string; optional)
+    - id (string; optional)
 
-- drawnGeoJSON (dict; optional)
+    - drawnGeoJSON (dict; optional)
 
-- geometryValidation (dict; optional): Read-only validity, topology errors, and repair suggestions
-    from the last draw. Invalid geometries are not emitted as drawnGeoJSON.
+    - geometryValidation (dict; optional): Read-only validity, topology errors, and repair suggestions
+        from the last draw. Invalid geometries are not emitted as drawnGeoJSON.
 
-- geometryType (a value equal to: 'Point', 'LineString', 'Polygon', 'Circle'; default 'Polygon')"""
+    - geometryType (a value equal to: 'Point', 'LineString', 'Polygon', 'Circle'; default 'Polygon')
+
+    - snapToVertex (boolean; default True): Snap drawn coordinates to vector vertices.
+
+    - snapToEdge (boolean; default True): Snap drawn coordinates to vector edges.
+
+    - snapTolerance (number; default 10): Maximum snap distance in screen pixels."""
+
     _children_props: typing.List[str] = []
-    _base_nodes = ['children']
-    _namespace = 'dash_openlayers'
-    _type = 'DrawInteraction'
-
+    _base_nodes = ["children"]
+    _namespace = "dash_openlayers"
+    _type = "DrawInteraction"
 
     def __init__(
         self,
@@ -46,17 +53,37 @@ Keyword arguments:
         geometryType: typing.Optional[Literal["Point", "LineString", "Polygon", "Circle"]] = None,
         drawnGeoJSON: typing.Optional[dict] = None,
         geometryValidation: typing.Optional[dict] = None,
-        **kwargs
+        snapToVertex: typing.Optional[bool] = None,
+        snapToEdge: typing.Optional[bool] = None,
+        snapTolerance: typing.Optional[NumberType] = None,
+        **kwargs,
     ):
-        self._prop_names = ['id', 'drawnGeoJSON', 'geometryType', 'geometryValidation']
-        self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'drawnGeoJSON', 'geometryType', 'geometryValidation']
-        self.available_wildcard_properties =            []
-        _explicit_args = kwargs.pop('_explicit_args')
+        self._prop_names = [
+            "id",
+            "drawnGeoJSON",
+            "geometryType",
+            "geometryValidation",
+            "snapToVertex",
+            "snapToEdge",
+            "snapTolerance",
+        ]
+        self._valid_wildcard_attributes = []
+        self.available_properties = [
+            "id",
+            "drawnGeoJSON",
+            "geometryType",
+            "geometryValidation",
+            "snapToVertex",
+            "snapToEdge",
+            "snapTolerance",
+        ]
+        self.available_wildcard_properties = []
+        _explicit_args = kwargs.pop("_explicit_args")
         _locals = locals()
         _locals.update(kwargs)  # For wildcard attrs and excess named props
         args = {k: _locals[k] for k in _explicit_args}
 
         super(DrawInteraction, self).__init__(**args)
+
 
 setattr(DrawInteraction, "__init__", _explicitize_args(DrawInteraction.__init__))

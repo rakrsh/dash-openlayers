@@ -11,6 +11,7 @@ import DrawInteraction from '../../src/lib/components/DrawInteraction.react';
 import ModifyInteraction from '../../src/lib/components/ModifyInteraction.react';
 import { OLContext, useMap } from '../../src/lib/context/OLContext';
 import { getEditHistory } from '../../src/lib/utils/editHistory';
+import Snap from 'ol/interaction/Snap';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import { toLonLat } from 'ol/proj';
@@ -156,6 +157,25 @@ jest.mock('ol/interaction/Modify', () => ({
   }),
 }));
 
+jest.mock('ol/interaction/Snap', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockSnap(options) {
+    this.options = options;
+  }),
+}));
+
+jest.mock('ol/Collection', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockCollection(items = []) {
+    this.items = [...items];
+    this.push = jest.fn((item) => this.items.push(item));
+    this.remove = jest.fn((item) => {
+      this.items = this.items.filter((existing) => existing !== item);
+    });
+    this.getArray = jest.fn(() => this.items);
+  }),
+}));
+
 jest.mock('ol/Observable', () => ({
   unByKey: jest.fn(),
 }));
@@ -177,6 +197,7 @@ jest.mock('ol/source/Vector', () => ({
     this.addFeature = jest.fn();
     this.removeFeature = jest.fn();
     this.getFeatures = jest.fn(() => []);
+    this.on = jest.fn((type, listener) => ({ type, listener }));
   }),
 }));
 
@@ -339,6 +360,11 @@ describe('ModifyInteraction history', () => {
     );
 
     const modify = Modify.mock.instances[0];
+    expect(Snap.mock.instances[0].options).toMatchObject({
+      vertex: true,
+      edge: true,
+      pixelTolerance: 10,
+    });
     const event = { features: { getArray: () => [feature] } };
     modify.listeners.modifystart(event);
     currentGeometry = makeTestGeometry('after');
@@ -364,6 +390,73 @@ describe('ModifyInteraction history', () => {
     expect(setProps).toHaveBeenLastCalledWith({
       modifiedGeoJSON: { type: 'FeatureCollection', features: [] },
     });
+  });
+
+  it('snaps with configured options and reverts topology-invalid polygon edits', () => {
+    const map = makeMap();
+    const source = new VectorSource();
+    let currentGeometry = makeTestGeometry('before');
+    const feature = {
+      getGeometry: jest.fn(() => currentGeometry),
+      setGeometry: jest.fn((geometry) => {
+        currentGeometry = geometry;
+      }),
+    };
+    source.getFeatures.mockReturnValue([feature]);
+    const layer = {
+      get: jest.fn(() => 'editable'),
+      getSource: jest.fn(() => source),
+    };
+    map.getLayers.mockReturnValue({ getArray: () => [layer] });
+    const setProps = jest.fn();
+
+    render(
+      <OLContext.Provider value={map}>
+        <ModifyInteraction
+          layerId="editable"
+          snapToVertex={false}
+          snapToEdge
+          snapTolerance={22}
+          setProps={setProps}
+        />
+      </OLContext.Provider>,
+    );
+
+    const modify = Modify.mock.instances[0];
+    expect(Snap.mock.instances[0].options).toMatchObject({
+      vertex: false,
+      edge: true,
+      pixelTolerance: 22,
+    });
+
+    const event = { features: { getArray: () => [feature] } };
+    modify.listeners.modifystart(event);
+    GeoJSON.mock.instances[0].writeFeatureObject.mockReturnValue({
+      type: 'Feature',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [
+          [
+            [0, 0],
+            [2, 2],
+            [0, 2],
+            [2, 0],
+            [0, 0],
+          ],
+        ],
+      },
+      properties: {},
+    });
+    currentGeometry = makeTestGeometry('invalid');
+    modify.listeners.modifyend(event);
+
+    expect(currentGeometry.label).toBe('before');
+    expect(getEditHistory(map).getState()).toEqual({ canUndo: false, canRedo: false });
+    expect(setProps).toHaveBeenCalledWith(
+      expect.objectContaining({
+        geometryValidation: expect.objectContaining({ valid: false }),
+      }),
+    );
   });
 });
 
