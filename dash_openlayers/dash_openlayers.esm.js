@@ -40527,6 +40527,67 @@ var registerProjections = proj4Defs => {
   register(proj4);
 };
 
+var histories = new WeakMap();
+var getEditHistory = map => {
+  var history = histories.get(map);
+  if (history) return history;
+  var undoStack = [];
+  var redoStack = [];
+  var listeners = new Set();
+  var getState = () => ({
+    canUndo: undoStack.length > 0,
+    canRedo: redoStack.length > 0
+  });
+  var notify = () => {
+    var state = getState();
+    listeners.forEach(listener => listener(state));
+  };
+  history = {
+    getState,
+    subscribe(listener) {
+      listeners.add(listener);
+      listener(getState());
+      return () => listeners.delete(listener);
+    },
+    record(command, source) {
+      undoStack.push(_objectSpread2(_objectSpread2({}, command), {}, {
+        source
+      }));
+      redoStack.length = 0;
+      notify();
+    },
+    removeSource(source) {
+      var removeOwnedCommands = stack => {
+        var retained = stack.filter(command => command.source !== source);
+        var changed = retained.length !== stack.length;
+        stack.splice(0, stack.length, ...retained);
+        return changed;
+      };
+      var undoChanged = removeOwnedCommands(undoStack);
+      var redoChanged = removeOwnedCommands(redoStack);
+      if (undoChanged || redoChanged) notify();
+    },
+    undo() {
+      var command = undoStack.pop();
+      if (!command) return false;
+      command.undo();
+      redoStack.push(command);
+      notify();
+      return true;
+    },
+    redo() {
+      var command = redoStack.pop();
+      if (!command) return false;
+      command.redo();
+      undoStack.push(command);
+      notify();
+      return true;
+    }
+  };
+  histories.set(map, history);
+  return history;
+};
+
 var MapComponent = _ref => {
   var id = _ref.id,
     children = _ref.children,
@@ -40535,8 +40596,12 @@ var MapComponent = _ref => {
     projection = _ref.projection,
     proj4Defs = _ref.proj4Defs,
     style = _ref.style,
+    undo = _ref.undo,
+    redo = _ref.redo,
     setProps = _ref.setProps;
   var mapElement = useRef(null);
+  var undoCommandRef = useRef(undo);
+  var redoCommandRef = useRef(redo);
   var _useState = useState(null),
     _useState2 = _slicedToArray(_useState, 2),
     map = _useState2[0],
@@ -40588,6 +40653,28 @@ var MapComponent = _ref => {
       view.setZoom(zoom);
     }
   }, [center, map, zoom]);
+  useEffect(() => {
+    if (!map) return;
+    var history = getEditHistory(map);
+    return history.subscribe(_ref2 => {
+      var canUndo = _ref2.canUndo,
+        canRedo = _ref2.canRedo;
+      if (setProps) {
+        setProps({
+          canUndo,
+          canRedo
+        });
+      }
+    });
+  }, [map, setProps]);
+  useEffect(() => {
+    if (!map) return;
+    var history = getEditHistory(map);
+    if (undo !== undoCommandRef.current) history.undo();
+    if (redo !== redoCommandRef.current) history.redo();
+    undoCommandRef.current = undo;
+    redoCommandRef.current = redo;
+  }, [map, redo, undo]);
   return /*#__PURE__*/React.createElement(OLContext.Provider, {
     value: map
   }, /*#__PURE__*/React.createElement("div", {
@@ -40603,7 +40690,9 @@ MapComponent.defaultProps = {
   center: [0, 0],
   zoom: 2,
   projection: 'EPSG:3857',
-  proj4Defs: []
+  proj4Defs: [],
+  undo: 0,
+  redo: 0
 };
 MapComponent.propTypes = {
   /** The ID used to identify this component in Dash callbacks. */
@@ -40629,6 +40718,14 @@ MapComponent.propTypes = {
   style: PropTypes.object,
   /** Read-only: set on `singleclick` with `{ coordinate: [x, y], latLon: [lat, lon] }`. */
   clickData: PropTypes.object,
+  /** Increment to undo the latest draw or modify operation on this map. */
+  undo: PropTypes.number,
+  /** Increment to redo the latest undone draw or modify operation on this map. */
+  redo: PropTypes.number,
+  /** Read-only: whether this map's edit history has an operation to undo. */
+  canUndo: PropTypes.bool,
+  /** Read-only: whether this map's edit history has an operation to redo. */
+  canRedo: PropTypes.bool,
   /** Dash-supplied prop setter; internal, do not set from Python. */
   setProps: PropTypes.func
 };
@@ -58205,16 +58302,22 @@ function writePolygonGeometry(geometry, options) {
 }
 
 var DrawInteraction = _ref => {
-  _ref.id;
-    var geometryType = _ref.geometryType,
+  var id = _ref.id,
+    geometryType = _ref.geometryType,
     setProps = _ref.setProps;
   var map = useMap();
+  var setPropsRef = useRef(setProps);
+  useEffect(() => {
+    setPropsRef.current = setProps;
+  }, [setProps]);
   useEffect(() => {
     if (!map) return;
     var source = new VectorSource();
     var vector = new VectorLayer({
       source
     });
+    var history = getEditHistory(map);
+    vector.set('dashId', id);
     map.addLayer(vector);
     var draw = new Draw({
       source: source,
@@ -58252,9 +58355,24 @@ var DrawInteraction = _ref => {
       var valid = structurallyValid && intersections.length === 0;
       if (!valid) {
         source.removeFeature(evt.feature);
+      } else {
+        history.record({
+          undo: () => {
+            source.removeFeature(evt.feature);
+            if (setPropsRef.current) setPropsRef.current({
+              drawnGeoJSON: null
+            });
+          },
+          redo: () => {
+            source.addFeature(evt.feature);
+            if (setPropsRef.current) setPropsRef.current({
+              drawnGeoJSON: geojson
+            });
+          }
+        }, source);
       }
-      if (setProps) {
-        setProps({
+      if (setPropsRef.current) {
+        setPropsRef.current({
           drawnGeoJSON: valid ? geojson : null,
           geometryValidation: {
             valid,
@@ -58266,11 +58384,12 @@ var DrawInteraction = _ref => {
     });
     return () => {
       unByKey(drawEndListener);
+      history.removeSource(source);
       map.removeInteraction(draw);
       map.removeLayer(vector);
       source.clear();
     };
-  }, [map, geometryType, setProps]);
+  }, [map, geometryType, id]);
   return /*#__PURE__*/React.createElement("div", {
     style: {
       display: 'none'
@@ -62419,6 +62538,10 @@ var ModifyInteraction = _ref => {
   var layerId = _ref.layerId,
     setProps = _ref.setProps;
   var map = useMap();
+  var setPropsRef = useRef(setProps);
+  useEffect(() => {
+    setPropsRef.current = setProps;
+  }, [setProps]);
   useEffect(() => {
     var layers = map.getLayers().getArray();
     var targetLayer = layers.find(layer => {
@@ -62429,25 +62552,64 @@ var ModifyInteraction = _ref => {
     var source = targetLayer === null || targetLayer === void 0 ? void 0 : targetLayer.getSource();
     if (!source) return;
     var format = new GeoJSON();
+    var history = getEditHistory(map);
     var modify = new Modify({
       source
     });
     map.addInteraction(modify);
-    var listenerKey = modify.on('modifyend', () => {
-      if (setProps) {
-        setProps({
+    var publishModifiedGeoJSON = () => {
+      if (setPropsRef.current) {
+        setPropsRef.current({
           modifiedGeoJSON: format.writeFeaturesObject(source.getFeatures(), {
             featureProjection: map.getView().getProjection(),
             dataProjection: 'EPSG:4326'
           })
         });
       }
+    };
+    var beforeGeometries = null;
+    var startListenerKey = modify.on('modifystart', event => {
+      beforeGeometries = event.features.getArray().map(feature => ({
+        feature,
+        geometry: feature.getGeometry().clone()
+      }));
+    });
+    var endListenerKey = modify.on('modifyend', event => {
+      var features = event.features.getArray();
+      var afterGeometries = features.map(feature => ({
+        feature,
+        geometry: feature.getGeometry().clone()
+      }));
+      var previousGeometries = beforeGeometries;
+      if (previousGeometries) {
+        history.record({
+          undo: () => {
+            previousGeometries.forEach(_ref2 => {
+              var feature = _ref2.feature,
+                geometry = _ref2.geometry;
+              return feature.setGeometry(geometry.clone());
+            });
+            publishModifiedGeoJSON();
+          },
+          redo: () => {
+            afterGeometries.forEach(_ref3 => {
+              var feature = _ref3.feature,
+                geometry = _ref3.geometry;
+              return feature.setGeometry(geometry.clone());
+            });
+            publishModifiedGeoJSON();
+          }
+        }, source);
+      }
+      beforeGeometries = null;
+      publishModifiedGeoJSON();
     });
     return () => {
-      unByKey(listenerKey);
+      unByKey(startListenerKey);
+      unByKey(endListenerKey);
       map.removeInteraction(modify);
     };
-  }, [layerId, map, setProps]);
+  }, [layerId, map]);
   return null;
 };
 ModifyInteraction.defaultProps = {
@@ -67766,6 +67928,7 @@ var VectorLayerComponent = _ref => {
     map.addLayer(layer);
     return () => {
       map.removeLayer(layer);
+      getEditHistory(map).removeSource(source);
       source.clear();
       layerRef.current = null;
       sourceRef.current = null;

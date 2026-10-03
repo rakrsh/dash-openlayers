@@ -1,5 +1,5 @@
 import React from 'react';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { booleanValid } from '@turf/boolean-valid';
 import { kinks } from '@turf/kinks';
@@ -9,15 +9,23 @@ import VectorLayer from 'ol/layer/Vector';
 import GeoJSON from 'ol/format/GeoJSON';
 import { unByKey } from 'ol/Observable';
 import { useMap } from '../context/OLContext';
+import { getEditHistory } from '../utils/editHistory';
 
 const DrawInteraction = ({ id, geometryType, setProps }) => {
   const map = useMap();
+  const setPropsRef = useRef(setProps);
+
+  useEffect(() => {
+    setPropsRef.current = setProps;
+  }, [setProps]);
 
   useEffect(() => {
     if (!map) return;
 
     const source = new VectorSource();
     const vector = new VectorLayer({ source });
+    const history = getEditHistory(map);
+    vector.set('dashId', id);
     map.addLayer(vector);
 
     const draw = new Draw({
@@ -59,10 +67,24 @@ const DrawInteraction = ({ id, geometryType, setProps }) => {
       const valid = structurallyValid && intersections.length === 0;
       if (!valid) {
         source.removeFeature(evt.feature);
+      } else {
+        history.record(
+          {
+            undo: () => {
+              source.removeFeature(evt.feature);
+              if (setPropsRef.current) setPropsRef.current({ drawnGeoJSON: null });
+            },
+            redo: () => {
+              source.addFeature(evt.feature);
+              if (setPropsRef.current) setPropsRef.current({ drawnGeoJSON: geojson });
+            },
+          },
+          source,
+        );
       }
 
-      if (setProps) {
-        setProps({
+      if (setPropsRef.current) {
+        setPropsRef.current({
           drawnGeoJSON: valid ? geojson : null,
           geometryValidation: { valid, errors, suggestions },
         });
@@ -71,11 +93,12 @@ const DrawInteraction = ({ id, geometryType, setProps }) => {
 
     return () => {
       unByKey(drawEndListener);
+      history.removeSource(source);
       map.removeInteraction(draw);
       map.removeLayer(vector);
       source.clear();
     };
-  }, [map, geometryType, setProps]);
+  }, [map, geometryType, id]);
 
   return <div style={{ display: 'none' }} />;
 };

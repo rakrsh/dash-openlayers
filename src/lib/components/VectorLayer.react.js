@@ -4,6 +4,7 @@ import GeoJSON from 'ol/format/GeoJSON';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { useMap } from '../context/OLContext';
+import { getEditHistory } from '../utils/editHistory';
 
 /** Render GeoJSON features in a canvas-backed OpenLayers vector layer. */
 const VectorLayerComponent = ({ id, geojson, style }) => {
@@ -24,6 +25,7 @@ const VectorLayerComponent = ({ id, geojson, style }) => {
 
     return () => {
       map.removeLayer(layer);
+      getEditHistory(map).removeSource(source);
       source.clear();
       layerRef.current = null;
       sourceRef.current = null;

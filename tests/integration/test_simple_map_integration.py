@@ -1,7 +1,7 @@
 import json
 
 import dash
-from dash import Input, Output, html
+from dash import Input, Output, State, html
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
@@ -219,6 +219,8 @@ def test_modify_interaction_emits_updated_geojson(dash_duo):
                 center=[0, 0],
                 zoom=3,
                 projection="EPSG:4326",
+                undo=0,
+                redo=0,
                 children=[
                     dol.VectorLayer(id="editable-layer", geojson=geojson),
                     dol.ModifyInteraction(id="modify", layerId="editable-layer"),
@@ -226,6 +228,9 @@ def test_modify_interaction_emits_updated_geojson(dash_duo):
                 style={"height": "400px", "width": "600px"},
             ),
             html.Pre(id="modified-output"),
+            html.Button("Undo", id="undo-button"),
+            html.Button("Redo", id="redo-button"),
+            html.Pre(id="history-output"),
         ]
     )
 
@@ -235,6 +240,32 @@ def test_modify_interaction_emits_updated_geojson(dash_duo):
     )
     def show_modified_geojson(modified_geojson):
         return json.dumps(modified_geojson) if modified_geojson else ""
+
+    @app.callback(
+        Output("map", "undo"),
+        Input("undo-button", "n_clicks"),
+        State("map", "undo"),
+        prevent_initial_call=True,
+    )
+    def request_undo(clicks, command):
+        return command + 1
+
+    @app.callback(
+        Output("map", "redo"),
+        Input("redo-button", "n_clicks"),
+        State("map", "redo"),
+        prevent_initial_call=True,
+    )
+    def request_redo(clicks, command):
+        return command + 1
+
+    @app.callback(
+        Output("history-output", "children"),
+        Input("map", "canUndo"),
+        Input("map", "canRedo"),
+    )
+    def show_history(can_undo, can_redo):
+        return json.dumps({"canUndo": can_undo, "canRedo": can_redo})
 
     dash_duo.start_server(app)
     viewport = dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
@@ -254,6 +285,29 @@ def test_modify_interaction_emits_updated_geojson(dash_duo):
     assert (
         modified["features"][0]["geometry"]["coordinates"]
         != geojson["features"][0]["geometry"]["coordinates"]
+    )
+
+    dash_duo.wait_for_contains_text("#history-output", '"canUndo": true', timeout=10)
+    dash_duo.find_element("#undo-button").click()
+    dash_duo.wait_for_contains_text("#history-output", '"canRedo": true', timeout=10)
+    WebDriverWait(dash_duo.driver, 10).until(
+        lambda driver: (
+            json.loads(dash_duo.find_element("#modified-output").text)["features"][0]["geometry"][
+                "coordinates"
+            ]
+            == geojson["features"][0]["geometry"]["coordinates"]
+        )
+    )
+
+    dash_duo.find_element("#redo-button").click()
+    dash_duo.wait_for_contains_text("#history-output", '"canUndo": true', timeout=10)
+    WebDriverWait(dash_duo.driver, 10).until(
+        lambda driver: (
+            json.loads(dash_duo.find_element("#modified-output").text)["features"][0]["geometry"][
+                "coordinates"
+            ]
+            == modified["features"][0]["geometry"]["coordinates"]
+        )
     )
     assert dash_duo.get_logs() == []
 

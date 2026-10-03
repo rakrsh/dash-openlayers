@@ -8,12 +8,15 @@ import WMTSLayer from '../../src/lib/components/WMTSLayer.react';
 import TileWMSLayer from '../../src/lib/components/TileWMS.react';
 import ImageWMSLayer from '../../src/lib/components/ImageWMS.react';
 import DrawInteraction from '../../src/lib/components/DrawInteraction.react';
+import ModifyInteraction from '../../src/lib/components/ModifyInteraction.react';
 import { OLContext, useMap } from '../../src/lib/context/OLContext';
+import { getEditHistory } from '../../src/lib/utils/editHistory';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import { toLonLat } from 'ol/proj';
 import { registerProjections } from '../../src/lib/utils/projection';
 import Draw from 'ol/interaction/Draw';
+import Modify from 'ol/interaction/Modify';
 import { unByKey } from 'ol/Observable';
 import Tile from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
@@ -123,12 +126,26 @@ jest.mock('ol/format/GeoJSON', () => ({
       geometry: { type: 'Point', coordinates: [10, 45] },
       properties: {},
     }));
+    this.writeFeaturesObject = jest.fn(() => ({ type: 'FeatureCollection', features: [] }));
   }),
 }));
 
 jest.mock('ol/interaction/Draw', () => ({
   __esModule: true,
   default: jest.fn().mockImplementation(function MockDraw(options) {
+    this.options = options;
+    this.listeners = {};
+    this.on = jest.fn((event, listener) => {
+      const listenerKey = { event, listener };
+      this.listeners[event] = listener;
+      return listenerKey;
+    });
+  }),
+}));
+
+jest.mock('ol/interaction/Modify', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockModify(options) {
     this.options = options;
     this.listeners = {};
     this.on = jest.fn((event, listener) => {
@@ -157,7 +174,9 @@ jest.mock('ol/source/Vector', () => ({
   default: jest.fn().mockImplementation(function MockVectorSource() {
     this.clear = jest.fn();
     this.addFeatures = jest.fn();
+    this.addFeature = jest.fn();
     this.removeFeature = jest.fn();
+    this.getFeatures = jest.fn(() => []);
   }),
 }));
 
@@ -218,6 +237,7 @@ const makeMap = () => ({
   removeLayer: jest.fn(),
   addInteraction: jest.fn(),
   removeInteraction: jest.fn(),
+  getLayers: jest.fn(() => ({ getArray: () => [] })),
   getView: jest.fn(() => ({ getProjection: () => 'EPSG:3857' })),
 });
 
@@ -274,6 +294,82 @@ describe('Map', () => {
       clickData: { coordinate: [3, 4], latLon: [6, 4] },
     });
   });
+
+  it('executes shared history commands when undo and redo counters increment', () => {
+    const setProps = jest.fn();
+    const renderMap = (undo, redo) => (
+      <MapComponent id="map" undo={undo} redo={redo} setProps={setProps} />
+    );
+    const { rerender } = render(renderMap(0, 0));
+    const map = Map.mock.instances[0];
+    const command = { undo: jest.fn(), redo: jest.fn() };
+    getEditHistory(map).record(command);
+
+    rerender(renderMap(1, 0));
+    expect(command.undo).toHaveBeenCalledTimes(1);
+
+    rerender(renderMap(1, 1));
+    expect(command.redo).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('ModifyInteraction history', () => {
+  it('records before and after geometries as undoable edits', () => {
+    const map = makeMap();
+    const source = new VectorSource();
+    let currentGeometry = makeTestGeometry('before');
+    const feature = {
+      getGeometry: jest.fn(() => currentGeometry),
+      setGeometry: jest.fn((geometry) => {
+        currentGeometry = geometry;
+      }),
+    };
+    source.getFeatures.mockReturnValue([feature]);
+    const layer = {
+      get: jest.fn(() => 'editable'),
+      getSource: jest.fn(() => source),
+    };
+    map.getLayers.mockReturnValue({ getArray: () => [layer] });
+    const setProps = jest.fn();
+
+    render(
+      <OLContext.Provider value={map}>
+        <ModifyInteraction layerId="editable" setProps={setProps} />
+      </OLContext.Provider>,
+    );
+
+    const modify = Modify.mock.instances[0];
+    const event = { features: { getArray: () => [feature] } };
+    modify.listeners.modifystart(event);
+    currentGeometry = makeTestGeometry('after');
+    modify.listeners.modifyend(event);
+
+    expect(setProps).toHaveBeenCalledWith({
+      modifiedGeoJSON: { type: 'FeatureCollection', features: [] },
+    });
+
+    const history = getEditHistory(map);
+    expect(history.getState()).toEqual({ canUndo: true, canRedo: false });
+    history.undo();
+    expect(feature.setGeometry).toHaveBeenLastCalledWith(
+      expect.objectContaining({ label: 'before' }),
+    );
+    expect(setProps).toHaveBeenLastCalledWith({
+      modifiedGeoJSON: { type: 'FeatureCollection', features: [] },
+    });
+    history.redo();
+    expect(feature.setGeometry).toHaveBeenLastCalledWith(
+      expect.objectContaining({ label: 'after' }),
+    );
+    expect(setProps).toHaveBeenLastCalledWith({
+      modifiedGeoJSON: { type: 'FeatureCollection', features: [] },
+    });
+  });
+});
+
+const makeTestGeometry = (label) => ({
+  label,
+  clone: jest.fn(() => makeTestGeometry(label)),
 });
 
 describe('OpenLayers context', () => {
@@ -744,6 +840,21 @@ describe('DrawInteraction', () => {
         properties: {},
       },
       geometryValidation: { valid: true, errors: [], suggestions: [] },
+    });
+
+    const history = getEditHistory(map);
+    expect(history.getState()).toEqual({ canUndo: true, canRedo: false });
+    history.undo();
+    expect(source.removeFeature).toHaveBeenCalledWith(feature);
+    expect(setProps).toHaveBeenLastCalledWith({ drawnGeoJSON: null });
+    history.redo();
+    expect(source.addFeature).toHaveBeenCalledWith(feature);
+    expect(setProps).toHaveBeenLastCalledWith({
+      drawnGeoJSON: {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [10, 45] },
+        properties: {},
+      },
     });
 
     unmount();
