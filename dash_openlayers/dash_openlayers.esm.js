@@ -9,6 +9,39 @@ function _arrayLikeToArray(r, a) {
 function _arrayWithHoles(r) {
   if (Array.isArray(r)) return r;
 }
+function asyncGeneratorStep(n, t, e, r, o, a, c) {
+  try {
+    var i = n[a](c),
+      u = i.value;
+  } catch (n) {
+    return void e(n);
+  }
+  i.done ? t(u) : Promise.resolve(u).then(r, o);
+}
+function _asyncToGenerator(n) {
+  return function () {
+    var t = this,
+      e = arguments;
+    return new Promise(function (r, o) {
+      var a = n.apply(t, e);
+      function _next(n) {
+        asyncGeneratorStep(a, r, o, _next, _throw, "next", n);
+      }
+      function _throw(n) {
+        asyncGeneratorStep(a, r, o, _next, _throw, "throw", n);
+      }
+      _next(void 0);
+    });
+  };
+}
+function _defineProperty(e, r, t) {
+  return (r = _toPropertyKey(r)) in e ? Object.defineProperty(e, r, {
+    value: t,
+    enumerable: true,
+    configurable: true,
+    writable: true
+  }) : e[r] = t, e;
+}
 function _iterableToArrayLimit(r, l) {
   var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"];
   if (null != t) {
@@ -36,8 +69,43 @@ function _iterableToArrayLimit(r, l) {
 function _nonIterableRest() {
   throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
 }
+function ownKeys(e, r) {
+  var t = Object.keys(e);
+  if (Object.getOwnPropertySymbols) {
+    var o = Object.getOwnPropertySymbols(e);
+    r && (o = o.filter(function (r) {
+      return Object.getOwnPropertyDescriptor(e, r).enumerable;
+    })), t.push.apply(t, o);
+  }
+  return t;
+}
+function _objectSpread2(e) {
+  for (var r = 1; r < arguments.length; r++) {
+    var t = null != arguments[r] ? arguments[r] : {};
+    r % 2 ? ownKeys(Object(t), true).forEach(function (r) {
+      _defineProperty(e, r, t[r]);
+    }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(e, Object.getOwnPropertyDescriptors(t)) : ownKeys(Object(t)).forEach(function (r) {
+      Object.defineProperty(e, r, Object.getOwnPropertyDescriptor(t, r));
+    });
+  }
+  return e;
+}
 function _slicedToArray(r, e) {
   return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest();
+}
+function _toPrimitive(t, r) {
+  if ("object" != typeof t || !t) return t;
+  var e = t[Symbol.toPrimitive];
+  if (void 0 !== e) {
+    var i = e.call(t, r);
+    if ("object" != typeof i) return i;
+    throw new TypeError("@@toPrimitive must return a primitive value.");
+  }
+  return ("string" === r ? String : Number)(t);
+}
+function _toPropertyKey(t) {
+  var i = _toPrimitive(t, "string");
+  return "symbol" == typeof i ? i : i + "";
 }
 function _unsupportedIterableToArray(r, a) {
   if (r) {
@@ -2994,6 +3062,21 @@ function boundingExtent(coordinates) {
 }
 
 /**
+ * @param {Array<number>} xs Xs.
+ * @param {Array<number>} ys Ys.
+ * @param {Extent} [dest] Destination extent.
+ * @private
+ * @return {Extent} Extent.
+ */
+function _boundingExtentXYs(xs, ys, dest) {
+  const minX = Math.min.apply(null, xs);
+  const minY = Math.min.apply(null, ys);
+  const maxX = Math.max.apply(null, xs);
+  const maxY = Math.max.apply(null, ys);
+  return createOrUpdate$2(minX, minY, maxX, maxY, dest);
+}
+
+/**
  * Return extent increased by the provided value.
  * @param {Extent} extent Extent.
  * @param {number} value The amount by which the extent should be buffered.
@@ -3629,6 +3712,44 @@ function intersectsSegment(extent, start, end) {
     }
   }
   return intersects;
+}
+
+/**
+ * Apply a transform function to the extent.
+ * @param {Extent} extent Extent.
+ * @param {import("./proj.js").TransformFunction} transformFn Transform function.
+ * Called with `[minX, minY, maxX, maxY]` extent coordinates.
+ * @param {Extent} [dest] Destination extent.
+ * @param {number} [stops] Number of stops per side used for the transform.
+ * By default only the corners are used.
+ * @return {Extent} Extent.
+ * @api
+ */
+function applyTransform(extent, transformFn, dest, stops) {
+  if (isEmpty(extent)) {
+    return createOrUpdateEmpty(dest);
+  }
+  let coordinates = [];
+  {
+    coordinates = [
+      extent[0],
+      extent[1],
+      extent[2],
+      extent[1],
+      extent[2],
+      extent[3],
+      extent[0],
+      extent[3],
+    ];
+  }
+  transformFn(coordinates, coordinates, 2);
+  const xs = [];
+  const ys = [];
+  for (let i = 0, l = coordinates.length; i < l; i += 2) {
+    xs.push(coordinates[i]);
+    ys.push(coordinates[i + 1]);
+  }
+  return _boundingExtentXYs(xs, ys, dest);
 }
 
 /**
@@ -4390,6 +4511,23 @@ function getTransform(source, destination) {
 function transform$1(coordinate, source, destination) {
   const transformFunc = getTransform(source, destination);
   return transformFunc(coordinate, undefined, coordinate.length);
+}
+
+/**
+ * Transforms an extent from source projection to destination projection.  This
+ * returns a new extent (and does not modify the original).
+ *
+ * @param {import("./extent.js").Extent} extent The extent to transform.
+ * @param {ProjectionLike} source Source projection-like.
+ * @param {ProjectionLike} destination Destination projection-like.
+ * @param {number} [stops] Number of stops per side used for the transform.
+ * By default only the corners are used.
+ * @return {import("./extent.js").Extent} The transformed extent.
+ * @api
+ */
+function transformExtent(extent, source, destination, stops) {
+  const transformFunc = getTransform(source, destination);
+  return applyTransform(extent, transformFunc, undefined);
 }
 
 /**
@@ -12473,7 +12611,7 @@ var baseHues = {
  *
  * @return {Object} A space indicator `space`, an array `values` and `alpha`
  */
-function parse$2(cstr) {
+function parse$3(cstr) {
 	var m, parts = [], alpha = 1, space;
 
 	//numeric case
@@ -14266,7 +14404,7 @@ function rgba(color) {
 	if (color instanceof Number) color = +color;
 
 	//attempt to parse non-array arguments
-	const parsed = parse$2(color);
+	const parsed = parse$3(color);
 	if (!parsed.space) return []
 
 	const [range, torgb, scale = 1] = spaces[parsed.space] || [];
@@ -19242,7 +19380,7 @@ function getTypeFromHint(typeHint) {
  * @param {number} [typeHint] Optional type hint
  * @return {Expression} The parsed expression result.
  */
-function parse$1(encoded, context, typeHint) {
+function parse$2(encoded, context, typeHint) {
   switch (typeof encoded) {
     case 'boolean': {
       return new LiteralExpression(BooleanType, encoded);
@@ -19626,7 +19764,7 @@ const parsers = {
  * @type ArgValidator
  */
 function withGetArgs(encoded, context) {
-  const arg = parse$1(encoded[1], context);
+  const arg = parse$2(encoded[1], context);
   if (!(arg instanceof LiteralExpression)) {
     throw new Error('Expected a literal argument for get operation');
   }
@@ -19635,7 +19773,7 @@ function withGetArgs(encoded, context) {
   }
   context.properties.add(arg.value);
   if (encoded.length === 3) {
-    const hint = parse$1(encoded[2], context);
+    const hint = parse$2(encoded[2], context);
     return [arg, hint];
   }
   return [arg];
@@ -19657,7 +19795,7 @@ function withVarArgs(encoded, context, parsedArgs, typeHint) {
     return [new LiteralExpression(AnyType, varName)];
   }
   const initialValue = context.style.variables[varName];
-  const arg = /** @type {LiteralExpression} */ (parse$1(initialValue, context));
+  const arg = /** @type {LiteralExpression} */ (parse$2(initialValue, context));
   arg.value = varName;
   if (typeHint && !overlapsType(typeHint, arg.type)) {
     throw new Error(
@@ -19735,7 +19873,7 @@ function parseArgsOfType(argType) {
      */
     const args = new Array(argCount);
     for (let i = 0; i < argCount; ++i) {
-      const expression = parse$1(encoded[i + 1], context);
+      const expression = parse$2(encoded[i + 1], context);
       if (!overlapsType(argType, expression.type)) {
         const gotType = typeName(argType);
         const expectedType = typeName(expression.type);
@@ -19773,7 +19911,7 @@ function narrowArgsType(encoded, context, parsedArgs) {
   // re-parse args
   const args = new Array(argCount);
   for (let i = 0; i < argCount; ++i) {
-    args[i] = parse$1(encoded[i + 1], context, sameType);
+    args[i] = parse$2(encoded[i + 1], context, sameType);
   }
   return args;
 }
@@ -19814,17 +19952,17 @@ function withEvenArgs(encoded, context) {
 function parseMatchArgs(encoded, context, parsedArgs, typeHint) {
   const argsCount = encoded.length - 1;
 
-  const input = parse$1(encoded[1], context);
+  const input = parse$2(encoded[1], context);
   let inputType = input.type;
-  const fallback = parse$1(encoded[encoded.length - 1], context);
+  const fallback = parse$2(encoded[encoded.length - 1], context);
   let outputType =
     typeHint !== undefined ? typeHint & fallback.type : fallback.type;
 
   // first parse args to figure out possible types
   const args = new Array(argsCount - 2);
   for (let i = 0; i < argsCount - 2; i += 2) {
-    const match = parse$1(encoded[i + 2], context);
-    const output = parse$1(encoded[i + 3], context);
+    const match = parse$2(encoded[i + 2], context);
+    const output = parse$2(encoded[i + 3], context);
     inputType &= match.type;
     outputType &= output.type;
     args[i] = match;
@@ -19851,16 +19989,16 @@ function parseMatchArgs(encoded, context, parsedArgs, typeHint) {
 
   // parse again inputs and outputs with common type
   for (let i = 0; i < argsCount - 2; i += 2) {
-    const match = parse$1(encoded[i + 2], context, inputType);
-    const output = parse$1(encoded[i + 3], context, outputType);
+    const match = parse$2(encoded[i + 2], context, inputType);
+    const output = parse$2(encoded[i + 3], context, outputType);
     args[i] = match;
     args[i + 1] = output;
   }
 
   return [
-    parse$1(encoded[1], context, inputType),
+    parse$2(encoded[1], context, inputType),
     ...args,
-    parse$1(encoded[encoded.length - 1], context, outputType),
+    parse$2(encoded[encoded.length - 1], context, outputType),
   ];
 }
 
@@ -19891,28 +20029,28 @@ function parseInterpolateArgs(encoded, context, parsedArgs, typeHint) {
       `Invalid interpolation type: ${JSON.stringify(interpolationType)}`,
     );
   }
-  interpolation = parse$1(interpolation, context);
+  interpolation = parse$2(interpolation, context);
 
   // check input types
-  let input = parse$1(encoded[2], context);
+  let input = parse$2(encoded[2], context);
   if (!overlapsType(NumberType, input.type)) {
     throw new Error(
       `Expected an input of type number for the interpolate operation` +
         `, got ${typeName(input.type)} instead`,
     );
   }
-  input = parse$1(encoded[2], context, NumberType); // parse again with narrower output
+  input = parse$2(encoded[2], context, NumberType); // parse again with narrower output
 
   const args = new Array(encoded.length - 3);
   for (let i = 0; i < args.length; i += 2) {
-    let stop = parse$1(encoded[i + 3], context);
+    let stop = parse$2(encoded[i + 3], context);
     if (!overlapsType(NumberType, stop.type)) {
       throw new Error(
         `Expected all stop input values in the interpolate operation to be of type number` +
           `, got ${typeName(stop.type)} at position ${i + 2} instead`,
       );
     }
-    let output = parse$1(encoded[i + 4], context);
+    let output = parse$2(encoded[i + 4], context);
     if (!overlapsType(NumberType | ColorType, output.type)) {
       throw new Error(
         `Expected all stop output values in the interpolate operation to be a number or color` +
@@ -19920,8 +20058,8 @@ function parseInterpolateArgs(encoded, context, parsedArgs, typeHint) {
       );
     }
     // parse again with narrower types
-    stop = parse$1(encoded[i + 3], context, NumberType);
-    output = parse$1(encoded[i + 4], context, NumberType | ColorType);
+    stop = parse$2(encoded[i + 3], context, NumberType);
+    output = parse$2(encoded[i + 4], context, NumberType | ColorType);
     args[i] = stop;
     args[i + 1] = output;
   }
@@ -19933,15 +20071,15 @@ function parseInterpolateArgs(encoded, context, parsedArgs, typeHint) {
  * @type ArgValidator
  */
 function parseCaseArgs(encoded, context, parsedArgs, typeHint) {
-  const fallback = parse$1(encoded[encoded.length - 1], context, typeHint);
+  const fallback = parse$2(encoded[encoded.length - 1], context, typeHint);
   let outputType =
     typeHint !== undefined ? typeHint & fallback.type : fallback.type;
 
   // first parse args to figure out possible types
   const args = new Array(encoded.length - 1);
   for (let i = 0; i < args.length - 1; i += 2) {
-    const condition = parse$1(encoded[i + 1], context);
-    const output = parse$1(encoded[i + 2], context, typeHint);
+    const condition = parse$2(encoded[i + 1], context);
+    const output = parse$2(encoded[i + 2], context, typeHint);
     if (!overlapsType(BooleanType, condition.type)) {
       throw new Error(
         `Expected all conditions in the case operation to be of type boolean` +
@@ -19962,9 +20100,9 @@ function parseCaseArgs(encoded, context, parsedArgs, typeHint) {
 
   // parse again args with common output type
   for (let i = 0; i < args.length - 1; i += 2) {
-    args[i + 1] = parse$1(encoded[i + 2], context, outputType);
+    args[i + 1] = parse$2(encoded[i + 2], context, outputType);
   }
-  args[args.length - 1] = parse$1(
+  args[args.length - 1] = parse$2(
     encoded[encoded.length - 1],
     context,
     outputType,
@@ -20001,7 +20139,7 @@ function parseInArgs(encoded, context) {
   let needleType = StringType | NumberType;
   const args = new Array(haystack.length);
   for (let i = 0; i < args.length; i++) {
-    const arg = parse$1(haystack[i], context);
+    const arg = parse$2(haystack[i], context);
     needleType &= arg.type;
     args[i] = arg;
   }
@@ -20012,7 +20150,7 @@ function parseInArgs(encoded, context) {
     );
   }
 
-  const needle = parse$1(encoded[1], context, needleType);
+  const needle = parse$2(encoded[1], context, needleType);
   return [needle, ...args];
 }
 
@@ -20020,7 +20158,7 @@ function parseInArgs(encoded, context) {
  * @type ArgValidator
  */
 function parsePaletteArgs(encoded, context) {
-  const index = parse$1(encoded[1], context, NumberType);
+  const index = parse$2(encoded[1], context, NumberType);
   if (index.type !== NumberType) {
     throw new Error(
       `The first argument of palette must be an number, got ${typeName(
@@ -20034,7 +20172,7 @@ function parsePaletteArgs(encoded, context) {
   }
   const parsedColors = new Array(colors.length);
   for (let i = 0; i < parsedColors.length; i++) {
-    const color = parse$1(colors[i], context, ColorType);
+    const color = parse$2(colors[i], context, ColorType);
     if (!(color instanceof LiteralExpression)) {
       throw new Error(
         `The palette color at index ${i} must be a literal value`,
@@ -20218,7 +20356,7 @@ function newEvaluationContext() {
  * @return {ExpressionEvaluator} The expression evaluator.
  */
 function buildExpression(encoded, type, context) {
-  const expression = parse$1(encoded, context);
+  const expression = parse$2(encoded, context);
   if (!overlapsType(type, expression.type)) {
     const expected = typeName(type);
     const actual = typeName(expression.type);
@@ -31133,7 +31271,7 @@ function testProj(code) {
  * @param {string | import('./core').PROJJSONDefinition | import('./defs').ProjectionDefinition} code
  * @returns {import('./defs').ProjectionDefinition}
  */
-function parse(code) {
+function parse$1(code) {
   let out;
   if (testObj(code)) {
     // check to see if this is a WKT string
@@ -33374,7 +33512,7 @@ function Projection(srsCode, callback) {
       throw error;
     }
   };
-  var json = parse(srsCode);
+  var json = parse$1(srsCode);
   if (typeof json !== 'object') {
     callback('Could not parse to valid json: ' + srsCode);
     return;
@@ -63334,6 +63472,191 @@ class TileGrid {
 }
 
 /**
+ * @module ol/tilegrid/WMTS
+ */
+
+
+/**
+ * @typedef {Object} Options
+ * @property {import("../extent.js").Extent} [extent] Extent for the tile grid. No tiles
+ * outside this extent will be requested by {@link module:ol/source/Tile~TileSource} sources.
+ * When no `origin` or `origins` are configured, the `origin` will be set to the
+ * top-left corner of the extent.
+ * @property {import("../coordinate.js").Coordinate} [origin] The tile grid origin, i.e.
+ * where the `x` and `y` axes meet (`[z, 0, 0]`). Tile coordinates increase left
+ * to right and downwards. If not specified, `extent` or `origins` must be provided.
+ * @property {Array<import("../coordinate.js").Coordinate>} [origins] Tile grid origins,
+ * i.e. where the `x` and `y` axes meet (`[z, 0, 0]`), for each zoom level. If
+ * given, the array length should match the length of the `resolutions` array, i.e.
+ * each resolution can have a different origin. Tile coordinates increase left to
+ * right and downwards. If not specified, `extent` or `origin` must be provided.
+ * @property {!Array<number>} resolutions Resolutions. The array index of each
+ * resolution needs to match the zoom level. This means that even if a `minZoom`
+ * is configured, the resolutions array will have a length of `maxZoom + 1`
+ * @property {!Array<string>} matrixIds matrix IDs. The length of this array needs
+ * to match the length of the `resolutions` array.
+ * @property {Array<import("../size.js").Size>} [sizes] Number of tile rows and columns
+ * of the grid for each zoom level. The values here are the `TileMatrixWidth` and
+ * `TileMatrixHeight` advertised in the GetCapabilities response of the WMTS, and
+ * define each zoom level's extent together with the `origin` or `origins`.
+ * A grid `extent` can be configured in addition, and will further limit the extent for
+ * which tile requests are made by sources. If the bottom-left corner of
+ * an extent is used as `origin` or `origins`, then the `y` value must be
+ * negative because OpenLayers tile coordinates use the top left as the origin.
+ * @property {number|import("../size.js").Size} [tileSize] Tile size.
+ * @property {Array<number|import("../size.js").Size>} [tileSizes] Tile sizes. The length of
+ * this array needs to match the length of the `resolutions` array.
+ */
+
+/**
+ * @classdesc
+ * Set the grid pattern for sources accessing WMTS tiled-image servers.
+ * @api
+ */
+class WMTSTileGrid extends TileGrid {
+  /**
+   * @param {Options} options WMTS options.
+   */
+  constructor(options) {
+    super({
+      extent: options.extent,
+      origin: options.origin,
+      origins: options.origins,
+      resolutions: options.resolutions,
+      tileSize: options.tileSize,
+      tileSizes: options.tileSizes,
+      sizes: options.sizes,
+    });
+
+    /**
+     * @private
+     * @type {!Array<string>}
+     */
+    this.matrixIds_ = options.matrixIds;
+  }
+
+  /**
+   * @param {number} z Z.
+   * @return {string} MatrixId..
+   */
+  getMatrixId(z) {
+    return this.matrixIds_[z];
+  }
+
+  /**
+   * Get the list of matrix identifiers.
+   * @return {Array<string>} MatrixIds.
+   * @api
+   */
+  getMatrixIds() {
+    return this.matrixIds_;
+  }
+}
+
+/**
+ * Create a tile grid from a WMTS capabilities matrix set and an
+ * optional TileMatrixSetLimits.
+ * @param {Object} matrixSet An object representing a matrixSet in the
+ *     capabilities document.
+ * @param {import("../extent.js").Extent} [extent] An optional extent to restrict the tile
+ *     ranges the server provides.
+ * @param {Array<Object>} [matrixLimits] An optional object representing
+ *     the available matrices for tileGrid.
+ * @return {WMTSTileGrid} WMTS tileGrid instance.
+ * @api
+ */
+function createFromCapabilitiesMatrixSet(
+  matrixSet,
+  extent,
+  matrixLimits,
+) {
+  /** @type {!Array<number>} */
+  const resolutions = [];
+  /** @type {!Array<string>} */
+  const matrixIds = [];
+  /** @type {!Array<import("../coordinate.js").Coordinate>} */
+  const origins = [];
+  /** @type {!Array<number|import("../size.js").Size>} */
+  const tileSizes = [];
+  /** @type {!Array<import("../size.js").Size>} */
+  const sizes = [];
+
+  matrixLimits = matrixLimits !== undefined ? matrixLimits : [];
+
+  const supportedCRSPropName = 'SupportedCRS';
+  const matrixIdsPropName = 'TileMatrix';
+  const identifierPropName = 'Identifier';
+  const scaleDenominatorPropName = 'ScaleDenominator';
+  const topLeftCornerPropName = 'TopLeftCorner';
+  const tileWidthPropName = 'TileWidth';
+  const tileHeightPropName = 'TileHeight';
+
+  const code = matrixSet[supportedCRSPropName];
+  const projection = get$2(code);
+  const metersPerUnit = projection.getMetersPerUnit();
+  // swap origin x and y coordinates if axis orientation is lat/long
+  const switchOriginXY = projection.getAxisOrientation().substr(0, 2) == 'ne';
+
+  matrixSet[matrixIdsPropName].sort(function (a, b) {
+    return b[scaleDenominatorPropName] - a[scaleDenominatorPropName];
+  });
+
+  matrixSet[matrixIdsPropName].forEach(function (elt) {
+    let matrixAvailable;
+    // use of matrixLimits to filter TileMatrices from GetCapabilities
+    // TileMatrixSet from unavailable matrix levels.
+    if (matrixLimits.length > 0) {
+      matrixAvailable = matrixLimits.find(function (elt_ml) {
+        if (elt[identifierPropName] == elt_ml[matrixIdsPropName]) {
+          return true;
+        }
+        // Fallback for tileMatrix identifiers that don't get prefixed
+        // by their tileMatrixSet identifiers.
+        if (!elt[identifierPropName].includes(':')) {
+          return (
+            matrixSet[identifierPropName] + ':' + elt[identifierPropName] ===
+            elt_ml[matrixIdsPropName]
+          );
+        }
+        return false;
+      });
+    } else {
+      matrixAvailable = true;
+    }
+
+    if (matrixAvailable) {
+      matrixIds.push(elt[identifierPropName]);
+      const resolution =
+        (elt[scaleDenominatorPropName] * 0.28e-3) / metersPerUnit;
+      const tileWidth = elt[tileWidthPropName];
+      const tileHeight = elt[tileHeightPropName];
+      if (switchOriginXY) {
+        origins.push([
+          elt[topLeftCornerPropName][1],
+          elt[topLeftCornerPropName][0],
+        ]);
+      } else {
+        origins.push(elt[topLeftCornerPropName]);
+      }
+      resolutions.push(resolution);
+      tileSizes.push(
+        tileWidth == tileHeight ? tileWidth : [tileWidth, tileHeight],
+      );
+      sizes.push([elt['MatrixWidth'], elt['MatrixHeight']]);
+    }
+  });
+
+  return new WMTSTileGrid({
+    extent: extent,
+    origins: origins,
+    resolutions: resolutions,
+    matrixIds: matrixIds,
+    tileSizes: tileSizes,
+    sizes: sizes,
+  });
+}
+
+/**
  * @module ol/tilegrid
  */
 
@@ -68548,4 +68871,1734 @@ VectorTileLayer.propTypes = {
   setProps: PropTypes.func
 };
 
-export { DrawInteraction, ImageWMSLayer as ImageWMS, MapComponent as Map, ModifyInteraction, OLContext, TileLayer, TileWMSLayer as TileWMS, VectorLayerComponent as VectorLayer, VectorTileLayer };
+/**
+ * @module ol/xml
+ */
+
+/**
+ * Recursively grab all text content of child nodes into a single string.
+ * @param {Node} node Node.
+ * @param {boolean} normalizeWhitespace Normalize whitespace: remove all line
+ * breaks.
+ * @return {string} All text content.
+ * @api
+ */
+function getAllTextContent(node, normalizeWhitespace) {
+  return getAllTextContent_(node, normalizeWhitespace, []).join('');
+}
+
+/**
+ * Recursively grab all text content of child nodes into a single string.
+ * @param {Node} node Node.
+ * @param {boolean} normalizeWhitespace Normalize whitespace: remove all line
+ * breaks.
+ * @param {Array<string>} accumulator Accumulator.
+ * @private
+ * @return {Array<string>} Accumulator.
+ */
+function getAllTextContent_(node, normalizeWhitespace, accumulator) {
+  if (
+    node.nodeType == Node.CDATA_SECTION_NODE ||
+    node.nodeType == Node.TEXT_NODE
+  ) {
+    {
+      accumulator.push(node.nodeValue);
+    }
+  } else {
+    let n;
+    for (n = node.firstChild; n; n = n.nextSibling) {
+      getAllTextContent_(n, normalizeWhitespace, accumulator);
+    }
+  }
+  return accumulator;
+}
+
+/**
+ * @param {Object} object Object.
+ * @return {boolean} Is a document.
+ */
+function isDocument(object) {
+  return 'documentElement' in object;
+}
+
+/**
+ * Parse an XML string to an XML Document.
+ * @param {string} xml XML.
+ * @return {Document} Document.
+ * @api
+ */
+function parse(xml) {
+  return new DOMParser().parseFromString(xml, 'application/xml');
+}
+
+/**
+ * Make an array pusher function for pushing to the array at the top of the
+ * object stack.
+ * @param {function(this: T, Element, Array<*>): *} valueReader Value reader.
+ * @param {T} [thisArg] The object to use as `this` in `valueReader`.
+ * @return {Parser} Parser.
+ * @template T
+ */
+function makeArrayPusher(valueReader, thisArg) {
+  return (
+    /**
+     * @param {Element} node Node.
+     * @param {Array<*>} objectStack Object stack.
+     */
+    function (node, objectStack) {
+      const value = valueReader.call(
+        this,
+        node,
+        objectStack,
+      );
+      if (value !== undefined) {
+        const array = /** @type {Array<*>} */ (
+          objectStack[objectStack.length - 1]
+        );
+        array.push(value);
+      }
+    }
+  );
+}
+
+/**
+ * Make an object property pusher function for adding a property to the
+ * object at the top of the stack.
+ * @param {function(this: T, Element, Array<*>): *} valueReader Value reader.
+ * @param {string} [property] Property.
+ * @param {T} [thisArg] The object to use as `this` in `valueReader`.
+ * @return {Parser} Parser.
+ * @template T
+ */
+function makeObjectPropertyPusher(valueReader, property, thisArg) {
+  return (
+    /**
+     * @param {Element} node Node.
+     * @param {Array<*>} objectStack Object stack.
+     */
+    function (node, objectStack) {
+      const value = valueReader.call(
+        this,
+        node,
+        objectStack,
+      );
+      if (value !== undefined) {
+        const object = /** @type {!Object} */ (
+          objectStack[objectStack.length - 1]
+        );
+        const name = node.localName;
+        let array;
+        if (name in object) {
+          array = object[name];
+        } else {
+          array = [];
+          object[name] = array;
+        }
+        array.push(value);
+      }
+    }
+  );
+}
+
+/**
+ * Make an object property setter function.
+ * @param {function(this: T, Element, Array<*>): *} valueReader Value reader.
+ * @param {string} [property] Property.
+ * @param {T} [thisArg] The object to use as `this` in `valueReader`.
+ * @return {Parser} Parser.
+ * @template T
+ */
+function makeObjectPropertySetter(valueReader, property, thisArg) {
+  return (
+    /**
+     * @param {Element} node Node.
+     * @param {Array<*>} objectStack Object stack.
+     */
+    function (node, objectStack) {
+      const value = valueReader.call(
+        this,
+        node,
+        objectStack,
+      );
+      if (value !== undefined) {
+        const object = /** @type {!Object} */ (
+          objectStack[objectStack.length - 1]
+        );
+        const name = node.localName;
+        object[name] = value;
+      }
+    }
+  );
+}
+
+/**
+ * Create a namespaced structure, using the same values for each namespace.
+ * This can be used as a starting point for versioned parsers, when only a few
+ * values are version specific.
+ * @param {Array<string>} namespaceURIs Namespace URIs.
+ * @param {T} structure Structure.
+ * @param {Object<string, T>} [structureNS] Namespaced structure to add to.
+ * @return {Object<string, T>} Namespaced structure.
+ * @template T
+ */
+function makeStructureNS(namespaceURIs, structure, structureNS) {
+  structureNS = structureNS !== undefined ? structureNS : {};
+  let i, ii;
+  for (i = 0, ii = namespaceURIs.length; i < ii; ++i) {
+    structureNS[namespaceURIs[i]] = structure;
+  }
+  return structureNS;
+}
+
+/**
+ * Parse a node using the parsers and object stack.
+ * @param {Object<string, Object<string, Parser>>} parsersNS
+ *     Parsers by namespace.
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @param {*} [thisArg] The object to use as `this`.
+ */
+function parseNode(parsersNS, node, objectStack, thisArg) {
+  let n;
+  for (n = node.firstElementChild; n; n = n.nextElementSibling) {
+    const parsers = parsersNS[n.namespaceURI];
+    if (parsers !== undefined) {
+      const parser = parsers[n.localName];
+      if (parser !== undefined) {
+        parser.call(thisArg, n, objectStack);
+      }
+    }
+  }
+}
+
+/**
+ * Push an object on top of the stack, parse and return the popped object.
+ * @param {T} object Object.
+ * @param {Object<string, Object<string, Parser>>} parsersNS
+ *     Parsers by namespace.
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @param {*} [thisArg] The object to use as `this`.
+ * @return {T} Object.
+ * @template T
+ */
+function pushParseAndPop(object, parsersNS, node, objectStack, thisArg) {
+  objectStack.push(object);
+  parseNode(parsersNS, node, objectStack, thisArg);
+  return /** @type {T} */ (objectStack.pop());
+}
+
+/**
+ * @module ol/format/XML
+ */
+
+/**
+ * @classdesc
+ * Generic format for reading non-feature XML data
+ *
+ * @abstract
+ */
+class XML {
+  /**
+   * Read the source document.
+   *
+   * @param {Document|Element|string} source The XML source.
+   * @return {Object|null} An object representing the source.
+   * @api
+   */
+  read(source) {
+    if (!source) {
+      return null;
+    }
+    if (typeof source === 'string') {
+      const doc = parse(source);
+      return this.readFromDocument(doc);
+    }
+    if (isDocument(source)) {
+      return this.readFromDocument(/** @type {Document} */ (source));
+    }
+    return this.readFromNode(/** @type {Element} */ (source));
+  }
+
+  /**
+   * @param {Document} doc Document.
+   * @return {Object|null} Object
+   */
+  readFromDocument(doc) {
+    for (let n = doc.firstChild; n; n = n.nextSibling) {
+      if (n.nodeType == Node.ELEMENT_NODE) {
+        return this.readFromNode(/** @type {Element} */ (n));
+      }
+    }
+    return null;
+  }
+
+  /**
+   * @abstract
+   * @param {Element} node Node.
+   * @return {Object|null} Object
+   */
+  readFromNode(node) {
+    abstract();
+  }
+}
+
+/**
+ * @module ol/format/xlink
+ */
+
+/**
+ * @const
+ * @type {string}
+ */
+const NAMESPACE_URI = 'http://www.w3.org/1999/xlink';
+
+/**
+ * @param {Element} node Node.
+ * @return {string|null} href.
+ */
+function readHref(node) {
+  return node.getAttributeNS(NAMESPACE_URI, 'href');
+}
+
+/**
+ * @module ol/format/xsd
+ */
+
+/**
+ * @param {Node} node Node.
+ * @return {number|undefined} Decimal.
+ */
+function readDecimal(node) {
+  const s = getAllTextContent(node, false);
+  return readDecimalString(s);
+}
+
+/**
+ * @param {string} string String.
+ * @return {number|undefined} Decimal.
+ */
+function readDecimalString(string) {
+  // FIXME check spec
+  const m = /^\s*([+\-]?\d*\.?\d+(?:e[+\-]?\d+)?)\s*$/i.exec(string);
+  if (m) {
+    return parseFloat(m[1]);
+  }
+  return undefined;
+}
+
+/**
+ * @param {Node} node Node.
+ * @return {number|undefined} Non negative integer.
+ */
+function readPositiveInteger(node) {
+  const s = getAllTextContent(node, false);
+  return readNonNegativeIntegerString(s);
+}
+
+/**
+ * @param {string} string String.
+ * @return {number|undefined} Non negative integer.
+ */
+function readNonNegativeIntegerString(string) {
+  const m = /^\s*(\d+)\s*$/.exec(string);
+  if (m) {
+    return parseInt(m[1], 10);
+  }
+  return undefined;
+}
+
+/**
+ * @param {Node} node Node.
+ * @return {string|undefined} String.
+ */
+function readString(node) {
+  return getAllTextContent(node, false).trim();
+}
+
+/**
+ * @module ol/format/OWS
+ */
+
+/**
+ * @const
+ * @type {Array<null|string>}
+ */
+const NAMESPACE_URIS$1 = [null, 'http://www.opengis.net/ows/1.1'];
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const PARSERS$1 = makeStructureNS(NAMESPACE_URIS$1, {
+  'ServiceIdentification': makeObjectPropertySetter(readServiceIdentification),
+  'ServiceProvider': makeObjectPropertySetter(readServiceProvider),
+  'OperationsMetadata': makeObjectPropertySetter(readOperationsMetadata),
+});
+
+class OWS extends XML {
+  constructor() {
+    super();
+  }
+
+  /**
+   * @param {Element} node Node.
+   * @return {Object|null} Object
+   */
+  readFromNode(node) {
+    const owsObject = pushParseAndPop({}, PARSERS$1, node, []);
+    return owsObject ? owsObject : null;
+  }
+}
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const ADDRESS_PARSERS = makeStructureNS(NAMESPACE_URIS$1, {
+  'DeliveryPoint': makeObjectPropertySetter(readString),
+  'City': makeObjectPropertySetter(readString),
+  'AdministrativeArea': makeObjectPropertySetter(readString),
+  'PostalCode': makeObjectPropertySetter(readString),
+  'Country': makeObjectPropertySetter(readString),
+  'ElectronicMailAddress': makeObjectPropertySetter(readString),
+});
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const ALLOWED_VALUES_PARSERS = makeStructureNS(NAMESPACE_URIS$1, {
+  'Value': makeObjectPropertyPusher(readValue),
+});
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const CONSTRAINT_PARSERS = makeStructureNS(NAMESPACE_URIS$1, {
+  'AllowedValues': makeObjectPropertySetter(readAllowedValues),
+});
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const CONTACT_INFO_PARSERS = makeStructureNS(NAMESPACE_URIS$1, {
+  'Phone': makeObjectPropertySetter(readPhone),
+  'Address': makeObjectPropertySetter(readAddress),
+});
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const DCP_PARSERS = makeStructureNS(NAMESPACE_URIS$1, {
+  'HTTP': makeObjectPropertySetter(readHttp),
+});
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const HTTP_PARSERS = makeStructureNS(NAMESPACE_URIS$1, {
+  'Get': makeObjectPropertyPusher(readGet),
+  'Post': undefined, // TODO
+});
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const OPERATION_PARSERS = makeStructureNS(NAMESPACE_URIS$1, {
+  'DCP': makeObjectPropertySetter(readDcp),
+});
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const OPERATIONS_METADATA_PARSERS = makeStructureNS(NAMESPACE_URIS$1, {
+  'Operation': readOperation,
+});
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const PHONE_PARSERS = makeStructureNS(NAMESPACE_URIS$1, {
+  'Voice': makeObjectPropertySetter(readString),
+  'Facsimile': makeObjectPropertySetter(readString),
+});
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const REQUEST_METHOD_PARSERS = makeStructureNS(NAMESPACE_URIS$1, {
+  'Constraint': makeObjectPropertyPusher(readConstraint),
+});
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const SERVICE_CONTACT_PARSERS = makeStructureNS(NAMESPACE_URIS$1, {
+  'IndividualName': makeObjectPropertySetter(readString),
+  'PositionName': makeObjectPropertySetter(readString),
+  'ContactInfo': makeObjectPropertySetter(readContactInfo),
+});
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const SERVICE_IDENTIFICATION_PARSERS = makeStructureNS(NAMESPACE_URIS$1, {
+  'Abstract': makeObjectPropertySetter(readString),
+  'AccessConstraints': makeObjectPropertySetter(readString),
+  'Fees': makeObjectPropertySetter(readString),
+  'Title': makeObjectPropertySetter(readString),
+  'ServiceTypeVersion': makeObjectPropertySetter(readString),
+  'ServiceType': makeObjectPropertySetter(readString),
+});
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const SERVICE_PROVIDER_PARSERS = makeStructureNS(NAMESPACE_URIS$1, {
+  'ProviderName': makeObjectPropertySetter(readString),
+  'ProviderSite': makeObjectPropertySetter(readHref),
+  'ServiceContact': makeObjectPropertySetter(readServiceContact),
+});
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} The address.
+ */
+function readAddress(node, objectStack) {
+  return pushParseAndPop({}, ADDRESS_PARSERS, node, objectStack);
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} The values.
+ */
+function readAllowedValues(node, objectStack) {
+  return pushParseAndPop({}, ALLOWED_VALUES_PARSERS, node, objectStack);
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} The constraint.
+ */
+function readConstraint(node, objectStack) {
+  const name = node.getAttribute('name');
+  if (!name) {
+    return undefined;
+  }
+  return pushParseAndPop({'name': name}, CONSTRAINT_PARSERS, node, objectStack);
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} The contact info.
+ */
+function readContactInfo(node, objectStack) {
+  return pushParseAndPop({}, CONTACT_INFO_PARSERS, node, objectStack);
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} The DCP.
+ */
+function readDcp(node, objectStack) {
+  return pushParseAndPop({}, DCP_PARSERS, node, objectStack);
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} The GET object.
+ */
+function readGet(node, objectStack) {
+  const href = readHref(node);
+  if (!href) {
+    return undefined;
+  }
+  return pushParseAndPop(
+    {'href': href},
+    REQUEST_METHOD_PARSERS,
+    node,
+    objectStack,
+  );
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} The HTTP object.
+ */
+function readHttp(node, objectStack) {
+  return pushParseAndPop({}, HTTP_PARSERS, node, objectStack);
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} The operation.
+ */
+function readOperation(node, objectStack) {
+  const name = node.getAttribute('name');
+  const value = pushParseAndPop({}, OPERATION_PARSERS, node, objectStack);
+  if (!value) {
+    return undefined;
+  }
+  const object = /** @type {Object} */ (objectStack[objectStack.length - 1]);
+  object[name] = value;
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} The operations metadata.
+ */
+function readOperationsMetadata(node, objectStack) {
+  return pushParseAndPop({}, OPERATIONS_METADATA_PARSERS, node, objectStack);
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} The phone.
+ */
+function readPhone(node, objectStack) {
+  return pushParseAndPop({}, PHONE_PARSERS, node, objectStack);
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} The service identification.
+ */
+function readServiceIdentification(node, objectStack) {
+  return pushParseAndPop({}, SERVICE_IDENTIFICATION_PARSERS, node, objectStack);
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} The service contact.
+ */
+function readServiceContact(node, objectStack) {
+  return pushParseAndPop({}, SERVICE_CONTACT_PARSERS, node, objectStack);
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} The service provider.
+ */
+function readServiceProvider(node, objectStack) {
+  return pushParseAndPop({}, SERVICE_PROVIDER_PARSERS, node, objectStack);
+}
+
+/**
+ * @param {Node} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {string|undefined} The value.
+ */
+function readValue(node, objectStack) {
+  return readString(node);
+}
+
+/**
+ * @module ol/format/WMTSCapabilities
+ */
+
+/**
+ * @const
+ * @type {Array<null|string>}
+ */
+const NAMESPACE_URIS = [null, 'http://www.opengis.net/wmts/1.0'];
+
+/**
+ * @const
+ * @type {Array<null|string>}
+ */
+const OWS_NAMESPACE_URIS = [null, 'http://www.opengis.net/ows/1.1'];
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const PARSERS = makeStructureNS(NAMESPACE_URIS, {
+  'Contents': makeObjectPropertySetter(readContents),
+});
+
+/**
+ * @classdesc
+ * Format for reading WMTS capabilities data.
+ *
+ * @api
+ */
+class WMTSCapabilities extends XML {
+  constructor() {
+    super();
+
+    /**
+     * @type {OWS}
+     * @private
+     */
+    this.owsParser_ = new OWS();
+  }
+
+  /**
+   * @param {Element} node Node.
+   * @return {Object|null} Object
+   */
+  readFromNode(node) {
+    let version = node.getAttribute('version');
+    if (version) {
+      version = version.trim();
+    }
+    let WMTSCapabilityObject = this.owsParser_.readFromNode(node);
+    if (!WMTSCapabilityObject) {
+      return null;
+    }
+    WMTSCapabilityObject['version'] = version;
+    WMTSCapabilityObject = pushParseAndPop(
+      WMTSCapabilityObject,
+      PARSERS,
+      node,
+      [],
+    );
+    return WMTSCapabilityObject ? WMTSCapabilityObject : null;
+  }
+}
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const CONTENTS_PARSERS = makeStructureNS(NAMESPACE_URIS, {
+  'Layer': makeObjectPropertyPusher(readLayer),
+  'TileMatrixSet': makeObjectPropertyPusher(readTileMatrixSet),
+});
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const LAYER_PARSERS = makeStructureNS(
+  NAMESPACE_URIS,
+  {
+    'Style': makeObjectPropertyPusher(readStyle),
+    'Format': makeObjectPropertyPusher(readString),
+    'TileMatrixSetLink': makeObjectPropertyPusher(readTileMatrixSetLink),
+    'Dimension': makeObjectPropertyPusher(readDimensions),
+    'ResourceURL': makeObjectPropertyPusher(readResourceUrl),
+  },
+  makeStructureNS(OWS_NAMESPACE_URIS, {
+    'Title': makeObjectPropertySetter(readString),
+    'Abstract': makeObjectPropertySetter(readString),
+    'WGS84BoundingBox': makeObjectPropertySetter(readBoundingBox),
+    'BoundingBox': makeObjectPropertyPusher(readBoundingBoxWithCrs),
+    'Identifier': makeObjectPropertySetter(readString),
+  }),
+);
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const STYLE_PARSERS = makeStructureNS(
+  NAMESPACE_URIS,
+  {
+    'LegendURL': makeObjectPropertyPusher(readLegendUrl),
+  },
+  makeStructureNS(OWS_NAMESPACE_URIS, {
+    'Title': makeObjectPropertySetter(readString),
+    'Identifier': makeObjectPropertySetter(readString),
+  }),
+);
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const TMS_LINKS_PARSERS = makeStructureNS(NAMESPACE_URIS, {
+  'TileMatrixSet': makeObjectPropertySetter(readString),
+  'TileMatrixSetLimits': makeObjectPropertySetter(readTileMatrixLimitsList),
+});
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const TMS_LIMITS_LIST_PARSERS = makeStructureNS(NAMESPACE_URIS, {
+  'TileMatrixLimits': makeArrayPusher(readTileMatrixLimits),
+});
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const TMS_LIMITS_PARSERS = makeStructureNS(NAMESPACE_URIS, {
+  'TileMatrix': makeObjectPropertySetter(readString),
+  'MinTileRow': makeObjectPropertySetter(readPositiveInteger),
+  'MaxTileRow': makeObjectPropertySetter(readPositiveInteger),
+  'MinTileCol': makeObjectPropertySetter(readPositiveInteger),
+  'MaxTileCol': makeObjectPropertySetter(readPositiveInteger),
+});
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const DIMENSION_PARSERS = makeStructureNS(
+  NAMESPACE_URIS,
+  {
+    'Default': makeObjectPropertySetter(readString),
+    'Value': makeObjectPropertyPusher(readString),
+  },
+  makeStructureNS(OWS_NAMESPACE_URIS, {
+    'Identifier': makeObjectPropertySetter(readString),
+  }),
+);
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const WGS84_BBOX_READERS = makeStructureNS(OWS_NAMESPACE_URIS, {
+  'LowerCorner': makeArrayPusher(readCoordinates),
+  'UpperCorner': makeArrayPusher(readCoordinates),
+});
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const TMS_PARSERS = makeStructureNS(
+  NAMESPACE_URIS,
+  {
+    'WellKnownScaleSet': makeObjectPropertySetter(readString),
+    'TileMatrix': makeObjectPropertyPusher(readTileMatrix),
+  },
+  makeStructureNS(OWS_NAMESPACE_URIS, {
+    'SupportedCRS': makeObjectPropertySetter(readString),
+    'Identifier': makeObjectPropertySetter(readString),
+    'BoundingBox': makeObjectPropertySetter(readBoundingBox),
+  }),
+);
+
+/**
+ * @const
+ * @type {Object<string, Object<string, import("../xml.js").Parser>>}
+ */
+// @ts-ignore
+const TM_PARSERS = makeStructureNS(
+  NAMESPACE_URIS,
+  {
+    'TopLeftCorner': makeObjectPropertySetter(readCoordinates),
+    'ScaleDenominator': makeObjectPropertySetter(readDecimal),
+    'TileWidth': makeObjectPropertySetter(readPositiveInteger),
+    'TileHeight': makeObjectPropertySetter(readPositiveInteger),
+    'MatrixWidth': makeObjectPropertySetter(readPositiveInteger),
+    'MatrixHeight': makeObjectPropertySetter(readPositiveInteger),
+  },
+  makeStructureNS(OWS_NAMESPACE_URIS, {
+    'Identifier': makeObjectPropertySetter(readString),
+  }),
+);
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} Attribution object.
+ */
+function readContents(node, objectStack) {
+  return pushParseAndPop({}, CONTENTS_PARSERS, node, objectStack);
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} Layers object.
+ */
+function readLayer(node, objectStack) {
+  return pushParseAndPop({}, LAYER_PARSERS, node, objectStack);
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} Tile Matrix Set object.
+ */
+function readTileMatrixSet(node, objectStack) {
+  return pushParseAndPop({}, TMS_PARSERS, node, objectStack);
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} Style object.
+ */
+function readStyle(node, objectStack) {
+  const style = pushParseAndPop({}, STYLE_PARSERS, node, objectStack);
+  if (!style) {
+    return undefined;
+  }
+  const isDefault = node.getAttribute('isDefault') === 'true';
+  style['isDefault'] = isDefault;
+  return style;
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} Tile Matrix Set Link object.
+ */
+function readTileMatrixSetLink(node, objectStack) {
+  return pushParseAndPop({}, TMS_LINKS_PARSERS, node, objectStack);
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} Dimension object.
+ */
+function readDimensions(node, objectStack) {
+  return pushParseAndPop({}, DIMENSION_PARSERS, node, objectStack);
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} Resource URL object.
+ */
+function readResourceUrl(node, objectStack) {
+  const format = node.getAttribute('format');
+  const template = node.getAttribute('template');
+  const resourceType = node.getAttribute('resourceType');
+  const resource = {};
+  if (format) {
+    resource['format'] = format;
+  }
+  if (template) {
+    resource['template'] = template;
+  }
+  if (resourceType) {
+    resource['resourceType'] = resourceType;
+  }
+  return resource;
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} BBox object.
+ */
+function readBoundingBox(node, objectStack) {
+  const coordinates = pushParseAndPop(
+    [],
+    WGS84_BBOX_READERS,
+    node,
+    objectStack,
+  );
+  if (coordinates.length != 2) {
+    return undefined;
+  }
+  return boundingExtent(coordinates);
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} BBox object.
+ */
+function readBoundingBoxWithCrs(node, objectStack) {
+  const crs = node.getAttribute('crs');
+  const coordinates = pushParseAndPop(
+    [],
+    WGS84_BBOX_READERS,
+    node,
+    objectStack,
+  );
+  if (coordinates.length != 2) {
+    return undefined;
+  }
+  return {extent: boundingExtent(coordinates), crs: crs};
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} Legend object.
+ */
+function readLegendUrl(node, objectStack) {
+  const legend = {};
+  legend['format'] = node.getAttribute('format');
+  legend['href'] = readHref(node);
+  return legend;
+}
+
+/**
+ * @param {Node} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} Coordinates object.
+ */
+function readCoordinates(node, objectStack) {
+  const coordinates = readString(node).split(/\s+/);
+  if (!coordinates || coordinates.length != 2) {
+    return undefined;
+  }
+  const x = +coordinates[0];
+  const y = +coordinates[1];
+  if (isNaN(x) || isNaN(y)) {
+    return undefined;
+  }
+  return [x, y];
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} TileMatrix object.
+ */
+function readTileMatrix(node, objectStack) {
+  return pushParseAndPop({}, TM_PARSERS, node, objectStack);
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} TileMatrixSetLimits Object.
+ */
+function readTileMatrixLimitsList(node, objectStack) {
+  return pushParseAndPop([], TMS_LIMITS_LIST_PARSERS, node, objectStack);
+}
+
+/**
+ * @param {Element} node Node.
+ * @param {Array<*>} objectStack Object stack.
+ * @return {Object|undefined} TileMatrixLimits Array.
+ */
+function readTileMatrixLimits(node, objectStack) {
+  return pushParseAndPop({}, TMS_LIMITS_PARSERS, node, objectStack);
+}
+
+/**
+ * @module ol/source/WMTS
+ */
+
+
+/**
+ * Request encoding. One of 'KVP', 'REST'.
+ * @typedef {'KVP' | 'REST'} RequestEncoding
+ */
+
+/**
+ * @typedef {Object} Options
+ * @property {import("./Source.js").AttributionLike} [attributions] Attributions.
+ * @property {boolean} [attributionsCollapsible=true] Attributions are collapsible.
+ * @property {number} [cacheSize] Initial tile cache size. Will auto-grow to hold at least the number of tiles in the viewport.
+ * @property {null|string} [crossOrigin] The `crossOrigin` attribute for loaded images.  Note that
+ * you must provide a `crossOrigin` value if you want to access pixel data with the Canvas renderer.
+ * See https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_enabled_image for more detail.
+ * @property {boolean} [interpolate=true] Use interpolated values when resampling.  By default,
+ * linear interpolation is used when resampling.  Set to false to use the nearest neighbor instead.
+ * @property {import("../tilegrid/WMTS.js").default} tileGrid Tile grid.
+ * @property {import("../proj.js").ProjectionLike} [projection] Projection. Default is the view projection.
+ * @property {number} [reprojectionErrorThreshold=0.5] Maximum allowed reprojection error (in pixels).
+ * Higher values can increase reprojection performance, but decrease precision.
+ * @property {RequestEncoding} [requestEncoding='KVP'] Request encoding.
+ * @property {string} layer Layer name as advertised in the WMTS capabilities.
+ * @property {string} style Style name as advertised in the WMTS capabilities.
+ * @property {typeof import("../ImageTile.js").default} [tileClass]  Class used to instantiate image tiles. Default is {@link module:ol/ImageTile~ImageTile}.
+ * @property {number} [tilePixelRatio=1] The pixel ratio used by the tile service.
+ * For example, if the tile service advertizes 256px by 256px tiles but actually sends 512px
+ * by 512px images (for retina/hidpi devices) then `tilePixelRatio`
+ * should be set to `2`.
+ * @property {string} [format='image/jpeg'] Image format. Only used when `requestEncoding` is `'KVP'`.
+ * @property {string} [version='1.0.0'] WMTS version.
+ * @property {string} matrixSet Matrix set.
+ * @property {!Object} [dimensions] Additional "dimensions" for tile requests.
+ * This is an object with properties named like the advertised WMTS dimensions.
+ * @property {string} [url]  A URL for the service.
+ * For the RESTful request encoding, this is a URL
+ * template.  For KVP encoding, it is normal URL. A `{?-?}` template pattern,
+ * for example `subdomain{a-f}.domain.com`, may be used instead of defining
+ * each one separately in the `urls` option.
+ * @property {import("../Tile.js").LoadFunction} [tileLoadFunction] Optional function to load a tile given a URL. The default is
+ * ```js
+ * function(imageTile, src) {
+ *   imageTile.getImage().src = src;
+ * };
+ * ```
+ * @property {Array<string>} [urls] An array of URLs.
+ * Requests will be distributed among the URLs in this array.
+ * @property {boolean} [wrapX=false] Whether to wrap the world horizontally.
+ * @property {number} [transition] Duration of the opacity transition for rendering.
+ * To disable the opacity transition, pass `transition: 0`.
+ * @property {number|import("../array.js").NearestDirectionFunction} [zDirection=0]
+ * Choose whether to use tiles with a higher or lower zoom level when between integer
+ * zoom levels. See {@link module:ol/tilegrid/TileGrid~TileGrid#getZForResolution}.
+ */
+
+/**
+ * @classdesc
+ * Layer source for tile data from WMTS servers.
+ * @api
+ */
+class WMTS extends TileImage {
+  /**
+   * @param {Options} options WMTS options.
+   */
+  constructor(options) {
+    // TODO: add support for TileMatrixLimits
+
+    const requestEncoding =
+      options.requestEncoding !== undefined ? options.requestEncoding : 'KVP';
+
+    // FIXME: should we create a default tileGrid?
+    // we could issue a getCapabilities xhr to retrieve missing configuration
+    const tileGrid = options.tileGrid;
+
+    let urls = options.urls;
+    if (urls === undefined && options.url !== undefined) {
+      urls = expandUrl(options.url);
+    }
+
+    super({
+      attributions: options.attributions,
+      attributionsCollapsible: options.attributionsCollapsible,
+      cacheSize: options.cacheSize,
+      crossOrigin: options.crossOrigin,
+      interpolate: options.interpolate,
+      projection: options.projection,
+      reprojectionErrorThreshold: options.reprojectionErrorThreshold,
+      tileClass: options.tileClass,
+      tileGrid: tileGrid,
+      tileLoadFunction: options.tileLoadFunction,
+      tilePixelRatio: options.tilePixelRatio,
+      urls: urls,
+      wrapX: options.wrapX !== undefined ? options.wrapX : false,
+      transition: options.transition,
+      zDirection: options.zDirection,
+    });
+
+    /**
+     * @private
+     * @type {string}
+     */
+    this.version_ = options.version !== undefined ? options.version : '1.0.0';
+
+    /**
+     * @private
+     * @type {string}
+     */
+    this.format_ = options.format !== undefined ? options.format : 'image/jpeg';
+
+    /**
+     * @private
+     * @type {!Object}
+     */
+    this.dimensions_ =
+      options.dimensions !== undefined ? options.dimensions : {};
+
+    /**
+     * @private
+     * @type {string}
+     */
+    this.layer_ = options.layer;
+
+    /**
+     * @private
+     * @type {string}
+     */
+    this.matrixSet_ = options.matrixSet;
+
+    /**
+     * @private
+     * @type {string}
+     */
+    this.style_ = options.style;
+
+    // FIXME: should we guess this requestEncoding from options.url(s)
+    //        structure? that would mean KVP only if a template is not provided.
+
+    /**
+     * @private
+     * @type {RequestEncoding}
+     */
+    this.requestEncoding_ = requestEncoding;
+
+    this.setKey(this.getKeyForDimensions_());
+
+    if (urls && urls.length > 0) {
+      this.tileUrlFunction = createFromTileUrlFunctions(
+        urls.map(this.createFromWMTSTemplate.bind(this)),
+      );
+    }
+  }
+
+  /**
+   * Set the URLs to use for requests.
+   * URLs may contain OGC conform URL Template Variables: {TileMatrix}, {TileRow}, {TileCol}.
+   * @param {Array<string>} urls URLs.
+   */
+  setUrls(urls) {
+    this.urls = urls;
+    const key = urls.join('\n');
+    this.setTileUrlFunction(
+      createFromTileUrlFunctions(
+        urls.map(this.createFromWMTSTemplate.bind(this)),
+      ),
+      key,
+    );
+  }
+
+  /**
+   * Get the dimensions, i.e. those passed to the constructor through the
+   * "dimensions" option, and possibly updated using the updateDimensions
+   * method.
+   * @return {!Object} Dimensions.
+   * @api
+   */
+  getDimensions() {
+    return this.dimensions_;
+  }
+
+  /**
+   * Return the image format of the WMTS source.
+   * @return {string} Format.
+   * @api
+   */
+  getFormat() {
+    return this.format_;
+  }
+
+  /**
+   * Return the layer of the WMTS source.
+   * @return {string} Layer.
+   * @api
+   */
+  getLayer() {
+    return this.layer_;
+  }
+
+  /**
+   * Return the matrix set of the WMTS source.
+   * @return {string} MatrixSet.
+   * @api
+   */
+  getMatrixSet() {
+    return this.matrixSet_;
+  }
+
+  /**
+   * Return the request encoding, either "KVP" or "REST".
+   * @return {RequestEncoding} Request encoding.
+   * @api
+   */
+  getRequestEncoding() {
+    return this.requestEncoding_;
+  }
+
+  /**
+   * Return the style of the WMTS source.
+   * @return {string} Style.
+   * @api
+   */
+  getStyle() {
+    return this.style_;
+  }
+
+  /**
+   * Return the version of the WMTS source.
+   * @return {string} Version.
+   * @api
+   */
+  getVersion() {
+    return this.version_;
+  }
+
+  /**
+   * @private
+   * @return {string} The key for the current dimensions.
+   */
+  getKeyForDimensions_() {
+    const res = this.urls ? this.urls.slice(0) : [];
+    for (const key in this.dimensions_) {
+      res.push(key + '-' + this.dimensions_[key]);
+    }
+    return res.join('/');
+  }
+
+  /**
+   * Update the dimensions.
+   * @param {Object} dimensions Dimensions.
+   * @api
+   */
+  updateDimensions(dimensions) {
+    Object.assign(this.dimensions_, dimensions);
+    this.setKey(this.getKeyForDimensions_());
+  }
+
+  /**
+   * @param {string} template Template.
+   * @return {import("../Tile.js").UrlFunction} Tile URL function.
+   */
+  createFromWMTSTemplate(template) {
+    const requestEncoding = this.requestEncoding_;
+
+    // context property names are lower case to allow for a case insensitive
+    // replacement as some services use different naming conventions
+    const context = {
+      'layer': this.layer_,
+      'style': this.style_,
+      'tilematrixset': this.matrixSet_,
+    };
+
+    if (requestEncoding == 'KVP') {
+      Object.assign(context, {
+        'Service': 'WMTS',
+        'Request': 'GetTile',
+        'Version': this.version_,
+        'Format': this.format_,
+      });
+    }
+
+    // TODO: we may want to create our own appendParams function so that params
+    // order conforms to wmts spec guidance, and so that we can avoid to escape
+    // special template params
+
+    template =
+      requestEncoding == 'KVP'
+        ? appendParams(template, context)
+        : template.replace(/\{(\w+?)\}/g, function (m, p) {
+            return p.toLowerCase() in context ? context[p.toLowerCase()] : m;
+          });
+
+    const tileGrid = /** @type {import("../tilegrid/WMTS.js").default} */ (
+      this.tileGrid
+    );
+    const dimensions = this.dimensions_;
+
+    return (
+      /**
+       * @param {import("../tilecoord.js").TileCoord} tileCoord Tile coordinate.
+       * @param {number} pixelRatio Pixel ratio.
+       * @param {import("../proj/Projection.js").default} projection Projection.
+       * @return {string|undefined} Tile URL.
+       */
+      function (tileCoord, pixelRatio, projection) {
+        if (!tileCoord) {
+          return undefined;
+        }
+        const localContext = {
+          'TileMatrix': tileGrid.getMatrixId(tileCoord[0]),
+          'TileCol': tileCoord[1],
+          'TileRow': tileCoord[2],
+        };
+        Object.assign(localContext, dimensions);
+        let url = template;
+        if (requestEncoding == 'KVP') {
+          url = appendParams(url, localContext);
+        } else {
+          url = url.replace(/\{(\w+?)\}/g, function (m, p) {
+            return localContext[p];
+          });
+        }
+        return url;
+      }
+    );
+  }
+}
+
+/**
+ * Generate source options from a capabilities object.
+ * @param {Object} wmtsCap An object representing the capabilities document.
+ * @param {!Object} config Configuration properties for the layer.  Defaults for
+ *                  the layer will apply if not provided.
+ *
+ * Required config properties:
+ *  - layer - {string} The layer identifier.
+ *
+ * Optional config properties:
+ *  - matrixSet - {string} The matrix set identifier, required if there is
+ *       more than one matrix set in the layer capabilities.
+ *  - projection - {string} The desired CRS when no matrixSet is specified.
+ *       eg: "EPSG:3857". If the desired projection is not available,
+ *       an error is thrown.
+ *  - requestEncoding - {string} url encoding format for the layer. Default is
+ *       the first tile url format found in the GetCapabilities response.
+ *  - style - {string} The name of the style
+ *  - format - {string} Image format for the layer. Default is the first
+ *       format returned in the GetCapabilities response.
+ *  - crossOrigin - {string|null|undefined} Cross origin. Default is `undefined`.
+ * @return {Options|null} WMTS source options object or `null` if the layer was not found.
+ * @api
+ */
+function optionsFromCapabilities(wmtsCap, config) {
+  const layers = wmtsCap['Contents']['Layer'];
+  const l = layers?.find(function (elt) {
+    return elt['Identifier'] == config['layer'];
+  });
+  if (!l) {
+    return null;
+  }
+  const tileMatrixSets = wmtsCap['Contents']['TileMatrixSet'];
+  let idx;
+  if (l['TileMatrixSetLink'].length > 1) {
+    if ('projection' in config) {
+      idx = l['TileMatrixSetLink'].findIndex(function (elt) {
+        const tileMatrixSet = tileMatrixSets.find(function (el) {
+          return el['Identifier'] == elt['TileMatrixSet'];
+        });
+        const supportedCRS = tileMatrixSet['SupportedCRS'];
+        const proj1 = get$2(supportedCRS);
+        const proj2 = get$2(config['projection']);
+        if (proj1 && proj2) {
+          return equivalent(proj1, proj2);
+        }
+        return supportedCRS == config['projection'];
+      });
+    } else {
+      idx = l['TileMatrixSetLink'].findIndex(function (elt) {
+        return elt['TileMatrixSet'] == config['matrixSet'];
+      });
+    }
+  } else {
+    idx = 0;
+  }
+  if (idx < 0) {
+    idx = 0;
+  }
+  const matrixSet =
+    /** @type {string} */
+    (l['TileMatrixSetLink'][idx]['TileMatrixSet']);
+  const matrixLimits =
+    /** @type {Array<Object>} */
+    (l['TileMatrixSetLink'][idx]['TileMatrixSetLimits']);
+
+  let format = /** @type {string} */ (l['Format'][0]);
+  if ('format' in config) {
+    format = config['format'];
+  }
+  idx = l['Style'].findIndex(function (elt) {
+    if ('style' in config) {
+      return elt['Title'] == config['style'];
+    }
+    return elt['isDefault'];
+  });
+  if (idx < 0) {
+    idx = 0;
+  }
+  const style = /** @type {string} */ (l['Style'][idx]['Identifier']);
+
+  const dimensions = {};
+  if ('Dimension' in l) {
+    l['Dimension'].forEach(function (elt, index, array) {
+      const key = elt['Identifier'];
+      let value = elt['Default'];
+      if (value === undefined) {
+        value = elt['Value'][0];
+      }
+      dimensions[key] = value;
+    });
+  }
+
+  const matrixSets = wmtsCap['Contents']['TileMatrixSet'];
+  const matrixSetObj = matrixSets.find(function (elt) {
+    return elt['Identifier'] == matrixSet;
+  });
+
+  let projection;
+  const code = matrixSetObj['SupportedCRS'];
+  if (code) {
+    projection = get$2(code);
+  }
+  if ('projection' in config) {
+    const projConfig = get$2(config['projection']);
+    if (projConfig) {
+      if (!projection || equivalent(projConfig, projection)) {
+        projection = projConfig;
+      }
+    }
+  }
+
+  let wrapX = false;
+  const switchXY = projection.getAxisOrientation().substr(0, 2) == 'ne';
+
+  let matrix = matrixSetObj.TileMatrix[0];
+
+  // create default matrixLimit
+  let selectedMatrixLimit = {
+    MinTileCol: 0,
+    MinTileRow: 0,
+    // subtract one to end up at tile top left
+    MaxTileCol: matrix.MatrixWidth - 1,
+    MaxTileRow: matrix.MatrixHeight - 1,
+  };
+
+  //in case of matrix limits, use matrix limits to calculate extent
+  if (matrixLimits) {
+    selectedMatrixLimit = matrixLimits[matrixLimits.length - 1];
+    const m = matrixSetObj.TileMatrix.find(
+      (tileMatrixValue) =>
+        tileMatrixValue.Identifier === selectedMatrixLimit.TileMatrix ||
+        matrixSetObj.Identifier + ':' + tileMatrixValue.Identifier ===
+          selectedMatrixLimit.TileMatrix,
+    );
+    if (m) {
+      matrix = m;
+    }
+  }
+
+  const resolution =
+    (matrix.ScaleDenominator * 0.00028) / projection.getMetersPerUnit(); // WMTS 1.0.0: standardized rendering pixel size
+  const origin = switchXY
+    ? [matrix.TopLeftCorner[1], matrix.TopLeftCorner[0]]
+    : matrix.TopLeftCorner;
+  const tileSpanX = matrix.TileWidth * resolution;
+  const tileSpanY = matrix.TileHeight * resolution;
+  let matrixSetExtent = matrixSetObj['BoundingBox'];
+  if (matrixSetExtent && switchXY) {
+    matrixSetExtent = [
+      matrixSetExtent[1],
+      matrixSetExtent[0],
+      matrixSetExtent[3],
+      matrixSetExtent[2],
+    ];
+  }
+  let extent = [
+    origin[0] + tileSpanX * selectedMatrixLimit.MinTileCol,
+    // add one to get proper bottom/right coordinate
+    origin[1] - tileSpanY * (1 + selectedMatrixLimit.MaxTileRow),
+    origin[0] + tileSpanX * (1 + selectedMatrixLimit.MaxTileCol),
+    origin[1] - tileSpanY * selectedMatrixLimit.MinTileRow,
+  ];
+
+  if (
+    matrixSetExtent !== undefined &&
+    !containsExtent(matrixSetExtent, extent)
+  ) {
+    const wgs84BoundingBox = l['WGS84BoundingBox'];
+    const wgs84ProjectionExtent = get$2('EPSG:4326').getExtent();
+    extent = matrixSetExtent;
+    if (wgs84BoundingBox) {
+      wrapX =
+        wgs84BoundingBox[0] === wgs84ProjectionExtent[0] &&
+        wgs84BoundingBox[2] === wgs84ProjectionExtent[2];
+    } else {
+      const wgs84MatrixSetExtent = transformExtent(
+        matrixSetExtent,
+        matrixSetObj['SupportedCRS'],
+        'EPSG:4326',
+      );
+      // Ignore slight deviation from the correct x limits
+      wrapX =
+        wgs84MatrixSetExtent[0] - 1e-10 <= wgs84ProjectionExtent[0] &&
+        wgs84MatrixSetExtent[2] + 1e-10 >= wgs84ProjectionExtent[2];
+    }
+  }
+
+  const tileGrid = createFromCapabilitiesMatrixSet(
+    matrixSetObj,
+    extent,
+    matrixLimits,
+  );
+
+  /** @type {!Array<string>} */
+  const urls = [];
+  let requestEncoding = config['requestEncoding'];
+  requestEncoding = requestEncoding !== undefined ? requestEncoding : '';
+
+  if (
+    'OperationsMetadata' in wmtsCap &&
+    'GetTile' in wmtsCap['OperationsMetadata']
+  ) {
+    const gets = wmtsCap['OperationsMetadata']['GetTile']['DCP']['HTTP']['Get'];
+
+    for (let i = 0, ii = gets.length; i < ii; ++i) {
+      if (gets[i]['Constraint']) {
+        const constraint = gets[i]['Constraint'].find(function (element) {
+          return element['name'] == 'GetEncoding';
+        });
+        const encodings = constraint['AllowedValues']['Value'];
+
+        if (requestEncoding === '') {
+          // requestEncoding not provided, use the first encoding from the list
+          requestEncoding = encodings[0];
+        }
+        if (requestEncoding === 'KVP') {
+          if (encodings.includes('KVP')) {
+            urls.push(/** @type {string} */ (gets[i]['href']));
+          }
+        } else {
+          break;
+        }
+      } else if (gets[i]['href']) {
+        requestEncoding = 'KVP';
+        urls.push(/** @type {string} */ (gets[i]['href']));
+      }
+    }
+  }
+  if (urls.length === 0) {
+    requestEncoding = 'REST';
+    l['ResourceURL'].forEach(function (element) {
+      if (element['resourceType'] === 'tile') {
+        format = element['format'];
+        urls.push(/** @type {string} */ (element['template']));
+      }
+    });
+  }
+
+  return {
+    urls: urls,
+    layer: config['layer'],
+    matrixSet: matrixSet,
+    format: format,
+    projection: projection,
+    requestEncoding: requestEncoding,
+    tileGrid: tileGrid,
+    style: style,
+    dimensions: dimensions,
+    wrapX: wrapX,
+    crossOrigin: config['crossOrigin'],
+  };
+}
+
+/** Render a WMTS layer using its service capabilities to configure the tile grid. */
+var WMTSLayer = _ref => {
+  var id = _ref.id,
+    url = _ref.url,
+    layer = _ref.layer,
+    matrixSet = _ref.matrixSet,
+    projection = _ref.projection,
+    style = _ref.style,
+    format = _ref.format,
+    requestEncoding = _ref.requestEncoding,
+    dimensions = _ref.dimensions,
+    attributions = _ref.attributions;
+  var map = useMap();
+  useEffect(() => {
+    if (!map || !url || !layer) return undefined;
+    var disposed = false;
+    var source = null;
+    var tileLayer = null;
+    var config = {
+      layer
+    };
+    if (matrixSet) config.matrixSet = matrixSet;
+    if (projection) config.projection = projection;
+    if (style) config.style = style;
+    if (format) config.format = format;
+    if (requestEncoding) config.requestEncoding = requestEncoding;
+    var loadLayer = /*#__PURE__*/function () {
+      var _ref2 = _asyncToGenerator(function* () {
+        var response = yield fetch(url);
+        if (!response.ok) {
+          throw new Error("WMTS capabilities request failed: ".concat(response.status));
+        }
+        var capabilities = new WMTSCapabilities().read(yield response.text());
+        var sourceOptions = optionsFromCapabilities(capabilities, config);
+        if (!sourceOptions) {
+          throw new Error("WMTS layer \"".concat(layer, "\" was not found in capabilities"));
+        }
+        if (disposed) return;
+        var mergedDimensions = dimensions ? _objectSpread2(_objectSpread2({}, sourceOptions.dimensions), dimensions) : sourceOptions.dimensions;
+        source = new WMTS(_objectSpread2(_objectSpread2({}, sourceOptions), {}, {
+          dimensions: mergedDimensions,
+          attributions: attributions !== null && attributions !== void 0 ? attributions : sourceOptions.attributions
+        }));
+        tileLayer = new TileLayer$1({
+          source
+        });
+        tileLayer.set('dashId', id);
+        map.addLayer(tileLayer);
+      });
+      return function loadLayer() {
+        return _ref2.apply(this, arguments);
+      };
+    }();
+    loadLayer().catch(error => {
+      if (!disposed) console.error('Failed to load WMTS layer', error);
+    });
+    return () => {
+      disposed = true;
+      if (tileLayer) map.removeLayer(tileLayer);
+      if (source) source.clear();
+    };
+  }, [attributions, dimensions, format, id, layer, map, matrixSet, projection, requestEncoding, style, url]);
+  return null;
+};
+WMTSLayer.defaultProps = {
+  url: null,
+  layer: null,
+  matrixSet: null,
+  projection: null,
+  style: null,
+  format: null,
+  requestEncoding: null,
+  dimensions: null,
+  attributions: null
+};
+WMTSLayer.propTypes = {
+  /** Component ID used to identify this layer in the Dash layout. */
+  id: PropTypes.string,
+  /** URL of the WMTS GetCapabilities document; the server must allow browser CORS access. */
+  url: PropTypes.string,
+  /** Layer identifier advertised by the WMTS capabilities. */
+  layer: PropTypes.string,
+  /** Tile matrix set identifier; inferred when the capabilities advertise a single set. */
+  matrixSet: PropTypes.string,
+  /** Projection code to select a compatible matrix set, such as EPSG:3857. */
+  projection: PropTypes.string,
+  /** Advertised WMTS style identifier. */
+  style: PropTypes.string,
+  /** Tile image format, such as image/png; defaults to the first advertised format. */
+  format: PropTypes.string,
+  /** WMTS request encoding, either KVP or REST. */
+  requestEncoding: PropTypes.oneOf(['KVP', 'REST']),
+  /** Values for advertised WMTS dimensions, such as TIME or ELEVATION. */
+  dimensions: PropTypes.object,
+  /** Attribution text or a list of attribution strings for the tile provider. */
+  attributions: PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)]),
+  /** Dash-supplied callback used to write component state back to the layout. */
+  setProps: PropTypes.func
+};
+
+export { DrawInteraction, ImageWMSLayer as ImageWMS, MapComponent as Map, ModifyInteraction, OLContext, TileLayer, TileWMSLayer as TileWMS, VectorLayerComponent as VectorLayer, VectorTileLayer, WMTSLayer };

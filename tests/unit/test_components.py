@@ -13,6 +13,7 @@ def test_components_exported():
     assert hasattr(mod, "TileWMS")
     assert hasattr(mod, "VectorLayer")
     assert hasattr(mod, "VectorTileLayer")
+    assert hasattr(mod, "WMTSLayer")
     assert hasattr(mod, "__version__")
 
 
@@ -111,6 +112,33 @@ def test_component_props_serialize():
                 "style": {"fill-color": "#6b9b83"},
             },
             "VectorTileLayer",
+        ),
+        (
+            dol.WMTSLayer(
+                id="wmts",
+                url="https://tiles.example/wmts?SERVICE=WMTS&REQUEST=GetCapabilities",
+                layer="roads",
+                matrixSet="EPSG:3857",
+                projection="EPSG:3857",
+                style="default",
+                format="image/png",
+                requestEncoding="KVP",
+                dimensions={"TIME": "2026-01-01"},
+                attributions="Tile provider",
+            ),
+            {
+                "id": "wmts",
+                "url": "https://tiles.example/wmts?SERVICE=WMTS&REQUEST=GetCapabilities",
+                "layer": "roads",
+                "matrixSet": "EPSG:3857",
+                "projection": "EPSG:3857",
+                "style": "default",
+                "format": "image/png",
+                "requestEncoding": "KVP",
+                "dimensions": {"TIME": "2026-01-01"},
+                "attributions": "Tile provider",
+            },
+            "WMTSLayer",
         ),
         (
             dol.DrawInteraction(

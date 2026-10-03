@@ -108,5 +108,23 @@
 			"serverType": { "type": { "name": "enum", "value": [{ "value": "'carmentaserver'", "computed": false }, { "value": "'geoserver'", "computed": false }, { "value": "'mapserver'", "computed": false }, { "value": "'qgis'", "computed": false }] }, "required": false, "description": "WMS server type used for vendor-specific HiDPI request parameters.", "defaultValue": { "value": "null", "computed": false } },
 			"setProps": { "type": { "name": "func" }, "required": false, "description": "Dash-supplied callback used to write component state back to the layout." }
 		}
+	},
+	"src/lib/components/WMTSLayer.react.js": {
+		"description": "Render a WMTS layer using its service capabilities to configure the tile grid.",
+		"displayName": "WMTSLayer",
+		"methods": [],
+		"props": {
+			"id": { "type": { "name": "string" }, "required": false, "description": "Component ID used to identify this layer in the Dash layout." },
+			"url": { "type": { "name": "string" }, "required": false, "description": "URL of the WMTS GetCapabilities document; the server must allow browser CORS access.", "defaultValue": { "value": "null", "computed": false } },
+			"layer": { "type": { "name": "string" }, "required": false, "description": "Layer identifier advertised by the WMTS capabilities.", "defaultValue": { "value": "null", "computed": false } },
+			"matrixSet": { "type": { "name": "string" }, "required": false, "description": "Tile matrix set identifier; inferred when the capabilities advertise a single set.", "defaultValue": { "value": "null", "computed": false } },
+			"projection": { "type": { "name": "string" }, "required": false, "description": "Projection code to select a compatible matrix set, such as EPSG:3857.", "defaultValue": { "value": "null", "computed": false } },
+			"style": { "type": { "name": "string" }, "required": false, "description": "Advertised WMTS style identifier.", "defaultValue": { "value": "null", "computed": false } },
+			"format": { "type": { "name": "string" }, "required": false, "description": "Tile image format; defaults to the first advertised format.", "defaultValue": { "value": "null", "computed": false } },
+			"requestEncoding": { "type": { "name": "enum", "value": [{ "value": "'KVP'", "computed": false }, { "value": "'REST'", "computed": false }] }, "required": false, "description": "WMTS request encoding, either KVP or REST.", "defaultValue": { "value": "null", "computed": false } },
+			"dimensions": { "type": { "name": "object" }, "required": false, "description": "Values for advertised WMTS dimensions, such as TIME or ELEVATION.", "defaultValue": { "value": "null", "computed": false } },
+			"attributions": { "type": { "name": "union", "value": [{ "name": "string" }, { "name": "arrayOf", "value": { "name": "string" } }] }, "required": false, "description": "Attribution text or a list of attribution strings for the tile provider.", "defaultValue": { "value": "null", "computed": false } },
+			"setProps": { "type": { "name": "func" }, "required": false, "description": "Dash-supplied callback used to write component state back to the layout." }
+		}
 	}
 }
