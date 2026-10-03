@@ -3,11 +3,14 @@ import { cleanup, render, screen } from '@testing-library/react';
 import MapComponent from '../../src/lib/components/Map.react';
 import TileLayer from '../../src/lib/components/TileLayer.react';
 import VectorLayer from '../../src/lib/components/VectorLayer.react';
+import DrawInteraction from '../../src/lib/components/DrawInteraction.react';
 import { OLContext, useMap } from '../../src/lib/context/OLContext';
 import Map from 'ol/Map';
 import View from 'ol/View';
 import { toLonLat } from 'ol/proj';
 import { registerProjections } from '../../src/lib/utils/projection';
+import Draw from 'ol/interaction/Draw';
+import { unByKey } from 'ol/Observable';
 import Tile from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
 import XYZ from 'ol/source/XYZ';
@@ -46,9 +49,13 @@ jest.mock('ol/View', () => ({
   }),
 }));
 
-jest.mock('ol/proj', () => ({
-  toLonLat: jest.fn((coordinate) => [coordinate[0] + 1, coordinate[1] + 2]),
-}));
+jest.mock('ol/proj', () => {
+  const actual = jest.requireActual('ol/proj');
+  return {
+    ...actual,
+    toLonLat: jest.fn((coordinate) => [coordinate[0] + 1, coordinate[1] + 2]),
+  };
+});
 
 jest.mock('../../src/lib/utils/projection', () => ({
   registerProjections: jest.fn(),
@@ -74,11 +81,34 @@ jest.mock('ol/source/XYZ', () => ({
 }));
 
 jest.mock('ol/format/GeoJSON', () => ({
+    __esModule: true,
+    default: jest.fn().mockImplementation(function MockGeoJSON() {
+      const ActualGeoJSON = jest.requireActual('ol/format/GeoJSON').default;
+      const format = new ActualGeoJSON();
+      this.readFeatures = jest.fn((...args) => format.readFeatures(...args));
+      this.writeFeatureObject = jest.fn(() => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [10, 45] },
+        properties: {},
+      }));
+    }),
+  }));
+
+jest.mock('ol/interaction/Draw', () => ({
   __esModule: true,
-  default: jest.fn().mockImplementation(function MockGeoJSON() {
-    this.features = [{ id: 'feature' }];
-    this.readFeatures = jest.fn(() => this.features);
+  default: jest.fn().mockImplementation(function MockDraw(options) {
+    this.options = options;
+    this.listeners = {};
+    this.on = jest.fn((event, listener) => {
+      const listenerKey = { event, listener };
+      this.listeners[event] = listener;
+      return listenerKey;
+    });
   }),
+}));
+
+jest.mock('ol/Observable', () => ({
+  unByKey: jest.fn(),
 }));
 
 jest.mock('ol/layer/Vector', () => ({
@@ -105,6 +135,8 @@ afterEach(() => {
 const makeMap = () => ({
   addLayer: jest.fn(),
   removeLayer: jest.fn(),
+  addInteraction: jest.fn(),
+  removeInteraction: jest.fn(),
   getView: jest.fn(() => ({ getProjection: () => 'EPSG:3857' })),
 });
 
@@ -163,6 +195,19 @@ describe('Map', () => {
   });
 });
 
+describe('OpenLayers context', () => {
+  it('throws the documented error when a child uses useMap outside a provider', () => {
+    const consoleError = jest.spyOn(console, 'error').mockImplementation(() => {});
+    try {
+      expect(() => render(<MapConsumer />)).toThrow(
+        'dash-openlayers components must be wrapped within a <Map>',
+      );
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+});
+
 describe('TileLayer', () => {
   it('adds and removes an OSM tile layer', () => {
     const map = makeMap();
@@ -215,8 +260,26 @@ describe('TileLayer', () => {
 describe('VectorLayer', () => {
   it('loads GeoJSON into a projected vector layer and updates it when props change', () => {
     const map = makeMap();
-    const initialGeoJSON = { type: 'FeatureCollection', features: [] };
-    const updatedGeoJSON = { type: 'FeatureCollection', features: [{ id: 'updated' }] };
+    const initialGeoJSON = {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [10, 45] },
+          properties: {},
+        },
+      ],
+    };
+    const updatedGeoJSON = {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          geometry: { type: 'Point', coordinates: [20, 10] },
+          properties: {},
+        },
+      ],
+    };
     const { rerender, unmount } = render(
       <OLContext.Provider value={map}>
         <VectorLayer id="features" geojson={initialGeoJSON} />
@@ -232,7 +295,10 @@ describe('VectorLayer', () => {
       dataProjection: 'EPSG:4326',
       featureProjection: 'EPSG:3857',
     });
-    expect(source.addFeatures).toHaveBeenCalledWith(format.features);
+    const projectedFeatures = source.addFeatures.mock.calls[0][0];
+    const projectedCoordinates = projectedFeatures[0].getGeometry().getCoordinates();
+    expect(projectedCoordinates[0]).toBeCloseTo(1_113_194.9, 0);
+    expect(projectedCoordinates[1]).toBeCloseTo(5_621_521.5, 0);
 
     rerender(
       <OLContext.Provider value={map}>
@@ -268,5 +334,45 @@ describe('VectorLayer', () => {
     );
     expect(source.clear).toHaveBeenCalledTimes(2);
     expect(source.addFeatures).not.toHaveBeenCalled();
+  });
+});
+
+describe('DrawInteraction', () => {
+  it('emits projected GeoJSON and removes its listener, interaction, layer, and source on unmount', () => {
+    const map = makeMap();
+    const setProps = jest.fn();
+    const { unmount } = render(
+      <OLContext.Provider value={map}>
+        <DrawInteraction geometryType="LineString" setProps={setProps} />
+      </OLContext.Provider>,
+    );
+
+    const draw = Draw.mock.instances[0];
+    const layer = OpenLayersVectorLayer.mock.instances[0];
+    const source = VectorSource.mock.instances[0];
+    const listenerKey = { event: 'drawend', listener: draw.listeners.drawend };
+    expect(draw.options.type).toBe('LineString');
+    expect(map.addInteraction).toHaveBeenCalledWith(draw);
+    expect(map.addLayer).toHaveBeenCalledWith(layer);
+
+    const feature = { id: 'completed-feature' };
+    draw.listeners.drawend({ feature });
+    expect(GeoJSON.mock.instances[0].writeFeatureObject).toHaveBeenCalledWith(feature, {
+      featureProjection: 'EPSG:3857',
+      dataProjection: 'EPSG:4326',
+    });
+    expect(setProps).toHaveBeenCalledWith({
+      drawnGeoJSON: {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [10, 45] },
+        properties: {},
+      },
+    });
+
+    unmount();
+    expect(unByKey).toHaveBeenCalledWith(listenerKey);
+    expect(map.removeInteraction).toHaveBeenCalledWith(draw);
+    expect(map.removeLayer).toHaveBeenCalledWith(layer);
+    expect(source.clear).toHaveBeenCalled();
   });
 });
