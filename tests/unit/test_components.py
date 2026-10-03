@@ -97,6 +97,7 @@ def test_component_props_serialize():
                     "type": "FeatureCollection",
                     "features": [],
                 },
+                wkt="POINT (10 45)",
                 style=[
                     {
                         "filter": ["<", ["resolution"], 2500],
@@ -108,6 +109,7 @@ def test_component_props_serialize():
             {
                 "id": "vectors",
                 "geojson": {"type": "FeatureCollection", "features": []},
+                "wkt": "POINT (10 45)",
                 "style": [
                     {
                         "filter": ["<", ["resolution"], 2500],
@@ -167,6 +169,8 @@ def test_component_props_serialize():
                 id="draw",
                 geometryType="Point",
                 drawnGeoJSON=drawn_geojson,
+                drawnWKT="POINT (1 2)",
+                drawnTopoJSON={"type": "Topology"},
                 geometryValidation={"valid": True, "errors": [], "suggestions": []},
                 snapToVertex=False,
                 snapToEdge=True,
@@ -176,6 +180,8 @@ def test_component_props_serialize():
                 "id": "draw",
                 "geometryType": "Point",
                 "drawnGeoJSON": drawn_geojson,
+                "drawnWKT": "POINT (1 2)",
+                "drawnTopoJSON": {"type": "Topology"},
                 "geometryValidation": {"valid": True, "errors": [], "suggestions": []},
                 "snapToVertex": False,
                 "snapToEdge": True,
@@ -191,6 +197,8 @@ def test_component_props_serialize():
                 snapToEdge=True,
                 snapTolerance=6,
                 preserveTopology=False,
+                modifiedWKT="GEOMETRYCOLLECTION EMPTY",
+                modifiedTopoJSON={"type": "Topology"},
             ),
             {
                 "id": "modify",
@@ -199,6 +207,8 @@ def test_component_props_serialize():
                 "snapToEdge": True,
                 "snapTolerance": 6,
                 "preserveTopology": False,
+                "modifiedWKT": "GEOMETRYCOLLECTION EMPTY",
+                "modifiedTopoJSON": {"type": "Topology"},
             },
             "ModifyInteraction",
         ),

@@ -21,7 +21,8 @@
     "prop-types": "^15.8.1",
     "react": "^19.3.0",
     "react-docgen": "8.0.4",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "topojson-server": "^3.0.1"
   },
   "devDependencies": {
     "@babel/core": "^7.22.1",

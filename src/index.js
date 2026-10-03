@@ -8,6 +8,7 @@ import VectorLayer from './lib/components/VectorLayer.react';
 import VectorTileLayer from './lib/components/VectorTileLayer.react';
 import WMTSLayer from './lib/components/WMTSLayer.react';
 import OLContext from './lib/context/OLContext';
+import { exportFeature, exportFeatures, readFeatures } from './lib/utils/featureFormats';
 
 export {
   Map,
@@ -20,4 +21,7 @@ export {
   VectorTileLayer,
   WMTSLayer,
   OLContext,
+  exportFeature,
+  exportFeatures,
+  readFeatures,
 };

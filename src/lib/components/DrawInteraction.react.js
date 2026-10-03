@@ -10,6 +10,7 @@ import { useMap } from '../context/OLContext';
 import { getEditHistory } from '../utils/editHistory';
 import { getTopologyErrors } from '../utils/geometryValidation';
 import { addSnapInteraction } from '../utils/snap';
+import { exportFeature } from '../utils/featureFormats';
 
 const DrawInteraction = ({
   id,
@@ -43,11 +44,12 @@ const DrawInteraction = ({
     map.addInteraction(draw);
 
     const drawEndListener = draw.on('drawend', (evt) => {
-      const writer = new GeoJSON();
-      const geojson = writer.writeFeatureObject(evt.feature, {
+      const formatOptions = {
         featureProjection: map.getView().getProjection(),
         dataProjection: 'EPSG:4326',
-      });
+      };
+      const writer = new GeoJSON();
+      const geojson = writer.writeFeatureObject(evt.feature, formatOptions);
       const errors = getTopologyErrors(geojson);
       const structurallyValid = !errors.some((error) => error.code === 'invalid_geometry');
       const intersections = errors.filter((error) => error.code === 'self_intersection');
@@ -63,6 +65,7 @@ const DrawInteraction = ({
       }
 
       const valid = errors.length === 0;
+      const outputFormats = valid ? exportFeature(evt.feature, formatOptions) : null;
       if (!valid) {
         source.removeFeature(evt.feature);
       } else {
@@ -70,11 +73,23 @@ const DrawInteraction = ({
           {
             undo: () => {
               source.removeFeature(evt.feature);
-              if (setPropsRef.current) setPropsRef.current({ drawnGeoJSON: null });
+              if (setPropsRef.current) {
+                setPropsRef.current({
+                  drawnGeoJSON: null,
+                  drawnWKT: null,
+                  drawnTopoJSON: null,
+                });
+              }
             },
             redo: () => {
               source.addFeature(evt.feature);
-              if (setPropsRef.current) setPropsRef.current({ drawnGeoJSON: geojson });
+              if (setPropsRef.current) {
+                setPropsRef.current({
+                  drawnGeoJSON: outputFormats.geojson,
+                  drawnWKT: outputFormats.wkt,
+                  drawnTopoJSON: outputFormats.topojson,
+                });
+              }
             },
           },
           source,
@@ -83,7 +98,9 @@ const DrawInteraction = ({
 
       if (setPropsRef.current) {
         setPropsRef.current({
-          drawnGeoJSON: valid ? geojson : null,
+          drawnGeoJSON: valid ? outputFormats.geojson : null,
+          drawnWKT: valid ? outputFormats.wkt : null,
+          drawnTopoJSON: valid ? outputFormats.topojson : null,
           geometryValidation: { valid, errors, suggestions },
         });
       }
@@ -126,6 +143,10 @@ DrawInteraction.propTypes = {
   snapTolerance: PropTypes.number,
   /** Read-only: GeoJSON Feature emitted only when geometry validation succeeds. */
   drawnGeoJSON: PropTypes.object,
+  /** Read-only: WKT geometry emitted only when geometry validation succeeds. */
+  drawnWKT: PropTypes.string,
+  /** Read-only: TopoJSON topology emitted only when geometry validation succeeds. */
+  drawnTopoJSON: PropTypes.object,
   /** Read-only: validity, topology errors, and repair suggestions from the last draw. */
   geometryValidation: PropTypes.shape({
     valid: PropTypes.bool,

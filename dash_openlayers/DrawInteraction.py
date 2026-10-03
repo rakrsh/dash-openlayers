@@ -31,6 +31,10 @@ class DrawInteraction(Component):
 
     - drawnGeoJSON (dict; optional)
 
+    - drawnWKT (string; optional): Read-only WKT geometry emitted after a valid draw.
+
+    - drawnTopoJSON (dict; optional): Read-only TopoJSON topology emitted after a valid draw.
+
     - geometryValidation (dict; optional): Read-only validity, topology errors, and repair suggestions
         from the last draw. Invalid geometries are not emitted as drawnGeoJSON.
 
@@ -52,6 +56,8 @@ class DrawInteraction(Component):
         id: typing.Optional[typing.Union[str, dict]] = None,
         geometryType: typing.Optional[Literal["Point", "LineString", "Polygon", "Circle"]] = None,
         drawnGeoJSON: typing.Optional[dict] = None,
+        drawnWKT: typing.Optional[str] = None,
+        drawnTopoJSON: typing.Optional[dict] = None,
         geometryValidation: typing.Optional[dict] = None,
         snapToVertex: typing.Optional[bool] = None,
         snapToEdge: typing.Optional[bool] = None,
@@ -61,6 +67,8 @@ class DrawInteraction(Component):
         self._prop_names = [
             "id",
             "drawnGeoJSON",
+            "drawnWKT",
+            "drawnTopoJSON",
             "geometryType",
             "geometryValidation",
             "snapToVertex",
@@ -71,6 +79,8 @@ class DrawInteraction(Component):
         self.available_properties = [
             "id",
             "drawnGeoJSON",
+            "drawnWKT",
+            "drawnTopoJSON",
             "geometryType",
             "geometryValidation",
             "snapToVertex",

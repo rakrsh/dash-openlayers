@@ -90,6 +90,26 @@ function _objectSpread2(e) {
   }
   return e;
 }
+function _objectWithoutProperties(e, t) {
+  if (null == e) return {};
+  var o,
+    r,
+    i = _objectWithoutPropertiesLoose(e, t);
+  if (Object.getOwnPropertySymbols) {
+    var n = Object.getOwnPropertySymbols(e);
+    for (r = 0; r < n.length; r++) o = n[r], -1 === t.indexOf(o) && {}.propertyIsEnumerable.call(e, o) && (i[o] = e[o]);
+  }
+  return i;
+}
+function _objectWithoutPropertiesLoose(r, e) {
+  if (null == r) return {};
+  var t = {};
+  for (var n in r) if ({}.hasOwnProperty.call(r, n)) {
+    if (-1 !== e.indexOf(n)) continue;
+    t[n] = r[n];
+  }
+  return t;
+}
 function _slicedToArray(r, e) {
   return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest();
 }
@@ -3084,7 +3104,7 @@ function _boundingExtentXYs(xs, ys, dest) {
  * @return {Extent} Extent.
  * @api
  */
-function buffer(extent, value, dest) {
+function buffer$1(extent, value, dest) {
   if (dest) {
     dest[0] = extent[0] - value;
     dest[1] = extent[1] - value;
@@ -14121,15 +14141,15 @@ const p3Linear = {
 };
 
 // P3 linear -> XYZ (D65, Y 0..1); inverse derived for an exact round-trip
-const M$3 = [
+const M$4 = [
 	0.4865709486482162, 0.26566769316909306, 0.1982172852343625,
 	0.2289745640697488, 0.6917385218365064, 0.079286914093745,
 	0.0000000000000000, 0.04511338185890264, 1.043944368900976
 ];
-const MI$2 = inv3(M$3);
+const MI$2 = inv3(M$4);
 
 p3Linear.xyz = (r, g, b) => {
-	const [x, y, z] = mat3(M$3, r, g, b);
+	const [x, y, z] = mat3(M$4, r, g, b);
 	return [x * 100, y * 100, z * 100];
 };
 
@@ -14199,15 +14219,15 @@ const a98Linear = {
 };
 
 // A98 RGB linear -> XYZ (D65, Y 0..1); inverse derived for an exact round-trip
-const M$2 = [
+const M$3 = [
 	0.5766690429101305, 0.1855582379065463, 0.1882286462349947,
 	0.29734497525053605, 0.6273635662554661, 0.07529145849399788,
 	0.02703136138641234, 0.07068885253582723, 0.9913375368376388
 ];
-const MI$1 = inv3(M$2);
+const MI$1 = inv3(M$3);
 
 a98Linear.xyz = (r, g, b) => {
-	const [x, y, z] = mat3(M$2, r, g, b);
+	const [x, y, z] = mat3(M$3, r, g, b);
 	return [x * 100, y * 100, z * 100];
 };
 
@@ -14395,15 +14415,15 @@ const rec2020Linear = {
 };
 
 // Rec.2020 linear -> XYZ (D65, Y 0..1); inverse derived for an exact round-trip
-const M$1 = [
+const M$2 = [
 	0.6369580483012914, 0.14461690358620832, 0.1688809751641721,
 	0.2627002120112671, 0.6779980715188708, 0.05930171646986196,
 	0.0000000000000000, 0.028072693049087428, 1.060985057710791
 ];
-const MI = inv3(M$1);
+const MI = inv3(M$2);
 
 rec2020Linear.xyz = (r, g, b) => {
-	const [x, y, z] = mat3(M$1, r, g, b);
+	const [x, y, z] = mat3(M$2, r, g, b);
 	return [x * 100, y * 100, z * 100];
 };
 
@@ -30421,7 +30441,7 @@ var keyword = /[A-Za-z84_]/;
 var endThings = /[,\]]/;
 var digets = /[\d\.E\-\+]/;
 // const ignoredChar = /[\s_\-\/\(\)]/g;
-function Parser(text) {
+function Parser$1(text) {
   if (typeof text !== 'string') {
     throw new Error('not a string');
   }
@@ -30433,7 +30453,7 @@ function Parser(text) {
   this.currentObject = null;
   this.state = NEUTRAL;
 }
-Parser.prototype.readCharicter = function() {
+Parser$1.prototype.readCharicter = function() {
   var char = this.text[this.place++];
   if (this.state !== QUOTED) {
     while (whitespace.test(char)) {
@@ -30458,7 +30478,7 @@ Parser.prototype.readCharicter = function() {
       return;
   }
 };
-Parser.prototype.afterquote = function(char) {
+Parser$1.prototype.afterquote = function(char) {
   if (char === '"') {
     this.word += '"';
     this.state = QUOTED;
@@ -30471,7 +30491,7 @@ Parser.prototype.afterquote = function(char) {
   }
   throw new Error('havn\'t handled "' +char + '" in afterquote yet, index ' + this.place);
 };
-Parser.prototype.afterItem = function(char) {
+Parser$1.prototype.afterItem = function(char) {
   if (char === ',') {
     if (this.word !== null) {
       this.currentObject.push(this.word);
@@ -30495,7 +30515,7 @@ Parser.prototype.afterItem = function(char) {
     return;
   }
 };
-Parser.prototype.number = function(char) {
+Parser$1.prototype.number = function(char) {
   if (digets.test(char)) {
     this.word += char;
     return;
@@ -30507,7 +30527,7 @@ Parser.prototype.number = function(char) {
   }
   throw new Error('havn\'t handled "' +char + '" in number yet, index ' + this.place);
 };
-Parser.prototype.quoted = function(char) {
+Parser$1.prototype.quoted = function(char) {
   if (char === '"') {
     this.state = AFTERQUOTE;
     return;
@@ -30515,7 +30535,7 @@ Parser.prototype.quoted = function(char) {
   this.word += char;
   return;
 };
-Parser.prototype.keyword = function(char) {
+Parser$1.prototype.keyword = function(char) {
   if (keyword.test(char)) {
     this.word += char;
     return;
@@ -30540,7 +30560,7 @@ Parser.prototype.keyword = function(char) {
   }
   throw new Error('havn\'t handled "' +char + '" in keyword yet, index ' + this.place);
 };
-Parser.prototype.neutral = function(char) {
+Parser$1.prototype.neutral = function(char) {
   if (latin.test(char)) {
     this.word = char;
     this.state = KEYWORD;
@@ -30562,7 +30582,7 @@ Parser.prototype.neutral = function(char) {
   }
   throw new Error('havn\'t handled "' +char + '" in neutral yet, index ' + this.place);
 };
-Parser.prototype.output = function() {
+Parser$1.prototype.output = function() {
   while (this.place < this.text.length) {
     this.readCharicter();
   }
@@ -30573,7 +30593,7 @@ Parser.prototype.output = function() {
 };
 
 function parseString(txt) {
-  var parser = new Parser(txt);
+  var parser = new Parser$1(txt);
   return parser.output();
 }
 
@@ -34562,7 +34582,7 @@ var A = 65; // A
 var I = 73; // I
 var O = 79; // O
 var V = 86; // V
-var Z = 90; // Z
+var Z$1 = 90; // Z
 var mgrs = {
   forward: forward$w,
   inverse: inverse$w,
@@ -34579,7 +34599,7 @@ var mgrs = {
  */
 function forward$w(ll, accuracy) {
   accuracy = accuracy || 5; // default accuracy 1m
-  return encode(LLtoUTM({
+  return encode$1(LLtoUTM({
     lat: ll[1],
     lon: ll[0]
   }), accuracy);
@@ -34892,7 +34912,7 @@ function getLetterDesignator(lat) {
  * @param {number} accuracy Accuracy in digits (1-5).
  * @return {string} MGRS string for the given UTM location.
  */
-function encode(utm, accuracy) {
+function encode$1(utm, accuracy) {
   // prepend with leading zeroes
   var seasting = "00000" + utm.easting,
     snorthing = "00000" + utm.northing;
@@ -34960,8 +34980,8 @@ function getLetter100kID(column, row, parm) {
   var rowInt = rowOrigin + row;
   var rollover = false;
 
-  if (colInt > Z) {
-    colInt = colInt - Z + A - 1;
+  if (colInt > Z$1) {
+    colInt = colInt - Z$1 + A - 1;
     rollover = true;
   }
 
@@ -34977,8 +34997,8 @@ function getLetter100kID(column, row, parm) {
     }
   }
 
-  if (colInt > Z) {
-    colInt = colInt - Z + A - 1;
+  if (colInt > Z$1) {
+    colInt = colInt - Z$1 + A - 1;
   }
 
   if (rowInt > V) {
@@ -35126,7 +35146,7 @@ function getEastingFromChar(e, set) {
     if (curCol === O) {
       curCol++;
     }
-    if (curCol > Z) {
+    if (curCol > Z$1) {
       if (rewindMarker) {
         throw ("Bad character: " + e);
       }
@@ -39889,7 +39909,7 @@ var A1 = 1.340264,
   A2 = -0.081106,
   A3 = 0.000893,
   A4 = 0.003796,
-  M = Math.sqrt(3) / 2.0;
+  M$1 = Math.sqrt(3) / 2.0;
 
 /**
  * @typedef {Object} LocalThis
@@ -39920,11 +39940,11 @@ function forward$1(p) {
   if (this.es !== 0) {
     sinphi = qsfnz(this.e, sinphi) / this.qp;
   }
-  var paramLat = Math.asin(M * sinphi),
+  var paramLat = Math.asin(M$1 * sinphi),
     paramLatSq = paramLat * paramLat,
     paramLatPow6 = paramLatSq * paramLatSq * paramLatSq;
   p.x = lam * Math.cos(paramLat)
-    / (M * (A1 + 3 * A2 * paramLatSq + paramLatPow6 * (7 * A3 + 9 * A4 * paramLatSq)));
+    / (M$1 * (A1 + 3 * A2 * paramLatSq + paramLatPow6 * (7 * A3 + 9 * A4 * paramLatSq)));
   p.y = paramLat * (A1 + A2 * paramLatSq + paramLatPow6 * (A3 + A4 * paramLatSq));
 
   if (this.es !== 0) {
@@ -39964,9 +39984,9 @@ function inverse$1(p) {
   }
   paramLatSq = paramLat * paramLat;
   paramLatPow6 = paramLatSq * paramLatSq * paramLatSq;
-  p.x = M * p.x * (A1 + 3 * A2 * paramLatSq + paramLatPow6 * (7 * A3 + 9 * A4 * paramLatSq))
+  p.x = M$1 * p.x * (A1 + 3 * A2 * paramLatSq + paramLatPow6 * (7 * A3 + 9 * A4 * paramLatSq))
     / Math.cos(paramLat);
-  p.y = Math.asin(Math.sin(paramLat) / M);
+  p.y = Math.asin(Math.sin(paramLat) / M$1);
 
   if (this.es !== 0) {
     p.y = authlat(p.y, this.apa);
@@ -44071,7 +44091,7 @@ class CanvasBuilder extends VectorContext {
       this.bufferedMaxExtent_ = clone(this.maxExtent);
       if (this.maxLineWidth > 0) {
         const width = (this.resolution * (this.maxLineWidth + 1)) / 2;
-        buffer(this.bufferedMaxExtent_, width, this.bufferedMaxExtent_);
+        buffer$1(this.bufferedMaxExtent_, width, this.bufferedMaxExtent_);
       }
     }
     return this.bufferedMaxExtent_;
@@ -48026,7 +48046,7 @@ class ExecutorGroup {
     if (this.renderBuffer_ !== undefined) {
       hitExtent = createEmpty();
       extendCoordinate(hitExtent, coordinate);
-      buffer(
+      buffer$1(
         hitExtent,
         resolution * (this.renderBuffer_ + hitTolerance),
         hitExtent,
@@ -50646,7 +50666,7 @@ class CanvasVectorLayerRenderer extends CanvasLayerRenderer {
     }
 
     const center = viewState.center.slice();
-    const extent = buffer(
+    const extent = buffer$1(
       frameStateExtent,
       vectorLayerRenderBuffer * resolution,
     );
@@ -55409,7 +55429,7 @@ function transformGeometryWithOptions(geometry, write, options) {
   return transformed;
 }
 
-const GeometryConstructor = {
+const GeometryConstructor$1 = {
   Point: Point$1,
   LineString: LineString,
   Polygon: Polygon,
@@ -55488,7 +55508,7 @@ function createGeometry(object, options) {
     );
     return new GeometryCollection(geometries);
   }
-  const Geometry = GeometryConstructor[object.type];
+  const Geometry = GeometryConstructor$1[object.type];
   return transformGeometryWithOptions(
     new Geometry(object.flatCoordinates, object.layout, object.ends),
     false,
@@ -58897,7 +58917,7 @@ class Snap extends PointerInteraction {
     const projectedCoordinate = fromUserCoordinate(pixelCoordinate);
 
     const box = toUserExtent(
-      buffer(
+      buffer$1(
         boundingExtent([projectedCoordinate]),
         map.getView().getResolution() * this.pixelTolerance_,
       ));
@@ -59149,6 +59169,1932 @@ var addSnapInteraction = (map, _ref) => {
   };
 };
 
+/**
+ * @module ol/format/TextFeature
+ */
+
+/**
+ * @classdesc
+ * Abstract base class; normally only used for creating subclasses and not
+ * instantiated in apps.
+ * Base class for text feature formats.
+ *
+ * @abstract
+ */
+class TextFeature extends FeatureFormat {
+  constructor() {
+    super();
+  }
+
+  /**
+   * @return {import("./Feature.js").Type} Format.
+   */
+  getType() {
+    return 'text';
+  }
+
+  /**
+   * Read the feature from the source.
+   *
+   * @param {Document|Element|Object|string} source Source.
+   * @param {import("./Feature.js").ReadOptions} [options] Read options.
+   * @return {import("../Feature.js").default} Feature.
+   * @api
+   */
+  readFeature(source, options) {
+    return this.readFeatureFromText(
+      getText(source),
+      this.adaptOptions(options),
+    );
+  }
+
+  /**
+   * @abstract
+   * @param {string} text Text.
+   * @param {import("./Feature.js").ReadOptions} [options] Read options.
+   * @protected
+   * @return {import("../Feature.js").default} Feature.
+   */
+  readFeatureFromText(text, options) {
+    return abstract();
+  }
+
+  /**
+   * Read the features from the source.
+   *
+   * @param {Document|Element|Object|string} source Source.
+   * @param {import("./Feature.js").ReadOptions} [options] Read options.
+   * @return {Array<import("../Feature.js").default>} Features.
+   * @api
+   */
+  readFeatures(source, options) {
+    return this.readFeaturesFromText(
+      getText(source),
+      this.adaptOptions(options),
+    );
+  }
+
+  /**
+   * @abstract
+   * @param {string} text Text.
+   * @param {import("./Feature.js").ReadOptions} [options] Read options.
+   * @protected
+   * @return {Array<import("../Feature.js").default>} Features.
+   */
+  readFeaturesFromText(text, options) {
+    return abstract();
+  }
+
+  /**
+   * Read the geometry from the source.
+   *
+   * @param {Document|Element|Object|string} source Source.
+   * @param {import("./Feature.js").ReadOptions} [options] Read options.
+   * @return {import("../geom/Geometry.js").default} Geometry.
+   * @api
+   */
+  readGeometry(source, options) {
+    return this.readGeometryFromText(
+      getText(source),
+      this.adaptOptions(options),
+    );
+  }
+
+  /**
+   * @abstract
+   * @param {string} text Text.
+   * @param {import("./Feature.js").ReadOptions} [options] Read options.
+   * @protected
+   * @return {import("../geom/Geometry.js").default} Geometry.
+   */
+  readGeometryFromText(text, options) {
+    return abstract();
+  }
+
+  /**
+   * Read the projection from the source.
+   *
+   * @param {Document|Element|Object|string} source Source.
+   * @return {import("../proj/Projection.js").default|undefined} Projection.
+   * @api
+   */
+  readProjection(source) {
+    return this.readProjectionFromText(getText(source));
+  }
+
+  /**
+   * @param {string} text Text.
+   * @protected
+   * @return {import("../proj/Projection.js").default|undefined} Projection.
+   */
+  readProjectionFromText(text) {
+    return this.dataProjection;
+  }
+
+  /**
+   * Encode a feature as a string.
+   *
+   * @param {import("../Feature.js").default} feature Feature.
+   * @param {import("./Feature.js").WriteOptions} [options] Write options.
+   * @return {string} Encoded feature.
+   * @api
+   */
+  writeFeature(feature, options) {
+    return this.writeFeatureText(feature, this.adaptOptions(options));
+  }
+
+  /**
+   * @abstract
+   * @param {import("../Feature.js").default} feature Features.
+   * @param {import("./Feature.js").WriteOptions} [options] Write options.
+   * @protected
+   * @return {string} Text.
+   */
+  writeFeatureText(feature, options) {
+    return abstract();
+  }
+
+  /**
+   * Encode an array of features as string.
+   *
+   * @param {Array<import("../Feature.js").default>} features Features.
+   * @param {import("./Feature.js").WriteOptions} [options] Write options.
+   * @return {string} Encoded features.
+   * @api
+   */
+  writeFeatures(features, options) {
+    return this.writeFeaturesText(features, this.adaptOptions(options));
+  }
+
+  /**
+   * @abstract
+   * @param {Array<import("../Feature.js").default>} features Features.
+   * @param {import("./Feature.js").WriteOptions} [options] Write options.
+   * @protected
+   * @return {string} Text.
+   */
+  writeFeaturesText(features, options) {
+    return abstract();
+  }
+
+  /**
+   * Write a single geometry.
+   *
+   * @param {import("../geom/Geometry.js").default} geometry Geometry.
+   * @param {import("./Feature.js").WriteOptions} [options] Write options.
+   * @return {string} Geometry.
+   * @api
+   */
+  writeGeometry(geometry, options) {
+    return this.writeGeometryText(geometry, this.adaptOptions(options));
+  }
+
+  /**
+   * @abstract
+   * @param {import("../geom/Geometry.js").default} geometry Geometry.
+   * @param {import("./Feature.js").WriteOptions} [options] Write options.
+   * @protected
+   * @return {string} Text.
+   */
+  writeGeometryText(geometry, options) {
+    return abstract();
+  }
+}
+
+/**
+ * @param {Document|Element|Object|string} source Source.
+ * @return {string} Text.
+ */
+function getText(source) {
+  if (typeof source === 'string') {
+    return source;
+  }
+  return '';
+}
+
+/**
+ * @module ol/format/WKT
+ */
+
+/**
+ * Geometry constructors
+ * @enum {function (new:import("../geom/Geometry.js").default, Array, import("../geom/Geometry.js").GeometryLayout)}
+ */
+const GeometryConstructor = {
+  'POINT': Point$1,
+  'LINESTRING': LineString,
+  'POLYGON': Polygon,
+  'MULTIPOINT': MultiPoint,
+  'MULTILINESTRING': MultiLineString,
+  'MULTIPOLYGON': MultiPolygon,
+};
+
+/**
+ * @typedef {Object} Options
+ * @property {boolean} [splitCollection=false] Whether to split GeometryCollections into
+ * multiple features on reading.
+ */
+
+/**
+ * @typedef {Object} Token
+ * @property {number} type Type.
+ * @property {number|string} [value] Value.
+ * @property {number} position Position.
+ */
+
+/**
+ * @const
+ * @type {string}
+ */
+const EMPTY = 'EMPTY';
+
+/**
+ * @const
+ * @type {string}
+ */
+const Z = 'Z';
+
+/**
+ * @const
+ * @type {string}
+ */
+const M = 'M';
+
+/**
+ * @const
+ * @type {string}
+ */
+const ZM = 'ZM';
+
+/**
+ * @const
+ * @enum {number}
+ */
+const TokenType = {
+  START: 0,
+  TEXT: 1,
+  LEFT_PAREN: 2,
+  RIGHT_PAREN: 3,
+  NUMBER: 4,
+  COMMA: 5,
+  EOF: 6,
+};
+
+/**
+ * @type {Object<import("../geom/Geometry.js").Type, string>}
+ */
+const wktTypeLookup = {
+  Point: 'POINT',
+  LineString: 'LINESTRING',
+  Polygon: 'POLYGON',
+  MultiPoint: 'MULTIPOINT',
+  MultiLineString: 'MULTILINESTRING',
+  MultiPolygon: 'MULTIPOLYGON',
+  GeometryCollection: 'GEOMETRYCOLLECTION',
+  Circle: 'CIRCLE',
+};
+
+/**
+ * Class to tokenize a WKT string.
+ */
+class Lexer {
+  /**
+   * @param {string} wkt WKT string.
+   */
+  constructor(wkt) {
+    /**
+     * @type {string}
+     */
+    this.wkt = wkt;
+
+    /**
+     * @type {number}
+     * @private
+     */
+    this.index_ = -1;
+  }
+
+  /**
+   * @param {string} c Character.
+   * @return {boolean} Whether the character is alphabetic.
+   * @private
+   */
+  isAlpha_(c) {
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+  }
+
+  /**
+   * @param {string} c Character.
+   * @param {boolean} [decimal] Whether the string number
+   *     contains a dot, i.e. is a decimal number.
+   * @return {boolean} Whether the character is numeric.
+   * @private
+   */
+  isNumeric_(c, decimal) {
+    decimal = decimal !== undefined ? decimal : false;
+    return (c >= '0' && c <= '9') || (c == '.' && !decimal);
+  }
+
+  /**
+   * @param {string} c Character.
+   * @return {boolean} Whether the character is whitespace.
+   * @private
+   */
+  isWhiteSpace_(c) {
+    return c == ' ' || c == '\t' || c == '\r' || c == '\n';
+  }
+
+  /**
+   * @return {string} Next string character.
+   * @private
+   */
+  nextChar_() {
+    return this.wkt.charAt(++this.index_);
+  }
+
+  /**
+   * Fetch and return the next token.
+   * @return {Token} Next string token.
+   */
+  nextToken() {
+    const c = this.nextChar_();
+    const position = this.index_;
+    /** @type {number|string} */
+    let value = c;
+    let type;
+
+    if (c == '(') {
+      type = TokenType.LEFT_PAREN;
+    } else if (c == ',') {
+      type = TokenType.COMMA;
+    } else if (c == ')') {
+      type = TokenType.RIGHT_PAREN;
+    } else if (this.isNumeric_(c) || c == '-') {
+      type = TokenType.NUMBER;
+      value = this.readNumber_();
+    } else if (this.isAlpha_(c)) {
+      type = TokenType.TEXT;
+      value = this.readText_();
+    } else if (this.isWhiteSpace_(c)) {
+      return this.nextToken();
+    } else if (c === '') {
+      type = TokenType.EOF;
+    } else {
+      throw new Error('Unexpected character: ' + c);
+    }
+
+    return {position: position, value: value, type: type};
+  }
+
+  /**
+   * @return {number} Numeric token value.
+   * @private
+   */
+  readNumber_() {
+    let c;
+    const index = this.index_;
+    let decimal = false;
+    let scientificNotation = false;
+    do {
+      if (c == '.') {
+        decimal = true;
+      } else if (c == 'e' || c == 'E') {
+        scientificNotation = true;
+      }
+      c = this.nextChar_();
+    } while (
+      this.isNumeric_(c, decimal) ||
+      // if we haven't detected a scientific number before, 'e' or 'E'
+      // hint that we should continue to read
+      (!scientificNotation && (c == 'e' || c == 'E')) ||
+      // once we know that we have a scientific number, both '-' and '+'
+      // are allowed
+      (scientificNotation && (c == '-' || c == '+'))
+    );
+    return parseFloat(this.wkt.substring(index, this.index_--));
+  }
+
+  /**
+   * @return {string} String token value.
+   * @private
+   */
+  readText_() {
+    let c;
+    const index = this.index_;
+    do {
+      c = this.nextChar_();
+    } while (this.isAlpha_(c));
+    return this.wkt.substring(index, this.index_--).toUpperCase();
+  }
+}
+
+/**
+ * Class to parse the tokens from the WKT string.
+ */
+class Parser {
+  /**
+   * @param {Lexer} lexer The lexer.
+   */
+  constructor(lexer) {
+    /**
+     * @type {Lexer}
+     * @private
+     */
+    this.lexer_ = lexer;
+
+    /**
+     * @type {Token}
+     * @private
+     */
+    this.token_ = {
+      position: 0,
+      type: TokenType.START,
+    };
+
+    /**
+     * @type {import("../geom/Geometry.js").GeometryLayout}
+     * @private
+     */
+    this.layout_ = 'XY';
+  }
+
+  /**
+   * Fetch the next token form the lexer and replace the active token.
+   * @private
+   */
+  consume_() {
+    this.token_ = this.lexer_.nextToken();
+  }
+
+  /**
+   * Tests if the given type matches the type of the current token.
+   * @param {TokenType} type Token type.
+   * @return {boolean} Whether the token matches the given type.
+   */
+  isTokenType(type) {
+    return this.token_.type == type;
+  }
+
+  /**
+   * If the given type matches the current token, consume it.
+   * @param {TokenType} type Token type.
+   * @return {boolean} Whether the token matches the given type.
+   */
+  match(type) {
+    const isMatch = this.isTokenType(type);
+    if (isMatch) {
+      this.consume_();
+    }
+    return isMatch;
+  }
+
+  /**
+   * Try to parse the tokens provided by the lexer.
+   * @return {import("../geom/Geometry.js").default} The geometry.
+   */
+  parse() {
+    this.consume_();
+    return this.parseGeometry_();
+  }
+
+  /**
+   * Try to parse the dimensional info.
+   * @return {import("../geom/Geometry.js").GeometryLayout} The layout.
+   * @private
+   */
+  parseGeometryLayout_() {
+    /** @type {import("../geom/Geometry.js").GeometryLayout} */
+    let layout = 'XY';
+    const dimToken = this.token_;
+    if (this.isTokenType(TokenType.TEXT)) {
+      const dimInfo = dimToken.value;
+      if (dimInfo === Z) {
+        layout = 'XYZ';
+      } else if (dimInfo === M) {
+        layout = 'XYM';
+      } else if (dimInfo === ZM) {
+        layout = 'XYZM';
+      }
+      if (layout !== 'XY') {
+        this.consume_();
+      }
+    }
+    return layout;
+  }
+
+  /**
+   * @return {Array<import("../geom/Geometry.js").default>} A collection of geometries.
+   * @private
+   */
+  parseGeometryCollectionText_() {
+    if (this.match(TokenType.LEFT_PAREN)) {
+      const geometries = [];
+      do {
+        geometries.push(this.parseGeometry_());
+      } while (this.match(TokenType.COMMA));
+      if (this.match(TokenType.RIGHT_PAREN)) {
+        return geometries;
+      }
+    }
+    throw new Error(this.formatErrorMessage_());
+  }
+
+  /**
+   * @return {Array<number>} All values in a point.
+   * @private
+   */
+  parsePointText_() {
+    if (this.match(TokenType.LEFT_PAREN)) {
+      const coordinates = this.parsePoint_();
+      if (this.match(TokenType.RIGHT_PAREN)) {
+        return coordinates;
+      }
+    }
+    throw new Error(this.formatErrorMessage_());
+  }
+
+  /**
+   * @return {Array<Array<number>>} All points in a linestring.
+   * @private
+   */
+  parseLineStringText_() {
+    if (this.match(TokenType.LEFT_PAREN)) {
+      const coordinates = this.parsePointList_();
+      if (this.match(TokenType.RIGHT_PAREN)) {
+        return coordinates;
+      }
+    }
+    throw new Error(this.formatErrorMessage_());
+  }
+
+  /**
+   * @return {Array<Array<Array<number>>>} All points in a polygon.
+   * @private
+   */
+  parsePolygonText_() {
+    if (this.match(TokenType.LEFT_PAREN)) {
+      const coordinates = this.parseLineStringTextList_();
+      if (this.match(TokenType.RIGHT_PAREN)) {
+        return coordinates;
+      }
+    }
+    throw new Error(this.formatErrorMessage_());
+  }
+
+  /**
+   * @return {Array<Array<number>>} All points in a multipoint.
+   * @private
+   */
+  parseMultiPointText_() {
+    if (this.match(TokenType.LEFT_PAREN)) {
+      let coordinates;
+      if (this.token_.type == TokenType.LEFT_PAREN) {
+        coordinates = this.parsePointTextList_();
+      } else {
+        coordinates = this.parsePointList_();
+      }
+      if (this.match(TokenType.RIGHT_PAREN)) {
+        return coordinates;
+      }
+    }
+    throw new Error(this.formatErrorMessage_());
+  }
+
+  /**
+   * @return {Array<Array<Array<number>>>} All linestring points
+   *                                          in a multilinestring.
+   * @private
+   */
+  parseMultiLineStringText_() {
+    if (this.match(TokenType.LEFT_PAREN)) {
+      const coordinates = this.parseLineStringTextList_();
+      if (this.match(TokenType.RIGHT_PAREN)) {
+        return coordinates;
+      }
+    }
+    throw new Error(this.formatErrorMessage_());
+  }
+
+  /**
+   * @return {Array<Array<Array<Array<number>>>>} All polygon points in a multipolygon.
+   * @private
+   */
+  parseMultiPolygonText_() {
+    if (this.match(TokenType.LEFT_PAREN)) {
+      const coordinates = this.parsePolygonTextList_();
+      if (this.match(TokenType.RIGHT_PAREN)) {
+        return coordinates;
+      }
+    }
+    throw new Error(this.formatErrorMessage_());
+  }
+
+  /**
+   * @return {Array<number>} A point.
+   * @private
+   */
+  parsePoint_() {
+    const coordinates = [];
+    const dimensions = this.layout_.length;
+    for (let i = 0; i < dimensions; ++i) {
+      const token = this.token_;
+      if (this.match(TokenType.NUMBER)) {
+        coordinates.push(/** @type {number} */ (token.value));
+      } else {
+        break;
+      }
+    }
+    if (coordinates.length == dimensions) {
+      return coordinates;
+    }
+    throw new Error(this.formatErrorMessage_());
+  }
+
+  /**
+   * @return {Array<Array<number>>} An array of points.
+   * @private
+   */
+  parsePointList_() {
+    const coordinates = [this.parsePoint_()];
+    while (this.match(TokenType.COMMA)) {
+      coordinates.push(this.parsePoint_());
+    }
+    return coordinates;
+  }
+
+  /**
+   * @return {Array<Array<number>>} An array of points.
+   * @private
+   */
+  parsePointTextList_() {
+    const coordinates = [this.parsePointText_()];
+    while (this.match(TokenType.COMMA)) {
+      coordinates.push(this.parsePointText_());
+    }
+    return coordinates;
+  }
+
+  /**
+   * @return {Array<Array<Array<number>>>} An array of points.
+   * @private
+   */
+  parseLineStringTextList_() {
+    const coordinates = [this.parseLineStringText_()];
+    while (this.match(TokenType.COMMA)) {
+      coordinates.push(this.parseLineStringText_());
+    }
+    return coordinates;
+  }
+
+  /**
+   * @return {Array<Array<Array<Array<number>>>>} An array of points.
+   * @private
+   */
+  parsePolygonTextList_() {
+    const coordinates = [this.parsePolygonText_()];
+    while (this.match(TokenType.COMMA)) {
+      coordinates.push(this.parsePolygonText_());
+    }
+    return coordinates;
+  }
+
+  /**
+   * @return {boolean} Whether the token implies an empty geometry.
+   * @private
+   */
+  isEmptyGeometry_() {
+    const isEmpty =
+      this.isTokenType(TokenType.TEXT) && this.token_.value == EMPTY;
+    if (isEmpty) {
+      this.consume_();
+    }
+    return isEmpty;
+  }
+
+  /**
+   * Create an error message for an unexpected token error.
+   * @return {string} Error message.
+   * @private
+   */
+  formatErrorMessage_() {
+    return (
+      'Unexpected `' +
+      this.token_.value +
+      '` at position ' +
+      this.token_.position +
+      ' in `' +
+      this.lexer_.wkt +
+      '`'
+    );
+  }
+
+  /**
+   * @return {import("../geom/Geometry.js").default} The geometry.
+   * @private
+   */
+  parseGeometry_() {
+    const token = this.token_;
+    if (this.match(TokenType.TEXT)) {
+      const geomType = /** @type {string} */ (token.value);
+      this.layout_ = this.parseGeometryLayout_();
+      const isEmpty = this.isEmptyGeometry_();
+      if (geomType == 'GEOMETRYCOLLECTION') {
+        if (isEmpty) {
+          return new GeometryCollection([]);
+        }
+        const geometries = this.parseGeometryCollectionText_();
+        return new GeometryCollection(geometries);
+      }
+      const ctor = GeometryConstructor[geomType];
+      if (!ctor) {
+        throw new Error('Invalid geometry type: ' + geomType);
+      }
+
+      let coordinates;
+
+      if (isEmpty) {
+        if (geomType == 'POINT') {
+          coordinates = [NaN, NaN];
+        } else {
+          coordinates = [];
+        }
+      } else {
+        switch (geomType) {
+          case 'POINT': {
+            coordinates = this.parsePointText_();
+            break;
+          }
+          case 'LINESTRING': {
+            coordinates = this.parseLineStringText_();
+            break;
+          }
+          case 'POLYGON': {
+            coordinates = this.parsePolygonText_();
+            break;
+          }
+          case 'MULTIPOINT': {
+            coordinates = this.parseMultiPointText_();
+            break;
+          }
+          case 'MULTILINESTRING': {
+            coordinates = this.parseMultiLineStringText_();
+            break;
+          }
+          case 'MULTIPOLYGON': {
+            coordinates = this.parseMultiPolygonText_();
+            break;
+          }
+        }
+      }
+
+      return new ctor(coordinates, this.layout_);
+    }
+    throw new Error(this.formatErrorMessage_());
+  }
+}
+
+/**
+ * @classdesc
+ * Geometry format for reading and writing data in the `WellKnownText` (WKT)
+ * format.
+ *
+ * @api
+ */
+class WKT extends TextFeature {
+  /**
+   * @param {Options} [options] Options.
+   */
+  constructor(options) {
+    super();
+
+    options = options ? options : {};
+
+    /**
+     * Split GeometryCollection into multiple features.
+     * @type {boolean}
+     * @private
+     */
+    this.splitCollection_ =
+      options.splitCollection !== undefined ? options.splitCollection : false;
+  }
+
+  /**
+   * Parse a WKT string.
+   * @param {string} wkt WKT string.
+   * @return {import("../geom/Geometry.js").default}
+   *     The geometry created.
+   * @private
+   */
+  parse_(wkt) {
+    const lexer = new Lexer(wkt);
+    const parser = new Parser(lexer);
+    return parser.parse();
+  }
+
+  /**
+   * @protected
+   * @param {string} text Text.
+   * @param {import("./Feature.js").ReadOptions} [options] Read options.
+   * @return {import("../Feature.js").default} Feature.
+   */
+  readFeatureFromText(text, options) {
+    const geom = this.readGeometryFromText(text, options);
+    const feature = new Feature();
+    feature.setGeometry(geom);
+    return feature;
+  }
+
+  /**
+   * @param {string} text Text.
+   * @param {import("./Feature.js").ReadOptions} [options] Read options.
+   * @protected
+   * @return {Array<Feature>} Features.
+   */
+  readFeaturesFromText(text, options) {
+    let geometries = [];
+    const geometry = this.readGeometryFromText(text, options);
+    if (this.splitCollection_ && geometry.getType() == 'GeometryCollection') {
+      geometries = /** @type {GeometryCollection} */ (
+        geometry
+      ).getGeometriesArray();
+    } else {
+      geometries = [geometry];
+    }
+    const features = [];
+    for (let i = 0, ii = geometries.length; i < ii; ++i) {
+      const feature = new Feature();
+      feature.setGeometry(geometries[i]);
+      features.push(feature);
+    }
+    return features;
+  }
+
+  /**
+   * @param {string} text Text.
+   * @param {import("./Feature.js").ReadOptions} [options] Read options.
+   * @protected
+   * @return {import("../geom/Geometry.js").default} Geometry.
+   */
+  readGeometryFromText(text, options) {
+    const geometry = this.parse_(text);
+    return transformGeometryWithOptions(geometry, false, options);
+  }
+
+  /**
+   * @param {import("../Feature.js").default} feature Features.
+   * @param {import("./Feature.js").WriteOptions} [options] Write options.
+   * @protected
+   * @return {string} Text.
+   */
+  writeFeatureText(feature, options) {
+    const geometry = feature.getGeometry();
+    if (geometry) {
+      return this.writeGeometryText(geometry, options);
+    }
+    return '';
+  }
+
+  /**
+   * @param {Array<import("../Feature.js").default>} features Features.
+   * @param {import("./Feature.js").WriteOptions} [options] Write options.
+   * @protected
+   * @return {string} Text.
+   */
+  writeFeaturesText(features, options) {
+    if (features.length == 1) {
+      return this.writeFeatureText(features[0], options);
+    }
+    const geometries = [];
+    for (let i = 0, ii = features.length; i < ii; ++i) {
+      geometries.push(features[i].getGeometry());
+    }
+    const collection = new GeometryCollection(geometries);
+    return this.writeGeometryText(collection, options);
+  }
+
+  /**
+   * @param {import("../geom/Geometry.js").default} geometry Geometry.
+   * @param {import("./Feature.js").WriteOptions} [options] Write options.
+   * @protected
+   * @return {string} Text.
+   */
+  writeGeometryText(geometry, options) {
+    return encode(transformGeometryWithOptions(geometry, true, options));
+  }
+}
+
+/**
+ * @param {Point} geom Point geometry.
+ * @return {string} Coordinates part of Point as WKT.
+ */
+function encodePointGeometry(geom) {
+  const coordinates = geom.getCoordinates();
+  if (coordinates.length === 0) {
+    return '';
+  }
+  return coordinates.join(' ');
+}
+
+/**
+ * @param {MultiPoint} geom MultiPoint geometry.
+ * @return {string} Coordinates part of MultiPoint as WKT.
+ */
+function encodeMultiPointGeometry(geom) {
+  const array = [];
+  const components = geom.getPoints();
+  for (let i = 0, ii = components.length; i < ii; ++i) {
+    array.push('(' + encodePointGeometry(components[i]) + ')');
+  }
+  return array.join(',');
+}
+
+/**
+ * @param {GeometryCollection} geom GeometryCollection geometry.
+ * @return {string} Coordinates part of GeometryCollection as WKT.
+ */
+function encodeGeometryCollectionGeometry(geom) {
+  const array = [];
+  const geoms = geom.getGeometries();
+  for (let i = 0, ii = geoms.length; i < ii; ++i) {
+    array.push(encode(geoms[i]));
+  }
+  return array.join(',');
+}
+
+/**
+ * @param {LineString|import("../geom/LinearRing.js").default} geom LineString geometry.
+ * @return {string} Coordinates part of LineString as WKT.
+ */
+function encodeLineStringGeometry(geom) {
+  const coordinates = geom.getCoordinates();
+  const array = [];
+  for (let i = 0, ii = coordinates.length; i < ii; ++i) {
+    array.push(coordinates[i].join(' '));
+  }
+  return array.join(',');
+}
+
+/**
+ * @param {MultiLineString} geom MultiLineString geometry.
+ * @return {string} Coordinates part of MultiLineString as WKT.
+ */
+function encodeMultiLineStringGeometry(geom) {
+  const array = [];
+  const components = geom.getLineStrings();
+  for (let i = 0, ii = components.length; i < ii; ++i) {
+    array.push('(' + encodeLineStringGeometry(components[i]) + ')');
+  }
+  return array.join(',');
+}
+
+/**
+ * @param {Polygon} geom Polygon geometry.
+ * @return {string} Coordinates part of Polygon as WKT.
+ */
+function encodePolygonGeometry(geom) {
+  const array = [];
+  const rings = geom.getLinearRings();
+  for (let i = 0, ii = rings.length; i < ii; ++i) {
+    array.push('(' + encodeLineStringGeometry(rings[i]) + ')');
+  }
+  return array.join(',');
+}
+
+/**
+ * @param {MultiPolygon} geom MultiPolygon geometry.
+ * @return {string} Coordinates part of MultiPolygon as WKT.
+ */
+function encodeMultiPolygonGeometry(geom) {
+  const array = [];
+  const components = geom.getPolygons();
+  for (let i = 0, ii = components.length; i < ii; ++i) {
+    array.push('(' + encodePolygonGeometry(components[i]) + ')');
+  }
+  return array.join(',');
+}
+
+/**
+ * @param {import("../geom/SimpleGeometry.js").default} geom SimpleGeometry geometry.
+ * @return {string} Potential dimensional information for WKT type.
+ */
+function encodeGeometryLayout(geom) {
+  const layout = geom.getLayout();
+  let dimInfo = '';
+  if (layout === 'XYZ' || layout === 'XYZM') {
+    dimInfo += Z;
+  }
+  if (layout === 'XYM' || layout === 'XYZM') {
+    dimInfo += M;
+  }
+  return dimInfo;
+}
+
+/**
+ * @const
+ * @type {Object<string, function(import("../geom/Geometry.js").default): string>}
+ */
+const GeometryEncoder = {
+  'Point': encodePointGeometry,
+  'LineString': encodeLineStringGeometry,
+  'Polygon': encodePolygonGeometry,
+  'MultiPoint': encodeMultiPointGeometry,
+  'MultiLineString': encodeMultiLineStringGeometry,
+  'MultiPolygon': encodeMultiPolygonGeometry,
+  'GeometryCollection': encodeGeometryCollectionGeometry,
+};
+
+/**
+ * Encode a geometry as WKT.
+ * @param {import("../geom/Geometry.js").default} geom The geometry to encode.
+ * @return {string} WKT string for the geometry.
+ */
+function encode(geom) {
+  const type = geom.getType();
+  const geometryEncoder = GeometryEncoder[type];
+  const enc = geometryEncoder(geom);
+  let wktType = wktTypeLookup[type];
+  if (typeof (/** @type {?} */ (geom).getFlatCoordinates) === 'function') {
+    const dimInfo = encodeGeometryLayout(
+      /** @type {import("../geom/SimpleGeometry.js").default} */ (geom),
+    );
+    if (dimInfo.length > 0) {
+      wktType += ' ' + dimInfo;
+    }
+  }
+  if (enc.length === 0) {
+    return wktType + ' ' + EMPTY;
+  }
+  return wktType + '(' + enc + ')';
+}
+
+var hasOwnProperty = Object.prototype.hasOwnProperty;
+
+// Computes the bounding box of the specified hash of GeoJSON objects.
+function bounds(objects) {
+  var x0 = Infinity,
+      y0 = Infinity,
+      x1 = -Infinity,
+      y1 = -Infinity;
+
+  function boundGeometry(geometry) {
+    if (geometry != null && hasOwnProperty.call(boundGeometryType, geometry.type)) boundGeometryType[geometry.type](geometry);
+  }
+
+  var boundGeometryType = {
+    GeometryCollection: function(o) { o.geometries.forEach(boundGeometry); },
+    Point: function(o) { boundPoint(o.coordinates); },
+    MultiPoint: function(o) { o.coordinates.forEach(boundPoint); },
+    LineString: function(o) { boundLine(o.arcs); },
+    MultiLineString: function(o) { o.arcs.forEach(boundLine); },
+    Polygon: function(o) { o.arcs.forEach(boundLine); },
+    MultiPolygon: function(o) { o.arcs.forEach(boundMultiLine); }
+  };
+
+  function boundPoint(coordinates) {
+    var x = coordinates[0],
+        y = coordinates[1];
+    if (x < x0) x0 = x;
+    if (x > x1) x1 = x;
+    if (y < y0) y0 = y;
+    if (y > y1) y1 = y;
+  }
+
+  function boundLine(coordinates) {
+    coordinates.forEach(boundPoint);
+  }
+
+  function boundMultiLine(coordinates) {
+    coordinates.forEach(boundLine);
+  }
+
+  for (var key in objects) {
+    boundGeometry(objects[key]);
+  }
+
+  return x1 >= x0 && y1 >= y0 ? [x0, y0, x1, y1] : undefined;
+}
+
+function hashset(size, hash, equal, type, empty) {
+  if (arguments.length === 3) {
+    type = Array;
+    empty = null;
+  }
+
+  var store = new type(size = 1 << Math.max(4, Math.ceil(Math.log(size) / Math.LN2))),
+      mask = size - 1;
+
+  for (var i = 0; i < size; ++i) {
+    store[i] = empty;
+  }
+
+  function add(value) {
+    var index = hash(value) & mask,
+        match = store[index],
+        collisions = 0;
+    while (match != empty) {
+      if (equal(match, value)) return true;
+      if (++collisions >= size) throw new Error("full hashset");
+      match = store[index = (index + 1) & mask];
+    }
+    store[index] = value;
+    return true;
+  }
+
+  function has(value) {
+    var index = hash(value) & mask,
+        match = store[index],
+        collisions = 0;
+    while (match != empty) {
+      if (equal(match, value)) return true;
+      if (++collisions >= size) break;
+      match = store[index = (index + 1) & mask];
+    }
+    return false;
+  }
+
+  function values() {
+    var values = [];
+    for (var i = 0, n = store.length; i < n; ++i) {
+      var match = store[i];
+      if (match != empty) values.push(match);
+    }
+    return values;
+  }
+
+  return {
+    add: add,
+    has: has,
+    values: values
+  };
+}
+
+function hashmap(size, hash, equal, keyType, keyEmpty, valueType) {
+  if (arguments.length === 3) {
+    keyType = valueType = Array;
+    keyEmpty = null;
+  }
+
+  var keystore = new keyType(size = 1 << Math.max(4, Math.ceil(Math.log(size) / Math.LN2))),
+      valstore = new valueType(size),
+      mask = size - 1;
+
+  for (var i = 0; i < size; ++i) {
+    keystore[i] = keyEmpty;
+  }
+
+  function set(key, value) {
+    var index = hash(key) & mask,
+        matchKey = keystore[index],
+        collisions = 0;
+    while (matchKey != keyEmpty) {
+      if (equal(matchKey, key)) return valstore[index] = value;
+      if (++collisions >= size) throw new Error("full hashmap");
+      matchKey = keystore[index = (index + 1) & mask];
+    }
+    keystore[index] = key;
+    valstore[index] = value;
+    return value;
+  }
+
+  function maybeSet(key, value) {
+    var index = hash(key) & mask,
+        matchKey = keystore[index],
+        collisions = 0;
+    while (matchKey != keyEmpty) {
+      if (equal(matchKey, key)) return valstore[index];
+      if (++collisions >= size) throw new Error("full hashmap");
+      matchKey = keystore[index = (index + 1) & mask];
+    }
+    keystore[index] = key;
+    valstore[index] = value;
+    return value;
+  }
+
+  function get(key, missingValue) {
+    var index = hash(key) & mask,
+        matchKey = keystore[index],
+        collisions = 0;
+    while (matchKey != keyEmpty) {
+      if (equal(matchKey, key)) return valstore[index];
+      if (++collisions >= size) break;
+      matchKey = keystore[index = (index + 1) & mask];
+    }
+    return missingValue;
+  }
+
+  function keys() {
+    var keys = [];
+    for (var i = 0, n = keystore.length; i < n; ++i) {
+      var matchKey = keystore[i];
+      if (matchKey != keyEmpty) keys.push(matchKey);
+    }
+    return keys;
+  }
+
+  return {
+    set: set,
+    maybeSet: maybeSet, // set if unset
+    get: get,
+    keys: keys
+  };
+}
+
+function equalPoint(pointA, pointB) {
+  return pointA[0] === pointB[0] && pointA[1] === pointB[1];
+}
+
+// TODO if quantized, use simpler Int32 hashing?
+
+var buffer = new ArrayBuffer(16),
+    floats = new Float64Array(buffer),
+    uints = new Uint32Array(buffer);
+
+function hashPoint(point) {
+  floats[0] = point[0];
+  floats[1] = point[1];
+  var hash = uints[0] ^ uints[1];
+  hash = hash << 5 ^ hash >> 7 ^ uints[2] ^ uints[3];
+  return hash & 0x7fffffff;
+}
+
+// Given an extracted (pre-)topology, identifies all of the junctions. These are
+// the points at which arcs (lines or rings) will need to be cut so that each
+// arc is represented uniquely.
+//
+// A junction is a point where at least one arc deviates from another arc going
+// through the same point. For example, consider the point B. If there is a arc
+// through ABC and another arc through CBA, then B is not a junction because in
+// both cases the adjacent point pairs are {A,C}. However, if there is an
+// additional arc ABD, then {A,D} != {A,C}, and thus B becomes a junction.
+//
+// For a closed ring ABCA, the first point A’s adjacent points are the second
+// and last point {B,C}. For a line, the first and last point are always
+// considered junctions, even if the line is closed; this ensures that a closed
+// line is never rotated.
+function join(topology) {
+  var coordinates = topology.coordinates,
+      lines = topology.lines,
+      rings = topology.rings,
+      indexes = index(),
+      visitedByIndex = new Int32Array(coordinates.length),
+      leftByIndex = new Int32Array(coordinates.length),
+      rightByIndex = new Int32Array(coordinates.length),
+      junctionByIndex = new Int8Array(coordinates.length),
+      junctionCount = 0, // upper bound on number of junctions
+      i, n,
+      previousIndex,
+      currentIndex,
+      nextIndex;
+
+  for (i = 0, n = coordinates.length; i < n; ++i) {
+    visitedByIndex[i] = leftByIndex[i] = rightByIndex[i] = -1;
+  }
+
+  for (i = 0, n = lines.length; i < n; ++i) {
+    var line = lines[i],
+        lineStart = line[0],
+        lineEnd = line[1];
+    currentIndex = indexes[lineStart];
+    nextIndex = indexes[++lineStart];
+    ++junctionCount, junctionByIndex[currentIndex] = 1; // start
+    while (++lineStart <= lineEnd) {
+      sequence(i, previousIndex = currentIndex, currentIndex = nextIndex, nextIndex = indexes[lineStart]);
+    }
+    ++junctionCount, junctionByIndex[nextIndex] = 1; // end
+  }
+
+  for (i = 0, n = coordinates.length; i < n; ++i) {
+    visitedByIndex[i] = -1;
+  }
+
+  for (i = 0, n = rings.length; i < n; ++i) {
+    var ring = rings[i],
+        ringStart = ring[0] + 1,
+        ringEnd = ring[1];
+    previousIndex = indexes[ringEnd - 1];
+    currentIndex = indexes[ringStart - 1];
+    nextIndex = indexes[ringStart];
+    sequence(i, previousIndex, currentIndex, nextIndex);
+    while (++ringStart <= ringEnd) {
+      sequence(i, previousIndex = currentIndex, currentIndex = nextIndex, nextIndex = indexes[ringStart]);
+    }
+  }
+
+  function sequence(i, previousIndex, currentIndex, nextIndex) {
+    if (visitedByIndex[currentIndex] === i) return; // ignore self-intersection
+    visitedByIndex[currentIndex] = i;
+    var leftIndex = leftByIndex[currentIndex];
+    if (leftIndex >= 0) {
+      var rightIndex = rightByIndex[currentIndex];
+      if ((leftIndex !== previousIndex || rightIndex !== nextIndex)
+        && (leftIndex !== nextIndex || rightIndex !== previousIndex)) {
+        ++junctionCount, junctionByIndex[currentIndex] = 1;
+      }
+    } else {
+      leftByIndex[currentIndex] = previousIndex;
+      rightByIndex[currentIndex] = nextIndex;
+    }
+  }
+
+  function index() {
+    var indexByPoint = hashmap(coordinates.length * 1.4, hashIndex, equalIndex, Int32Array, -1, Int32Array),
+        indexes = new Int32Array(coordinates.length);
+
+    for (var i = 0, n = coordinates.length; i < n; ++i) {
+      indexes[i] = indexByPoint.maybeSet(i, i);
+    }
+
+    return indexes;
+  }
+
+  function hashIndex(i) {
+    return hashPoint(coordinates[i]);
+  }
+
+  function equalIndex(i, j) {
+    return equalPoint(coordinates[i], coordinates[j]);
+  }
+
+  visitedByIndex = leftByIndex = rightByIndex = null;
+
+  var junctionByPoint = hashset(junctionCount * 1.4, hashPoint, equalPoint), j;
+
+  // Convert back to a standard hashset by point for caller convenience.
+  for (i = 0, n = coordinates.length; i < n; ++i) {
+    if (junctionByIndex[j = indexes[i]]) {
+      junctionByPoint.add(coordinates[j]);
+    }
+  }
+
+  return junctionByPoint;
+}
+
+// Given an extracted (pre-)topology, cuts (or rotates) arcs so that all shared
+// point sequences are identified. The topology can then be subsequently deduped
+// to remove exact duplicate arcs.
+function cut(topology) {
+  var junctions = join(topology),
+      coordinates = topology.coordinates,
+      lines = topology.lines,
+      rings = topology.rings,
+      next,
+      i, n;
+
+  for (i = 0, n = lines.length; i < n; ++i) {
+    var line = lines[i],
+        lineMid = line[0],
+        lineEnd = line[1];
+    while (++lineMid < lineEnd) {
+      if (junctions.has(coordinates[lineMid])) {
+        next = {0: lineMid, 1: line[1]};
+        line[1] = lineMid;
+        line = line.next = next;
+      }
+    }
+  }
+
+  for (i = 0, n = rings.length; i < n; ++i) {
+    var ring = rings[i],
+        ringStart = ring[0],
+        ringMid = ringStart,
+        ringEnd = ring[1],
+        ringFixed = junctions.has(coordinates[ringStart]);
+    while (++ringMid < ringEnd) {
+      if (junctions.has(coordinates[ringMid])) {
+        if (ringFixed) {
+          next = {0: ringMid, 1: ring[1]};
+          ring[1] = ringMid;
+          ring = ring.next = next;
+        } else { // For the first junction, we can rotate rather than cut.
+          rotateArray(coordinates, ringStart, ringEnd, ringEnd - ringMid);
+          coordinates[ringEnd] = coordinates[ringStart];
+          ringFixed = true;
+          ringMid = ringStart; // restart; we may have skipped junctions
+        }
+      }
+    }
+  }
+
+  return topology;
+}
+
+function rotateArray(array, start, end, offset) {
+  reverse(array, start, end);
+  reverse(array, start, start + offset);
+  reverse(array, start + offset, end);
+}
+
+function reverse(array, start, end) {
+  for (var mid = start + ((end-- - start) >> 1), t; start < mid; ++start, --end) {
+    t = array[start], array[start] = array[end], array[end] = t;
+  }
+}
+
+// Given a cut topology, combines duplicate arcs.
+function dedup(topology) {
+  var coordinates = topology.coordinates,
+      lines = topology.lines, line,
+      rings = topology.rings, ring,
+      arcCount = lines.length + rings.length,
+      i, n;
+
+  delete topology.lines;
+  delete topology.rings;
+
+  // Count the number of (non-unique) arcs to initialize the hashmap safely.
+  for (i = 0, n = lines.length; i < n; ++i) {
+    line = lines[i]; while (line = line.next) ++arcCount;
+  }
+  for (i = 0, n = rings.length; i < n; ++i) {
+    ring = rings[i]; while (ring = ring.next) ++arcCount;
+  }
+
+  var arcsByEnd = hashmap(arcCount * 2 * 1.4, hashPoint, equalPoint),
+      arcs = topology.arcs = [];
+
+  for (i = 0, n = lines.length; i < n; ++i) {
+    line = lines[i];
+    do {
+      dedupLine(line);
+    } while (line = line.next);
+  }
+
+  for (i = 0, n = rings.length; i < n; ++i) {
+    ring = rings[i];
+    if (ring.next) { // arc is no longer closed
+      do {
+        dedupLine(ring);
+      } while (ring = ring.next);
+    } else {
+      dedupRing(ring);
+    }
+  }
+
+  function dedupLine(arc) {
+    var startPoint,
+        endPoint,
+        startArcs, startArc,
+        endArcs, endArc,
+        i, n;
+
+    // Does this arc match an existing arc in order?
+    if (startArcs = arcsByEnd.get(startPoint = coordinates[arc[0]])) {
+      for (i = 0, n = startArcs.length; i < n; ++i) {
+        startArc = startArcs[i];
+        if (equalLine(startArc, arc)) {
+          arc[0] = startArc[0];
+          arc[1] = startArc[1];
+          return;
+        }
+      }
+    }
+
+    // Does this arc match an existing arc in reverse order?
+    if (endArcs = arcsByEnd.get(endPoint = coordinates[arc[1]])) {
+      for (i = 0, n = endArcs.length; i < n; ++i) {
+        endArc = endArcs[i];
+        if (reverseEqualLine(endArc, arc)) {
+          arc[1] = endArc[0];
+          arc[0] = endArc[1];
+          return;
+        }
+      }
+    }
+
+    if (startArcs) startArcs.push(arc); else arcsByEnd.set(startPoint, [arc]);
+    if (endArcs) endArcs.push(arc); else arcsByEnd.set(endPoint, [arc]);
+    arcs.push(arc);
+  }
+
+  function dedupRing(arc) {
+    var endPoint,
+        endArcs,
+        endArc,
+        i, n;
+
+    // Does this arc match an existing line in order, or reverse order?
+    // Rings are closed, so their start point and end point is the same.
+    if (endArcs = arcsByEnd.get(endPoint = coordinates[arc[0]])) {
+      for (i = 0, n = endArcs.length; i < n; ++i) {
+        endArc = endArcs[i];
+        if (equalRing(endArc, arc)) {
+          arc[0] = endArc[0];
+          arc[1] = endArc[1];
+          return;
+        }
+        if (reverseEqualRing(endArc, arc)) {
+          arc[0] = endArc[1];
+          arc[1] = endArc[0];
+          return;
+        }
+      }
+    }
+
+    // Otherwise, does this arc match an existing ring in order, or reverse order?
+    if (endArcs = arcsByEnd.get(endPoint = coordinates[arc[0] + findMinimumOffset(arc)])) {
+      for (i = 0, n = endArcs.length; i < n; ++i) {
+        endArc = endArcs[i];
+        if (equalRing(endArc, arc)) {
+          arc[0] = endArc[0];
+          arc[1] = endArc[1];
+          return;
+        }
+        if (reverseEqualRing(endArc, arc)) {
+          arc[0] = endArc[1];
+          arc[1] = endArc[0];
+          return;
+        }
+      }
+    }
+
+    if (endArcs) endArcs.push(arc); else arcsByEnd.set(endPoint, [arc]);
+    arcs.push(arc);
+  }
+
+  function equalLine(arcA, arcB) {
+    var ia = arcA[0], ib = arcB[0],
+        ja = arcA[1], jb = arcB[1];
+    if (ia - ja !== ib - jb) return false;
+    for (; ia <= ja; ++ia, ++ib) if (!equalPoint(coordinates[ia], coordinates[ib])) return false;
+    return true;
+  }
+
+  function reverseEqualLine(arcA, arcB) {
+    var ia = arcA[0], ib = arcB[0],
+        ja = arcA[1], jb = arcB[1];
+    if (ia - ja !== ib - jb) return false;
+    for (; ia <= ja; ++ia, --jb) if (!equalPoint(coordinates[ia], coordinates[jb])) return false;
+    return true;
+  }
+
+  function equalRing(arcA, arcB) {
+    var ia = arcA[0], ib = arcB[0],
+        ja = arcA[1], jb = arcB[1],
+        n = ja - ia;
+    if (n !== jb - ib) return false;
+    var ka = findMinimumOffset(arcA),
+        kb = findMinimumOffset(arcB);
+    for (var i = 0; i < n; ++i) {
+      if (!equalPoint(coordinates[ia + (i + ka) % n], coordinates[ib + (i + kb) % n])) return false;
+    }
+    return true;
+  }
+
+  function reverseEqualRing(arcA, arcB) {
+    var ia = arcA[0], ib = arcB[0],
+        ja = arcA[1], jb = arcB[1],
+        n = ja - ia;
+    if (n !== jb - ib) return false;
+    var ka = findMinimumOffset(arcA),
+        kb = n - findMinimumOffset(arcB);
+    for (var i = 0; i < n; ++i) {
+      if (!equalPoint(coordinates[ia + (i + ka) % n], coordinates[jb - (i + kb) % n])) return false;
+    }
+    return true;
+  }
+
+  // Rings are rotated to a consistent, but arbitrary, start point.
+  // This is necessary to detect when a ring and a rotated copy are dupes.
+  function findMinimumOffset(arc) {
+    var start = arc[0],
+        end = arc[1],
+        mid = start,
+        minimum = mid,
+        minimumPoint = coordinates[mid];
+    while (++mid < end) {
+      var point = coordinates[mid];
+      if (point[0] < minimumPoint[0] || point[0] === minimumPoint[0] && point[1] < minimumPoint[1]) {
+        minimum = mid;
+        minimumPoint = point;
+      }
+    }
+    return minimum - start;
+  }
+
+  return topology;
+}
+
+// Given an array of arcs in absolute (but already quantized!) coordinates,
+// converts to fixed-point delta encoding.
+// This is a destructive operation that modifies the given arcs!
+function delta(arcs) {
+  var i = -1,
+      n = arcs.length;
+
+  while (++i < n) {
+    var arc = arcs[i],
+        j = 0,
+        k = 1,
+        m = arc.length,
+        point = arc[0],
+        x0 = point[0],
+        y0 = point[1],
+        x1,
+        y1;
+
+    while (++j < m) {
+      point = arc[j], x1 = point[0], y1 = point[1];
+      if (x1 !== x0 || y1 !== y0) arc[k++] = [x1 - x0, y1 - y0], x0 = x1, y0 = y1;
+    }
+
+    if (k === 1) arc[k++] = [0, 0]; // Each arc must be an array of two or more positions.
+
+    arc.length = k;
+  }
+
+  return arcs;
+}
+
+// Extracts the lines and rings from the specified hash of geometry objects.
+//
+// Returns an object with three properties:
+//
+// * coordinates - shared buffer of [x, y] coordinates
+// * lines - lines extracted from the hash, of the form [start, end]
+// * rings - rings extracted from the hash, of the form [start, end]
+//
+// For each ring or line, start and end represent inclusive indexes into the
+// coordinates buffer. For rings (and closed lines), coordinates[start] equals
+// coordinates[end].
+//
+// For each line or polygon geometry in the input hash, including nested
+// geometries as in geometry collections, the `coordinates` array is replaced
+// with an equivalent `arcs` array that, for each line (for line string
+// geometries) or ring (for polygon geometries), points to one of the above
+// lines or rings.
+function extract(objects) {
+  var index = -1,
+      lines = [],
+      rings = [],
+      coordinates = [];
+
+  function extractGeometry(geometry) {
+    if (geometry && hasOwnProperty.call(extractGeometryType, geometry.type)) extractGeometryType[geometry.type](geometry);
+  }
+
+  var extractGeometryType = {
+    GeometryCollection: function(o) { o.geometries.forEach(extractGeometry); },
+    LineString: function(o) { o.arcs = extractLine(o.arcs); },
+    MultiLineString: function(o) { o.arcs = o.arcs.map(extractLine); },
+    Polygon: function(o) { o.arcs = o.arcs.map(extractRing); },
+    MultiPolygon: function(o) { o.arcs = o.arcs.map(extractMultiRing); }
+  };
+
+  function extractLine(line) {
+    for (var i = 0, n = line.length; i < n; ++i) coordinates[++index] = line[i];
+    var arc = {0: index - n + 1, 1: index};
+    lines.push(arc);
+    return arc;
+  }
+
+  function extractRing(ring) {
+    for (var i = 0, n = ring.length; i < n; ++i) coordinates[++index] = ring[i];
+    var arc = {0: index - n + 1, 1: index};
+    rings.push(arc);
+    return arc;
+  }
+
+  function extractMultiRing(rings) {
+    return rings.map(extractRing);
+  }
+
+  for (var key in objects) {
+    extractGeometry(objects[key]);
+  }
+
+  return {
+    type: "Topology",
+    coordinates: coordinates,
+    lines: lines,
+    rings: rings,
+    objects: objects
+  };
+}
+
+// Given a hash of GeoJSON objects, returns a hash of GeoJSON geometry objects.
+// Any null input geometry objects are represented as {type: null} in the output.
+// Any feature.{id,properties,bbox} are transferred to the output geometry object.
+// Each output geometry object is a shallow copy of the input (e.g., properties, coordinates)!
+function geometry(inputs) {
+  var outputs = {}, key;
+  for (key in inputs) outputs[key] = geomifyObject(inputs[key]);
+  return outputs;
+}
+
+function geomifyObject(input) {
+  return input == null ? {type: null}
+      : (input.type === "FeatureCollection" ? geomifyFeatureCollection
+      : input.type === "Feature" ? geomifyFeature
+      : geomifyGeometry)(input);
+}
+
+function geomifyFeatureCollection(input) {
+  var output = {type: "GeometryCollection", geometries: input.features.map(geomifyFeature)};
+  if (input.bbox != null) output.bbox = input.bbox;
+  return output;
+}
+
+function geomifyFeature(input) {
+  var output = geomifyGeometry(input.geometry), key; // eslint-disable-line no-unused-vars
+  if (input.id != null) output.id = input.id;
+  if (input.bbox != null) output.bbox = input.bbox;
+  for (key in input.properties) { output.properties = input.properties; break; }
+  return output;
+}
+
+function geomifyGeometry(input) {
+  if (input == null) return {type: null};
+  var output = input.type === "GeometryCollection" ? {type: "GeometryCollection", geometries: input.geometries.map(geomifyGeometry)}
+      : input.type === "Point" || input.type === "MultiPoint" ? {type: input.type, coordinates: input.coordinates}
+      : {type: input.type, arcs: input.coordinates}; // TODO Check for unknown types?
+  if (input.bbox != null) output.bbox = input.bbox;
+  return output;
+}
+
+function prequantize(objects, bbox, n) {
+  var x0 = bbox[0],
+      y0 = bbox[1],
+      x1 = bbox[2],
+      y1 = bbox[3],
+      kx = x1 - x0 ? (n - 1) / (x1 - x0) : 1,
+      ky = y1 - y0 ? (n - 1) / (y1 - y0) : 1;
+
+  function quantizePoint(input) {
+    return [Math.round((input[0] - x0) * kx), Math.round((input[1] - y0) * ky)];
+  }
+
+  function quantizePoints(input, m) {
+    var i = -1,
+        j = 0,
+        n = input.length,
+        output = new Array(n), // pessimistic
+        pi,
+        px,
+        py,
+        x,
+        y;
+
+    while (++i < n) {
+      pi = input[i];
+      x = Math.round((pi[0] - x0) * kx);
+      y = Math.round((pi[1] - y0) * ky);
+      if (x !== px || y !== py) output[j++] = [px = x, py = y]; // non-coincident points
+    }
+
+    output.length = j;
+    while (j < m) j = output.push([output[0][0], output[0][1]]);
+    return output;
+  }
+
+  function quantizeLine(input) {
+    return quantizePoints(input, 2);
+  }
+
+  function quantizeRing(input) {
+    return quantizePoints(input, 4);
+  }
+
+  function quantizePolygon(input) {
+    return input.map(quantizeRing);
+  }
+
+  function quantizeGeometry(o) {
+    if (o != null && hasOwnProperty.call(quantizeGeometryType, o.type)) quantizeGeometryType[o.type](o);
+  }
+
+  var quantizeGeometryType = {
+    GeometryCollection: function(o) { o.geometries.forEach(quantizeGeometry); },
+    Point: function(o) { o.coordinates = quantizePoint(o.coordinates); },
+    MultiPoint: function(o) { o.coordinates = o.coordinates.map(quantizePoint); },
+    LineString: function(o) { o.arcs = quantizeLine(o.arcs); },
+    MultiLineString: function(o) { o.arcs = o.arcs.map(quantizeLine); },
+    Polygon: function(o) { o.arcs = quantizePolygon(o.arcs); },
+    MultiPolygon: function(o) { o.arcs = o.arcs.map(quantizePolygon); }
+  };
+
+  for (var key in objects) {
+    quantizeGeometry(objects[key]);
+  }
+
+  return {
+    scale: [1 / kx, 1 / ky],
+    translate: [x0, y0]
+  };
+}
+
+// Constructs the TopoJSON Topology for the specified hash of features.
+// Each object in the specified hash must be a GeoJSON object,
+// meaning FeatureCollection, a Feature or a geometry object.
+function topology(objects, quantization) {
+  var bbox = bounds(objects = geometry(objects)),
+      transform = bbox && prequantize(objects, bbox, quantization),
+      topology = dedup(cut(extract(objects))),
+      coordinates = topology.coordinates,
+      indexByArc = hashmap(topology.arcs.length * 1.4, hashArc, equalArc);
+
+  objects = topology.objects; // for garbage collection
+  topology.bbox = bbox;
+  topology.arcs = topology.arcs.map(function(arc, i) {
+    indexByArc.set(arc, i);
+    return coordinates.slice(arc[0], arc[1] + 1);
+  });
+
+  delete topology.coordinates;
+  coordinates = null;
+
+  function indexGeometry(geometry) {
+    if (geometry && hasOwnProperty.call(indexGeometryType, geometry.type)) indexGeometryType[geometry.type](geometry);
+  }
+
+  var indexGeometryType = {
+    GeometryCollection: function(o) { o.geometries.forEach(indexGeometry); },
+    LineString: function(o) { o.arcs = indexArcs(o.arcs); },
+    MultiLineString: function(o) { o.arcs = o.arcs.map(indexArcs); },
+    Polygon: function(o) { o.arcs = o.arcs.map(indexArcs); },
+    MultiPolygon: function(o) { o.arcs = o.arcs.map(indexMultiArcs); }
+  };
+
+  function indexArcs(arc) {
+    var indexes = [];
+    do {
+      var index = indexByArc.get(arc);
+      indexes.push(arc[0] < arc[1] ? index : ~index);
+    } while (arc = arc.next);
+    return indexes;
+  }
+
+  function indexMultiArcs(arcs) {
+    return arcs.map(indexArcs);
+  }
+
+  for (var key in objects) {
+    indexGeometry(objects[key]);
+  }
+
+  if (transform) {
+    topology.transform = transform;
+    topology.arcs = delta(topology.arcs);
+  }
+
+  return topology;
+}
+
+function hashArc(arc) {
+  var i = arc[0], j = arc[1], t;
+  if (j < i) t = i, i = j, j = t;
+  return i + 31 * j;
+}
+
+function equalArc(arcA, arcB) {
+  var ia = arcA[0], ja = arcA[1],
+      ib = arcB[0], jb = arcB[1], t;
+  if (ja < ia) t = ia, ia = ja, ja = t;
+  if (jb < ib) t = ib, ib = jb, jb = t;
+  return ia === ib && ja === jb;
+}
+
+var _excluded = ["format"];
+var TOPOJSON_QUANTIZATION = 1e5;
+var readFeatures = function readFeatures(data) {
+  var _ref = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {},
+    _ref$format = _ref.format,
+    format = _ref$format === void 0 ? 'GeoJSON' : _ref$format,
+    options = _objectWithoutProperties(_ref, _excluded);
+  if (format === 'GeoJSON') return new GeoJSON().readFeatures(data, options);
+  if (format === 'WKT') return new WKT().readFeatures(data, options);
+  throw new Error("Unsupported feature format: ".concat(format));
+};
+var exportFeature = function exportFeature(feature) {
+  var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+  var geojsonFormat = new GeoJSON();
+  var wktFormat = new WKT();
+  var geojson = geojsonFormat.writeFeatureObject(feature, options);
+  var featureCollection = {
+    type: 'FeatureCollection',
+    features: [geojson]
+  };
+  return {
+    geojson,
+    wkt: wktFormat.writeFeature(feature, options),
+    topojson: topology({
+      features: featureCollection
+    }, TOPOJSON_QUANTIZATION)
+  };
+};
+var exportFeatures = function exportFeatures(features) {
+  var options = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+  var geojsonFormat = new GeoJSON();
+  var wktFormat = new WKT();
+  var geojson = geojsonFormat.writeFeaturesObject(features, options);
+  return {
+    geojson,
+    wkt: wktFormat.writeFeatures(features, options),
+    topojson: topology({
+      features: geojson
+    }, TOPOJSON_QUANTIZATION)
+  };
+};
+
 var DrawInteraction = _ref => {
   var id = _ref.id,
     geometryType = _ref.geometryType,
@@ -59179,11 +61125,12 @@ var DrawInteraction = _ref => {
     });
     map.addInteraction(draw);
     var drawEndListener = draw.on('drawend', evt => {
-      var writer = new GeoJSON();
-      var geojson = writer.writeFeatureObject(evt.feature, {
+      var formatOptions = {
         featureProjection: map.getView().getProjection(),
         dataProjection: 'EPSG:4326'
-      });
+      };
+      var writer = new GeoJSON();
+      var geojson = writer.writeFeatureObject(evt.feature, formatOptions);
       var errors = getTopologyErrors(geojson);
       var structurallyValid = !errors.some(error => error.code === 'invalid_geometry');
       var intersections = errors.filter(error => error.code === 'self_intersection');
@@ -59195,27 +61142,38 @@ var DrawInteraction = _ref => {
         suggestions.push('Close each ring, provide at least four positions, and keep holes inside the outer ring without overlap.');
       }
       var valid = errors.length === 0;
+      var outputFormats = valid ? exportFeature(evt.feature, formatOptions) : null;
       if (!valid) {
         source.removeFeature(evt.feature);
       } else {
         history.record({
           undo: () => {
             source.removeFeature(evt.feature);
-            if (setPropsRef.current) setPropsRef.current({
-              drawnGeoJSON: null
-            });
+            if (setPropsRef.current) {
+              setPropsRef.current({
+                drawnGeoJSON: null,
+                drawnWKT: null,
+                drawnTopoJSON: null
+              });
+            }
           },
           redo: () => {
             source.addFeature(evt.feature);
-            if (setPropsRef.current) setPropsRef.current({
-              drawnGeoJSON: geojson
-            });
+            if (setPropsRef.current) {
+              setPropsRef.current({
+                drawnGeoJSON: outputFormats.geojson,
+                drawnWKT: outputFormats.wkt,
+                drawnTopoJSON: outputFormats.topojson
+              });
+            }
           }
         }, source);
       }
       if (setPropsRef.current) {
         setPropsRef.current({
-          drawnGeoJSON: valid ? geojson : null,
+          drawnGeoJSON: valid ? outputFormats.geojson : null,
+          drawnWKT: valid ? outputFormats.wkt : null,
+          drawnTopoJSON: valid ? outputFormats.topojson : null,
           geometryValidation: {
             valid,
             errors,
@@ -59262,6 +61220,10 @@ DrawInteraction.propTypes = {
   snapTolerance: PropTypes.number,
   /** Read-only: GeoJSON Feature emitted only when geometry validation succeeds. */
   drawnGeoJSON: PropTypes.object,
+  /** Read-only: WKT geometry emitted only when geometry validation succeeds. */
+  drawnWKT: PropTypes.string,
+  /** Read-only: TopoJSON topology emitted only when geometry validation succeeds. */
+  drawnTopoJSON: PropTypes.object,
   /** Read-only: validity, topology errors, and repair suggestions from the last draw. */
   geometryValidation: PropTypes.shape({
     valid: PropTypes.bool,
@@ -62966,9 +64928,9 @@ class Modify extends PointerInteraction {
     if (!nodes) {
       const viewExtent = fromUserExtent(
         createOrUpdateFromCoordinate(pixelCoordinate, tempExtent));
-      const buffer$1 = map.getView().getResolution() * this.pixelTolerance_;
+      const buffer = map.getView().getResolution() * this.pixelTolerance_;
       const box = toUserExtent(
-        buffer(viewExtent, buffer$1, tempExtent));
+        buffer$1(viewExtent, buffer, tempExtent));
       nodes = this.rBush_.getInExtent(box);
     }
 
@@ -63423,11 +65385,14 @@ var ModifyInteraction = _ref => {
     map.addInteraction(modify);
     var publishModifiedGeoJSON = () => {
       if (setPropsRef.current) {
+        var outputFormats = exportFeatures(source.getFeatures(), {
+          featureProjection: map.getView().getProjection(),
+          dataProjection: 'EPSG:4326'
+        });
         setPropsRef.current({
-          modifiedGeoJSON: format.writeFeaturesObject(source.getFeatures(), {
-            featureProjection: map.getView().getProjection(),
-            dataProjection: 'EPSG:4326'
-          })
+          modifiedGeoJSON: outputFormats.geojson,
+          modifiedWKT: outputFormats.wkt,
+          modifiedTopoJSON: outputFormats.topojson
         });
       }
     };
@@ -63540,6 +65505,10 @@ ModifyInteraction.propTypes = {
   preserveTopology: PropTypes.bool,
   /** Read-only: GeoJSON FeatureCollection of the target layer after a modify operation. */
   modifiedGeoJSON: PropTypes.object,
+  /** Read-only: WKT geometry collection of the target layer after modification. */
+  modifiedWKT: PropTypes.string,
+  /** Read-only: TopoJSON topology of the target layer after modification. */
+  modifiedTopoJSON: PropTypes.object,
   /** Read-only: topology validation result from the last modification. */
   geometryValidation: PropTypes.shape({
     valid: PropTypes.bool,
@@ -68565,7 +70534,7 @@ class TileWMS extends TileImage {
 
     const gutter = this.gutter_;
     if (gutter !== 0) {
-      tileExtent = buffer(tileExtent, tileResolution * gutter, tileExtent);
+      tileExtent = buffer$1(tileExtent, tileResolution * gutter, tileExtent);
     }
 
     const baseParams = {
@@ -68759,7 +70728,7 @@ class TileWMS extends TileImage {
 
     const gutter = this.gutter_;
     if (gutter !== 0) {
-      tileExtent = buffer(tileExtent, tileResolution * gutter, tileExtent);
+      tileExtent = buffer$1(tileExtent, tileResolution * gutter, tileExtent);
     }
 
     const baseParams = Object.assign(
@@ -68834,21 +70803,19 @@ TileWMSLayer.propTypes = {
 var VectorLayerComponent = _ref => {
   var id = _ref.id,
     geojson = _ref.geojson,
+    wkt = _ref.wkt,
     style = _ref.style;
   var map = useMap();
   var sourceRef = useRef(null);
-  var formatRef = useRef(null);
   var layerRef = useRef(null);
   useEffect(() => {
     var source = new VectorSource();
     var layer = new VectorLayer({
       source
     });
-    var format = new GeoJSON();
     layer.set('dashId', id);
     layerRef.current = layer;
     sourceRef.current = source;
-    formatRef.current = format;
     map.addLayer(layer);
     return () => {
       map.removeLayer(layer);
@@ -68856,7 +70823,6 @@ var VectorLayerComponent = _ref => {
       source.clear();
       layerRef.current = null;
       sourceRef.current = null;
-      formatRef.current = null;
     };
   }, [id, map]);
   useEffect(() => {
@@ -68867,20 +70833,23 @@ var VectorLayerComponent = _ref => {
   }, [id, map, style]);
   useEffect(() => {
     var source = sourceRef.current;
-    var format = formatRef.current;
-    if (!source || !format) return;
+    if (!source) return;
     source.clear();
-    if (!geojson) return;
-    var features = format.readFeatures(geojson, {
+    var useWKT = typeof wkt === 'string' && wkt.trim().length > 0;
+    var data = useWKT ? wkt : geojson;
+    if (!data) return;
+    var features = readFeatures(data, {
+      format: useWKT ? 'WKT' : 'GeoJSON',
       dataProjection: 'EPSG:4326',
       featureProjection: map.getView().getProjection()
     });
     source.addFeatures(features);
-  }, [geojson, id, map]);
+  }, [geojson, id, map, wkt]);
   return null;
 };
 VectorLayerComponent.defaultProps = {
   geojson: null,
+  wkt: null,
   style: null
 };
 VectorLayerComponent.propTypes = {
@@ -68888,6 +70857,8 @@ VectorLayerComponent.propTypes = {
   id: PropTypes.string,
   /** GeoJSON Feature or FeatureCollection with coordinates in [longitude, latitude] order; updates are rendered in the map projection. */
   geojson: PropTypes.object,
+  /** WKT geometry string in [x, y] order; takes precedence over `geojson` when non-empty. */
+  wkt: PropTypes.string,
   /** OpenLayers flat style object or rule array; supports icon, fill, stroke, feature filters, and resolution expressions. */
   style: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
   /** Dash-supplied callback used to write component state back to the layout. */
@@ -70270,7 +72241,7 @@ class CanvasVectorTileLayerRenderer extends CanvasTileLayerRenderer {
       const sourceTileExtent =
         sourceTileGrid.getTileCoordExtent(sourceTileCoord);
       const sharedExtent = getIntersection(tileExtent, sourceTileExtent);
-      const builderExtent = buffer(
+      const builderExtent = buffer$1(
         sharedExtent,
         layer.getRenderBuffer() * resolution,
         this.tmpExtent,
@@ -70377,7 +72348,7 @@ class CanvasVectorTileLayerRenderer extends CanvasTileLayerRenderer {
     );
 
     const hitExtent = boundingExtent([coordinate]);
-    buffer(hitExtent, resolution * hitTolerance, hitExtent);
+    buffer$1(hitExtent, resolution * hitTolerance, hitExtent);
 
     /** @type {!Object<string, import("../Map.js").HitMatch<T>|true>} */
     const features = {};
@@ -71736,7 +73707,7 @@ class VectorTile extends UrlTile {
       const z = urlTileCoord[0];
       const resolution = tileGrid.getResolution(z);
       // make extent 1 pixel smaller so we don't load tiles for < 0.5 pixel render space
-      buffer(extent, -resolution, extent);
+      buffer$1(extent, -resolution, extent);
       const sourceTileGrid = this.tileGrid;
       const sourceExtent = sourceTileGrid.getExtent();
       if (sourceExtent) {
@@ -71847,7 +73818,7 @@ class VectorTile extends UrlTile {
     if (urlTileCoord && sourceExtent) {
       const tileExtent = tileGrid.getTileCoordExtent(urlTileCoord);
       // make extent 1 pixel smaller so we don't load tiles for < 0.5 pixel render space
-      buffer(tileExtent, -tileGrid.getResolution(z), tileExtent);
+      buffer$1(tileExtent, -tileGrid.getResolution(z), tileExtent);
       if (!intersects$1(sourceExtent, tileExtent)) {
         urlTileCoord = null;
       }
@@ -71859,7 +73830,7 @@ class VectorTile extends UrlTile {
       const sourceZ = sourceTileGrid.getZForResolution(resolution, 1);
       // make extent 1 pixel smaller so we don't load tiles for < 0.5 pixel render space
       const extent = tileGrid.getTileCoordExtent(urlTileCoord);
-      buffer(extent, -resolution, extent);
+      buffer$1(extent, -resolution, extent);
       sourceTileGrid.forEachTileCoord(extent, sourceZ, (sourceTileCoord) => {
         empty =
           empty &&
@@ -73777,4 +75748,4 @@ WMTSLayer.propTypes = {
   setProps: PropTypes.func
 };
 
-export { DrawInteraction, ImageWMSLayer as ImageWMS, MapComponent as Map, ModifyInteraction, OLContext, TileLayer, TileWMSLayer as TileWMS, VectorLayerComponent as VectorLayer, VectorTileLayer, WMTSLayer };
+export { DrawInteraction, ImageWMSLayer as ImageWMS, MapComponent as Map, ModifyInteraction, OLContext, TileLayer, TileWMSLayer as TileWMS, VectorLayerComponent as VectorLayer, VectorTileLayer, WMTSLayer, exportFeature, exportFeatures, readFeatures };

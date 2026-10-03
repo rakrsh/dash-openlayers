@@ -252,6 +252,44 @@ dol.Map(
 )
 ```
 
+`VectorLayer` can also read a WKT string with `wkt`. When both `wkt` and
+`geojson` are set, a non-empty `wkt` takes precedence. WKT coordinates use
+`[x, y]` order; by default they are interpreted as EPSG:4326 and transformed
+to the map projection, just like GeoJSON.
+
+Draw and modify interactions keep their GeoJSON outputs and also publish WKT
+and TopoJSON:
+
+```python
+dol.VectorLayer(id="wkt-feature", wkt="POINT (0 0)")
+
+dol.DrawInteraction(
+    id="draw",
+    geometryType="Point",
+)
+
+
+@app.callback(
+    Output("formats", "children"),
+    Input("draw", "drawnWKT"),
+    Input("draw", "drawnTopoJSON"),
+)
+def show_formats(wkt, topojson):
+    return json.dumps({"wkt": wkt, "topojson": topojson}) if wkt else ""
+```
+
+For a modified feature, the corresponding properties are `modifiedGeoJSON`,
+`modifiedWKT`, and `modifiedTopoJSON`. GeoJSON properties contain a Feature
+or FeatureCollection; TopoJSON properties contain a Topology object. TopoJSON
+output is quantized at 100,000 and can therefore slightly adjust coordinates.
+
+The JavaScript package also exports `readFeatures(data, options)`,
+`exportFeature(feature, options)`, and `exportFeatures(features, options)`.
+`readFeatures` accepts `format: "GeoJSON"` (the default) or `format: "WKT"`;
+the export helpers return an object with `geojson`, `wkt`, and `topojson`
+fields. Pass OpenLayers `dataProjection` and `featureProjection` options when
+reading or writing coordinates in projections other than EPSG:4326.
+
 Pass a JSON-serializable OpenLayers flat style to `VectorLayer.style`. Flat
 styles use OpenLayers keys such as `icon-src`, `fill-color`, and `stroke-width`:
 

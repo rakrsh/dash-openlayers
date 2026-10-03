@@ -24,6 +24,16 @@
         "required": false,
         "description": "Read-only GeoJSON Feature emitted only when geometry validation succeeds."
       },
+      "drawnWKT": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "Read-only WKT geometry emitted only when geometry validation succeeds."
+      },
+      "drawnTopoJSON": {
+        "type": { "name": "object" },
+        "required": false,
+        "description": "Read-only TopoJSON topology emitted only when geometry validation succeeds."
+      },
       "geometryValidation": {
         "type": { "name": "object" },
         "required": false,
@@ -162,6 +172,16 @@
         "required": false,
         "description": "Read-only: GeoJSON FeatureCollection of the target layer after a modify operation."
       },
+      "modifiedWKT": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "Read-only: WKT geometry collection of the target layer after modification."
+      },
+      "modifiedTopoJSON": {
+        "type": { "name": "object" },
+        "required": false,
+        "description": "Read-only: TopoJSON topology of the target layer after modification."
+      },
       "geometryValidation": {
         "type": { "name": "object" },
         "required": false,
@@ -209,6 +229,12 @@
         "type": { "name": "object" },
         "required": false,
         "description": "GeoJSON Feature or FeatureCollection with coordinates in [longitude, latitude] order; updates are rendered in the map projection.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "wkt": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "WKT geometry in [x, y] order; takes precedence over geojson when non-empty.",
         "defaultValue": { "value": "null", "computed": false }
       },
       "style": {
