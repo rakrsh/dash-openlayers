@@ -602,6 +602,42 @@ templates:</p>
     <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
 <span class="p">)</span>
 </code></pre></div>
+<p><code>VectorTileLayer</code> loads Mapbox Vector Tile (MVT/PBF) data from a URL template.
+Use <code>urls</code> instead of <code>url</code> to supply multiple templates for load balancing.
+The <code>style</code> prop is an OpenLayers flat-style object, not a Mapbox GL style
+document:</p>
+<div class="highlight"><pre><span></span><code><span class="n">vector_style</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"fill-color"</span><span class="p">:</span> <span class="s2">"rgba(31, 106, 94, 0.24)"</span><span class="p">,</span>
+    <span class="s2">"stroke-color"</span><span class="p">:</span> <span class="s2">"#1f6a5e"</span><span class="p">,</span>
+    <span class="s2">"stroke-width"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+    <span class="s2">"circle-radius"</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="s2">"circle-fill-color"</span><span class="p">:</span> <span class="s2">"#d66f41"</span><span class="p">,</span>
+<span class="p">}</span>
+
+<span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
+    <span class="nb">id</span><span class="o">=</span><span class="s2">"vector-map"</span><span class="p">,</span>
+    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">zoom</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">VectorTileLayer</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="s2">"vector-tiles"</span><span class="p">,</span>
+            <span class="n">url</span><span class="o">=</span><span class="s2">"https://tiles.openfreemap.org/planet/</span><span class="si">{z}</span><span class="s2">/</span><span class="si">{x}</span><span class="s2">/</span><span class="si">{y}</span><span class="s2">.pbf"</span><span class="p">,</span>
+            <span class="n">projection</span><span class="o">=</span><span class="s2">"EPSG:3857"</span><span class="p">,</span>
+            <span class="n">attributions</span><span class="o">=</span><span class="s2">"© OpenFreeMap, © OpenStreetMap contributors"</span><span class="p">,</span>
+            <span class="n">style</span><span class="o">=</span><span class="n">vector_style</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">],</span>
+    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>The <code>projection</code> prop describes the tile source's projection and defaults to
+<code>EPSG:3857</code>. It must match the CRS and tile grid advertised by the MVT server.
+OpenLayers transforms source coordinates for the map view when the required
+projections are registered. For custom CRSs, register the definition through
+the parent <code>Map</code>'s <code>proj4Defs</code> prop before using that code as the map or source
+projection. Some providers use nonstandard tile matrices that cannot be
+described by the <code>{z}/{x}/{y}</code> URL template; use a compatible XYZ MVT endpoint.
+See <code>tests/demos/vector_tile_demo.py</code> for a runnable styled example.</p>
 <p>Add a <code>ModifyInteraction</code> beside a <code>VectorLayer</code> to drag feature vertices.
 Pass the vector layer's Dash <code>id</code> as <code>layerId</code>; <code>modifiedGeoJSON</code> receives the
 updated FeatureCollection after each completed edit:</p>
