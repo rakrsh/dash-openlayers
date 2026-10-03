@@ -30,6 +30,9 @@ Keyword arguments:
 
 - drawnGeoJSON (dict; optional)
 
+- geometryValidation (dict; optional): Read-only validity, topology errors, and repair suggestions
+    from the last draw. Invalid geometries are not emitted as drawnGeoJSON.
+
 - geometryType (a value equal to: 'Point', 'LineString', 'Polygon', 'Circle'; default 'Polygon')"""
     _children_props: typing.List[str] = []
     _base_nodes = ['children']
@@ -42,11 +45,12 @@ Keyword arguments:
         id: typing.Optional[typing.Union[str, dict]] = None,
         geometryType: typing.Optional[Literal["Point", "LineString", "Polygon", "Circle"]] = None,
         drawnGeoJSON: typing.Optional[dict] = None,
+        geometryValidation: typing.Optional[dict] = None,
         **kwargs
     ):
-        self._prop_names = ['id', 'drawnGeoJSON', 'geometryType']
+        self._prop_names = ['id', 'drawnGeoJSON', 'geometryType', 'geometryValidation']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'drawnGeoJSON', 'geometryType']
+        self.available_properties = ['id', 'drawnGeoJSON', 'geometryType', 'geometryValidation']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()

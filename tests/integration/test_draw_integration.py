@@ -22,12 +22,17 @@ def test_draw_interaction(dash_duo):
                 style={"height": "300px"},
             ),
             html.Pre(id="geojson-output"),
+            html.Pre(id="validation-output"),
         ]
     )
 
     @app.callback(Output("geojson-output", "children"), Input("draw-tool", "drawnGeoJSON"))
     def show_drawn_geojson(feature):
         return json.dumps(feature) if feature else ""
+
+    @app.callback(Output("validation-output", "children"), Input("draw-tool", "geometryValidation"))
+    def show_geometry_validation(result):
+        return json.dumps(result) if result else ""
 
     dash_duo.start_server(app)
     # Wait for OpenLayers map viewport to appear (created by the client-side JS)
@@ -58,6 +63,7 @@ def test_draw_interaction(dash_duo):
         .perform()
     )
     dash_duo.wait_for_contains_text("#geojson-output", '"type": "Feature"', timeout=10)
+    dash_duo.wait_for_contains_text("#validation-output", '"valid": true', timeout=10)
 
     feature = json.loads(dash_duo.find_element("#geojson-output").text)
     assert feature["geometry"]["type"] == "Polygon"

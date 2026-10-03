@@ -159,11 +159,13 @@ def test_component_props_serialize():
                 id="draw",
                 geometryType="Point",
                 drawnGeoJSON=drawn_geojson,
+                geometryValidation={"valid": True, "errors": [], "suggestions": []},
             ),
             {
                 "id": "draw",
                 "geometryType": "Point",
                 "drawnGeoJSON": drawn_geojson,
+                "geometryValidation": {"valid": True, "errors": [], "suggestions": []},
             },
             "DrawInteraction",
         ),

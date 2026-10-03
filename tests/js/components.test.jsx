@@ -157,6 +157,7 @@ jest.mock('ol/source/Vector', () => ({
   default: jest.fn().mockImplementation(function MockVectorSource() {
     this.clear = jest.fn();
     this.addFeatures = jest.fn();
+    this.removeFeature = jest.fn();
   }),
 }));
 
@@ -742,6 +743,7 @@ describe('DrawInteraction', () => {
         geometry: { type: 'Point', coordinates: [10, 45] },
         properties: {},
       },
+      geometryValidation: { valid: true, errors: [], suggestions: [] },
     });
 
     unmount();
@@ -749,5 +751,92 @@ describe('DrawInteraction', () => {
     expect(map.removeInteraction).toHaveBeenCalledWith(draw);
     expect(map.removeLayer).toHaveBeenCalledWith(layer);
     expect(source.clear).toHaveBeenCalled();
+  });
+
+  it('blocks self-intersecting polygons and reports their crossing coordinates', () => {
+    const map = makeMap();
+    const setProps = jest.fn();
+    render(
+      <OLContext.Provider value={map}>
+        <DrawInteraction geometryType="Polygon" setProps={setProps} />
+      </OLContext.Provider>,
+    );
+
+    const feature = { id: 'invalid-polygon' };
+    const source = VectorSource.mock.instances[0];
+    GeoJSON.mockImplementationOnce(function MockGeoJSON() {
+      this.writeFeatureObject = jest.fn(() => ({
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [0, 0],
+              [2, 2],
+              [0, 2],
+              [2, 0],
+              [0, 0],
+            ],
+          ],
+        },
+      }));
+    });
+
+    Draw.mock.instances[0].listeners.drawend({ feature });
+
+    expect(source.removeFeature).toHaveBeenCalledWith(feature);
+    expect(setProps).toHaveBeenCalledWith({
+      drawnGeoJSON: null,
+      geometryValidation: {
+        valid: false,
+        errors: [{ code: 'self_intersection', coordinates: [1, 1] }],
+        suggestions: ['Move the reported vertices so polygon boundaries do not cross.'],
+      },
+    });
+  });
+
+  it('blocks open polygon rings and suggests closing the ring', () => {
+    const map = makeMap();
+    const setProps = jest.fn();
+    render(
+      <OLContext.Provider value={map}>
+        <DrawInteraction geometryType="Polygon" setProps={setProps} />
+      </OLContext.Provider>,
+    );
+
+    const feature = { id: 'open-ring' };
+    const source = VectorSource.mock.instances[0];
+    GeoJSON.mockImplementationOnce(function MockGeoJSON() {
+      this.writeFeatureObject = jest.fn(() => ({
+        type: 'Feature',
+        properties: {},
+        geometry: {
+          type: 'Polygon',
+          coordinates: [
+            [
+              [0, 0],
+              [2, 0],
+              [2, 2],
+              [0, 2],
+            ],
+          ],
+        },
+      }));
+    });
+
+    Draw.mock.instances[0].listeners.drawend({ feature });
+
+    expect(source.removeFeature).toHaveBeenCalledWith(feature);
+    expect(setProps).toHaveBeenCalledWith({
+      drawnGeoJSON: null,
+      geometryValidation: {
+        valid: false,
+        errors: [{ code: 'invalid_geometry' }],
+        suggestions: [
+          'Close each ring, provide at least four positions, and keep holes inside the outer ring without overlap.',
+        ],
+      },
+    });
   });
 });

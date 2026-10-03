@@ -19,7 +19,8 @@
 				"description": "",
 				"defaultValue": { "value": "'Polygon'", "computed": false }
 			},
-			"drawnGeoJSON": { "type": { "name": "object" }, "required": false, "description": "" },
+			"drawnGeoJSON": { "type": { "name": "object" }, "required": false, "description": "Read-only GeoJSON Feature emitted only when geometry validation succeeds." },
+			"geometryValidation": { "type": { "name": "object" }, "required": false, "description": "Read-only validity, topology errors, and repair suggestions from the last draw." },
 			"setProps": { "type": { "name": "func" }, "required": false, "description": "" }
 		}
 	},
