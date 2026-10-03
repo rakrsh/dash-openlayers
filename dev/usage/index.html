@@ -872,6 +872,38 @@ features:</p>
     <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
 <span class="p">)</span>
 </code></pre></div>
+<p><code>VectorLayer</code> can also read a WKT string with <code>wkt</code>. When both <code>wkt</code> and
+<code>geojson</code> are set, a non-empty <code>wkt</code> takes precedence. WKT coordinates use
+<code>[x, y]</code> order; by default they are interpreted as EPSG:4326 and transformed
+to the map projection, just like GeoJSON.</p>
+<p>Draw and modify interactions keep their GeoJSON outputs and also publish WKT
+and TopoJSON:</p>
+<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"wkt-feature"</span><span class="p">,</span> <span class="n">wkt</span><span class="o">=</span><span class="s2">"POINT (0 0)"</span><span class="p">)</span>
+
+<span class="n">dol</span><span class="o">.</span><span class="n">DrawInteraction</span><span class="p">(</span>
+    <span class="nb">id</span><span class="o">=</span><span class="s2">"draw"</span><span class="p">,</span>
+    <span class="n">geometryType</span><span class="o">=</span><span class="s2">"Point"</span><span class="p">,</span>
+<span class="p">)</span>
+
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">"formats"</span><span class="p">,</span> <span class="s2">"children"</span><span class="p">),</span>
+    <span class="n">Input</span><span class="p">(</span><span class="s2">"draw"</span><span class="p">,</span> <span class="s2">"drawnWKT"</span><span class="p">),</span>
+    <span class="n">Input</span><span class="p">(</span><span class="s2">"draw"</span><span class="p">,</span> <span class="s2">"drawnTopoJSON"</span><span class="p">),</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">show_formats</span><span class="p">(</span><span class="n">wkt</span><span class="p">,</span> <span class="n">topojson</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"wkt"</span><span class="p">:</span> <span class="n">wkt</span><span class="p">,</span> <span class="s2">"topojson"</span><span class="p">:</span> <span class="n">topojson</span><span class="p">})</span> <span class="k">if</span> <span class="n">wkt</span> <span class="k">else</span> <span class="s2">""</span>
+</code></pre></div>
+<p>For a modified feature, the corresponding properties are <code>modifiedGeoJSON</code>,
+<code>modifiedWKT</code>, and <code>modifiedTopoJSON</code>. GeoJSON properties contain a Feature
+or FeatureCollection; TopoJSON properties contain a Topology object. TopoJSON
+output is quantized at 100,000 and can therefore slightly adjust coordinates.</p>
+<p>The JavaScript package also exports <code>readFeatures(data, options)</code>,
+<code>exportFeature(feature, options)</code>, and <code>exportFeatures(features, options)</code>.
+<code>readFeatures</code> accepts <code>format: "GeoJSON"</code> (the default) or <code>format: "WKT"</code>;
+the export helpers return an object with <code>geojson</code>, <code>wkt</code>, and <code>topojson</code>
+fields. Pass OpenLayers <code>dataProjection</code> and <code>featureProjection</code> options when
+reading or writing coordinates in projections other than EPSG:4326.</p>
 <p>Pass a JSON-serializable OpenLayers flat style to <code>VectorLayer.style</code>. Flat
 styles use OpenLayers keys such as <code>icon-src</code>, <code>fill-color</code>, and <code>stroke-width</code>:</p>
 <div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span>
