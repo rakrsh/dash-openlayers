@@ -669,6 +669,28 @@ templates:</p>
     <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
 <span class="p">)</span>
 </code></pre></div>
+<p>Add <code>LayerControl</code> as a child of <code>Map</code> to toggle visibility, adjust opacity,
+and change the drawing order of declarative layer components. Layers are
+identified by their component <code>id</code>; interaction-owned temporary layers are
+not listed. <code>Up</code> moves a layer above the managed layers below it, and <code>Down</code>
+moves it lower in the stack.</p>
+<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
+    <span class="nb">id</span><span class="o">=</span><span class="s2">"controlled-map"</span><span class="p">,</span>
+    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">zoom</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">TileLayer</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"basemap"</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s2">"OSM"</span><span class="p">),</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="s2">"observations"</span><span class="p">,</span>
+            <span class="n">geojson</span><span class="o">=</span><span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"FeatureCollection"</span><span class="p">,</span> <span class="s2">"features"</span><span class="p">:</span> <span class="p">[]},</span>
+        <span class="p">),</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">LayerControl</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"layer-control"</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="s2">"top-right"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Map layers"</span><span class="p">),</span>
+    <span class="p">],</span>
+    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>The control's <code>position</code> can be <code>top-left</code>, <code>top-right</code>, <code>bottom-left</code>, or
+<code>bottom-right</code>.</p>
 <p><code>TileWMS</code> requests tiled WMS images. <code>ImageWMS</code> requests one image for the map
 viewport. Both accept a WMS endpoint, request <code>params</code> (including <code>LAYERS</code>),
 and an optional <code>serverType</code> (<code>geoserver</code>, <code>mapserver</code>, <code>carmentaserver</code>, or
