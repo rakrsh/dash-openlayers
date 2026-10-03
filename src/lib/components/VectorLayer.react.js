@@ -16,6 +16,7 @@ const VectorLayerComponent = ({ id, geojson, wkt, style }) => {
     const source = new VectorSource();
     const layer = new VectorLayer({ source });
     layer.set('dashId', id);
+    layer.set('dashLayerControl', true);
     layerRef.current = layer;
     sourceRef.current = source;
     map.addLayer(layer);

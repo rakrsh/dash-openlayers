@@ -28199,7 +28199,7 @@ function setLayerMapProperty(layer, map) {
  * @fires import("./render/Event.js").default#rendercomplete
  * @api
  */
-class Map extends BaseObject {
+let Map$1 = class Map extends BaseObject {
   /**
    * @param {MapOptions} [options] Map options.
    */
@@ -29702,7 +29702,7 @@ class Map extends BaseObject {
       view.setViewportSize(size);
     }
   }
-}
+};
 
 /**
  * @param {MapOptions} options Map options.
@@ -40710,7 +40710,7 @@ var MapComponent = _ref => {
   }, [proj4Defs]);
   useEffect(() => {
     if (!mapElement.current) return;
-    var olMap = new Map({
+    var olMap = new Map$1({
       target: mapElement.current,
       view: new View({
         projection: projection,
@@ -63761,6 +63761,7 @@ var ImageWMSLayer = _ref => {
       source
     });
     layer.set('dashId', id);
+    layer.set('dashLayerControl', true);
     sourceRef.current = source;
     map.addLayer(layer);
     return () => {
@@ -63784,6 +63785,190 @@ ImageWMSLayer.propTypes = {
   params: PropTypes.object,
   /** WMS server type used for vendor-specific HiDPI request parameters. */
   serverType: PropTypes.oneOf(['carmentaserver', 'geoserver', 'mapserver', 'qgis']),
+  /** Dash-supplied callback used to write component state back to the layout. */
+  setProps: PropTypes.func
+};
+
+var LayerControl = _ref => {
+  var position = _ref.position,
+    title = _ref.title;
+  var map = useMap();
+  useEffect(() => {
+    var element = document.createElement('div');
+    element.className = 'ol-control';
+    Object.assign(element.style, Object.fromEntries(position.split('-').map(side => [side, '0.5em'])), {
+      maxWidth: 'min(280px, calc(100% - 1em))',
+      maxHeight: 'calc(100% - 1em)',
+      overflowY: 'auto',
+      padding: '10px',
+      color: '#182522',
+      background: 'rgba(255, 255, 255, 0.96)',
+      border: '1px solid #778581',
+      borderRadius: '4px',
+      boxShadow: '0 2px 8px rgba(20, 35, 31, 0.18)'
+    });
+    var heading = document.createElement('h2');
+    heading.textContent = title;
+    Object.assign(heading.style, {
+      margin: '0 0 8px',
+      fontSize: '14px',
+      fontWeight: '600'
+    });
+    element.appendChild(heading);
+    var list = document.createElement('ol');
+    Object.assign(list.style, {
+      display: 'grid',
+      gap: '8px',
+      margin: '0',
+      padding: '0',
+      listStyle: 'none'
+    });
+    element.appendChild(list);
+    var emptyMessage = document.createElement('p');
+    emptyMessage.textContent = 'No controllable layers';
+    Object.assign(emptyMessage.style, {
+      margin: '0',
+      fontSize: '13px'
+    });
+    element.appendChild(emptyMessage);
+    var control = new Control({
+      element
+    });
+    map.addControl(control);
+    var collection = map.getLayers();
+    var rows = new Map();
+    var layerListeners = new Map();
+    var updateRow = layer => {
+      var row = rows.get(layer);
+      if (!row) return;
+      row.checkbox.checked = layer.getVisible();
+      row.opacity.value = String(layer.getOpacity());
+      row.opacity.setAttribute('aria-valuetext', "".concat(Math.round(layer.getOpacity() * 100), "%"));
+      row.percent.textContent = "".concat(Math.round(layer.getOpacity() * 100), "%");
+    };
+    var moveLayer = (layer, direction) => {
+      var currentLayers = collection.getArray();
+      var index = currentLayers.indexOf(layer);
+      if (index < 0) return;
+      var managedIndexes = currentLayers.map((candidate, candidateIndex) => candidate.get('dashLayerControl') === true ? candidateIndex : -1).filter(candidateIndex => candidateIndex >= 0);
+      var targetIndex = direction > 0 ? managedIndexes.find(candidateIndex => candidateIndex > index) : managedIndexes.filter(candidateIndex => candidateIndex < index).pop();
+      if (targetIndex === undefined) return;
+      collection.removeAt(index);
+      collection.insertAt(targetIndex > index ? targetIndex : targetIndex + 1, layer);
+    };
+    var createButton = (name, titleText, handler) => {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = name;
+      button.title = titleText;
+      button.setAttribute('aria-label', titleText);
+      button.addEventListener('click', handler);
+      return button;
+    };
+    var createRow = layer => {
+      var rowElement = document.createElement('li');
+      Object.assign(rowElement.style, {
+        display: 'grid',
+        gridTemplateColumns: 'minmax(70px, 1fr) minmax(70px, 1.2fr) auto',
+        alignItems: 'center',
+        gap: '6px'
+      });
+      var label = document.createElement('label');
+      Object.assign(label.style, {
+        display: 'flex',
+        alignItems: 'center',
+        gap: '5px',
+        minWidth: '0'
+      });
+      var checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      var name = layer.get('dashId') || layer.get('title') || 'Layer';
+      checkbox.setAttribute('aria-label', "Visibility of ".concat(name));
+      checkbox.addEventListener('change', () => layer.setVisible(checkbox.checked));
+      var nameElement = document.createElement('span');
+      nameElement.textContent = name;
+      Object.assign(nameElement.style, {
+        overflow: 'hidden',
+        textOverflow: 'ellipsis'
+      });
+      label.append(checkbox, nameElement);
+      var opacity = document.createElement('input');
+      opacity.type = 'range';
+      opacity.min = '0';
+      opacity.max = '1';
+      opacity.step = '0.05';
+      opacity.setAttribute('aria-label', "Opacity of ".concat(name));
+      opacity.addEventListener('input', () => layer.setOpacity(Number(opacity.value)));
+      var percent = document.createElement('span');
+      percent.setAttribute('aria-hidden', 'true');
+      Object.assign(percent.style, {
+        minWidth: '34px',
+        textAlign: 'right'
+      });
+      var actions = document.createElement('span');
+      Object.assign(actions.style, {
+        gridColumn: '1 / -1',
+        display: 'flex',
+        justifyContent: 'flex-end',
+        gap: '4px'
+      });
+      var moveUp = createButton('Up', "Move ".concat(name, " up"), () => moveLayer(layer, 1));
+      var moveDown = createButton('Down', "Move ".concat(name, " down"), () => moveLayer(layer, -1));
+      actions.append(moveUp, moveDown);
+      rowElement.append(label, opacity, percent, actions);
+      rows.set(layer, {
+        element: rowElement,
+        checkbox,
+        opacity,
+        percent,
+        moveUp,
+        moveDown
+      });
+      layerListeners.set(layer, [layer.on('change:visible', () => updateRow(layer)), layer.on('change:opacity', () => updateRow(layer))]);
+      updateRow(layer);
+    };
+    var refreshRows = () => {
+      var managedLayers = collection.getArray().filter(layer => layer.get('dashLayerControl') === true);
+      var currentLayers = new Set(managedLayers);
+      rows.forEach((row, layer) => {
+        if (!currentLayers.has(layer)) {
+          unByKey(layerListeners.get(layer));
+          layerListeners.delete(layer);
+          row.element.remove();
+          rows.delete(layer);
+        }
+      });
+      var orderedLayers = managedLayers.slice().reverse();
+      orderedLayers.forEach((layer, index) => {
+        if (!rows.has(layer)) createRow(layer);
+        var row = rows.get(layer);
+        row.moveUp.disabled = index === 0;
+        row.moveDown.disabled = index === orderedLayers.length - 1;
+        list.appendChild(row.element);
+      });
+      emptyMessage.hidden = orderedLayers.length > 0;
+    };
+    var collectionListeners = [collection.on('add', refreshRows), collection.on('remove', refreshRows)];
+    refreshRows();
+    return () => {
+      unByKey(collectionListeners);
+      layerListeners.forEach(key => unByKey(key));
+      map.removeControl(control);
+    };
+  }, [map, position, title]);
+  return null;
+};
+LayerControl.defaultProps = {
+  position: 'top-right',
+  title: 'Layers'
+};
+LayerControl.propTypes = {
+  /** The ID used to identify this component in Dash callbacks. */
+  id: PropTypes.string,
+  /** Corner of the map where the control is displayed. */
+  position: PropTypes.oneOf(['top-left', 'top-right', 'bottom-left', 'bottom-right']),
+  /** Heading displayed above the layer controls. */
+  title: PropTypes.string,
   /** Dash-supplied callback used to write component state back to the layout. */
   setProps: PropTypes.func
 };
@@ -70318,7 +70503,8 @@ class OSM extends XYZ {
 }
 
 var TileLayer = _ref => {
-  var source = _ref.source,
+  var id = _ref.id,
+    source = _ref.source,
     url = _ref.url;
   var map = useMap();
   useEffect(() => {
@@ -70329,9 +70515,11 @@ var TileLayer = _ref => {
     var tileLayer = new TileLayer$1({
       source: tileSource
     });
+    tileLayer.set('dashId', id);
+    tileLayer.set('dashLayerControl', true);
     map.addLayer(tileLayer);
     return () => map.removeLayer(tileLayer);
-  }, [map, source, url]);
+  }, [id, map, source, url]);
   return null;
 };
 TileLayer.defaultProps = {
@@ -70772,6 +70960,7 @@ var TileWMSLayer = _ref => {
       source
     });
     layer.set('dashId', id);
+    layer.set('dashLayerControl', true);
     sourceRef.current = source;
     map.addLayer(layer);
     return () => {
@@ -70814,6 +71003,7 @@ var VectorLayerComponent = _ref => {
       source
     });
     layer.set('dashId', id);
+    layer.set('dashLayerControl', true);
     layerRef.current = layer;
     sourceRef.current = source;
     map.addLayer(layer);
@@ -73979,6 +74169,7 @@ var VectorTileLayer = _ref => {
       source
     });
     layer.set('dashId', id);
+    layer.set('dashLayerControl', true);
     layerRef.current = layer;
     map.addLayer(layer);
     return () => {
@@ -75695,6 +75886,7 @@ var WMTSLayer = _ref => {
           source
         });
         tileLayer.set('dashId', id);
+        tileLayer.set('dashLayerControl', true);
         map.addLayer(tileLayer);
       });
       return function loadLayer() {
@@ -75748,4 +75940,4 @@ WMTSLayer.propTypes = {
   setProps: PropTypes.func
 };
 
-export { DrawInteraction, ImageWMSLayer as ImageWMS, MapComponent as Map, ModifyInteraction, OLContext, TileLayer, TileWMSLayer as TileWMS, VectorLayerComponent as VectorLayer, VectorTileLayer, WMTSLayer, exportFeature, exportFeatures, readFeatures };
+export { DrawInteraction, ImageWMSLayer as ImageWMS, LayerControl, MapComponent as Map, ModifyInteraction, OLContext, TileLayer, TileWMSLayer as TileWMS, VectorLayerComponent as VectorLayer, VectorTileLayer, WMTSLayer, exportFeature, exportFeatures, readFeatures };

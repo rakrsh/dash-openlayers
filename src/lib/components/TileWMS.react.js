@@ -23,6 +23,7 @@ const TileWMSLayer = ({ id, url, params, serverType }) => {
     const source = new TileWMSSource({ url, params: paramsRef.current, serverType });
     const layer = new Tile({ source });
     layer.set('dashId', id);
+    layer.set('dashLayerControl', true);
     sourceRef.current = source;
     map.addLayer(layer);
 

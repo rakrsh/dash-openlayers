@@ -16,6 +16,32 @@ dol.Map(
 )
 ```
 
+Add `LayerControl` as a child of `Map` to toggle visibility, adjust opacity,
+and change the drawing order of declarative layer components. Layers are
+identified by their component `id`; interaction-owned temporary layers are
+not listed. `Up` moves a layer above the managed layers below it, and `Down`
+moves it lower in the stack.
+
+```python
+dol.Map(
+    id="controlled-map",
+    center=[0, 0],
+    zoom=2,
+    children=[
+        dol.TileLayer(id="basemap", source="OSM"),
+        dol.VectorLayer(
+            id="observations",
+            geojson={"type": "FeatureCollection", "features": []},
+        ),
+        dol.LayerControl(id="layer-control", position="top-right", title="Map layers"),
+    ],
+    style={"height": "500px"},
+)
+```
+
+The control's `position` can be `top-left`, `top-right`, `bottom-left`, or
+`bottom-right`.
+
 `TileWMS` requests tiled WMS images. `ImageWMS` requests one image for the map
 viewport. Both accept a WMS endpoint, request `params` (including `LAYERS`),
 and an optional `serverType` (`geoserver`, `mapserver`, `carmentaserver`, or

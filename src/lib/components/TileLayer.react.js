@@ -5,7 +5,7 @@ import OSM from 'ol/source/OSM';
 import XYZ from 'ol/source/XYZ';
 import { useMap } from '../context/OLContext';
 
-const TileLayer = ({ source, url }) => {
+const TileLayer = ({ id, source, url }) => {
   const map = useMap();
 
   useEffect(() => {
@@ -13,10 +13,12 @@ const TileLayer = ({ source, url }) => {
     if (!tileSource) return;
 
     const tileLayer = new Tile({ source: tileSource });
+    tileLayer.set('dashId', id);
+    tileLayer.set('dashLayerControl', true);
     map.addLayer(tileLayer);
 
     return () => map.removeLayer(tileLayer);
-  }, [map, source, url]);
+  }, [id, map, source, url]);
 
   return null;
 };
