@@ -152,12 +152,17 @@ dol.Map(
 Use `Input("modify", "modifiedGeoJSON")` in a Dash callback to receive the
 edited FeatureCollection.
 
-Draw and Modify snap to vector vertices and edges by default. Configure the
-targets and maximum pixel distance with `snapToVertex`, `snapToEdge`, and
-`snapTolerance`. `ModifyInteraction` also defaults to `preserveTopology=True`;
-polygon edits that introduce invalid rings or self-intersections are reverted
-and reported through its read-only `geometryValidation` prop. Set
-`preserveTopology=False` to allow those edits:
+Draw and Modify snap to vertices and edges from mounted `VectorLayer` sources
+on the same map. Both targets are enabled by default. Set `snapToVertex`,
+`snapToEdge`, and `snapTolerance` to select targets and set the maximum distance
+in screen pixels.
+
+`ModifyInteraction` defaults to `preserveTopology=True`. If an edit changes a
+valid Polygon or MultiPolygon into an invalid ring or self-intersecting shape,
+the geometry is restored and the edit is not added to undo history. Read the
+last result from `geometryValidation`; setting `preserveTopology=False` allows
+the edit. This check is per feature and does not enforce adjacency, overlap, or
+coverage rules between separate features.
 
 ```python
 dol.ModifyInteraction(
@@ -169,6 +174,23 @@ dol.ModifyInteraction(
     preserveTopology=True,
 )
 ```
+
+Subscribe to the validation result with `Input("modify", "geometryValidation")`:
+
+```python
+import json
+from dash import Input, Output
+
+
+@app.callback(Output("validation-output", "children"), Input("modify", "geometryValidation"))
+def show_edit_validation(result):
+    return json.dumps(result) if result else ""
+```
+
+For runnable examples with vector snap targets and validation outputs, see
+[draw_demo.py](../tests/demos/draw_demo.py) and
+[wfs_demo.py](../tests/demos/wfs_demo.py). The browser rollback case is covered
+in [test_simple_map_integration.py](../tests/integration/test_simple_map_integration.py).
 
 Draw and Modify operations share an undo/redo stack owned by the map. Initialize
 the map with `undo=0` and `redo=0`, then increment a command counter to execute

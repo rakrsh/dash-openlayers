@@ -26,6 +26,7 @@ app.layout = html.Div(
         html.Button("Load one WFS feature", id="load-wfs", n_clicks=0),
         html.Button("Sync edited point with WFS-T", id="sync-wfs", n_clicks=0),
         html.Div(id="wfs-status"),
+        html.Pre(id="edit-validation"),
         dcc.Store(id="wfs-features"),
         dol.Map(
             id="map",
@@ -33,7 +34,14 @@ app.layout = html.Div(
             zoom=2,
             children=[
                 dol.VectorLayer(id="wfs-features-layer", geojson=None),
-                dol.ModifyInteraction(id="wfs-modify", layerId="wfs-features-layer"),
+                dol.ModifyInteraction(
+                    id="wfs-modify",
+                    layerId="wfs-features-layer",
+                    snapToVertex=True,
+                    snapToEdge=True,
+                    snapTolerance=14,
+                    preserveTopology=True,
+                ),
             ],
             style={"height": "600px", "width": "100%"},
         ),
@@ -140,6 +148,13 @@ def sync_wfs_edits(_clicks, modified_geojson):
         return f"WFS-T response: {server_response[:500]}"
     except Exception as error:  # Surface endpoint errors in the demo UI.
         return f"WFS-T failed: {error}"
+
+
+@app.callback(Output("edit-validation", "children"), Input("wfs-modify", "geometryValidation"))
+def show_edit_validation(result):
+    if not result:
+        return "Modify validation appears here."
+    return json.dumps(result, indent=2)
 
 
 if __name__ == "__main__":

@@ -197,6 +197,87 @@ def test_vector_layer_renders_geojson_and_updates(dash_duo):
     assert dash_duo.get_logs() == []
 
 
+def test_modify_reverts_self_intersecting_polygon_edit(dash_duo):
+    geojson = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {
+                    "type": "Polygon",
+                    "coordinates": [[[-10, -10], [10, -10], [10, 10], [-10, 10], [-10, -10]]],
+                },
+                "properties": {"name": "Editable area"},
+            }
+        ],
+    }
+    app = dash.Dash(__name__)
+    app.layout = dash.html.Div(
+        [
+            dol.Map(
+                id="map",
+                center=[0, 0],
+                zoom=3,
+                projection="EPSG:4326",
+                children=[
+                    dol.VectorLayer(id="editable-layer", geojson=geojson),
+                    dol.ModifyInteraction(
+                        id="modify",
+                        layerId="editable-layer",
+                        snapToVertex=False,
+                        snapToEdge=False,
+                    ),
+                ],
+                style={"height": "400px", "width": "600px"},
+            ),
+            html.Pre(id="modified-output"),
+            html.Pre(id="validation-output"),
+            html.Pre(id="history-output"),
+        ]
+    )
+
+    @app.callback(Output("modified-output", "children"), Input("modify", "modifiedGeoJSON"))
+    def show_modified_geojson(modified_geojson):
+        return json.dumps(modified_geojson) if modified_geojson else ""
+
+    @app.callback(Output("validation-output", "children"), Input("modify", "geometryValidation"))
+    def show_validation(result):
+        return json.dumps(result) if result else ""
+
+    @app.callback(
+        Output("history-output", "children"),
+        Input("map", "canUndo"),
+        Input("map", "canRedo"),
+    )
+    def show_history(can_undo, can_redo):
+        return json.dumps({"canUndo": can_undo, "canRedo": can_redo})
+
+    dash_duo.start_server(app)
+    viewport = dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
+    dash_duo.wait_for_element("#map canvas", timeout=15)
+
+    (
+        ActionChains(dash_duo.driver)
+        .move_to_element_with_offset(viewport, 57, -57)
+        .click_and_hold()
+        .move_by_offset(-142, 57)
+        .release()
+        .perform()
+    )
+
+    dash_duo.wait_for_contains_text("#validation-output", '"valid": false', timeout=10)
+    result = json.loads(dash_duo.find_element("#validation-output").text)
+    assert any(error["code"] == "self_intersection" for error in result["errors"])
+
+    restored = json.loads(dash_duo.find_element("#modified-output").text)
+    assert (
+        restored["features"][0]["geometry"]["coordinates"]
+        == geojson["features"][0]["geometry"]["coordinates"]
+    )
+    dash_duo.wait_for_contains_text("#history-output", '"canUndo": false', timeout=10)
+    assert dash_duo.get_logs() == []
+
+
 def test_modify_interaction_emits_updated_geojson(dash_duo):
     geojson = {
         "type": "FeatureCollection",
