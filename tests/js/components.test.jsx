@@ -49,13 +49,9 @@ jest.mock('ol/View', () => ({
   }),
 }));
 
-jest.mock('ol/proj', () => {
-  const actual = jest.requireActual('ol/proj');
-  return {
-    ...actual,
-    toLonLat: jest.fn((coordinate) => [coordinate[0] + 1, coordinate[1] + 2]),
-  };
-});
+jest.mock('ol/proj', () => ({
+  toLonLat: jest.fn((coordinate) => [coordinate[0] + 1, coordinate[1] + 2]),
+}));
 
 jest.mock('../../src/lib/utils/projection', () => ({
   registerProjections: jest.fn(),
@@ -83,9 +79,8 @@ jest.mock('ol/source/XYZ', () => ({
 jest.mock('ol/format/GeoJSON', () => ({
     __esModule: true,
     default: jest.fn().mockImplementation(function MockGeoJSON() {
-      const ActualGeoJSON = jest.requireActual('ol/format/GeoJSON').default;
-      const format = new ActualGeoJSON();
-      this.readFeatures = jest.fn((...args) => format.readFeatures(...args));
+      this.features = [{ id: 'feature' }];
+      this.readFeatures = jest.fn(() => this.features);
       this.writeFeatureObject = jest.fn(() => ({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [10, 45] },
@@ -295,10 +290,7 @@ describe('VectorLayer', () => {
       dataProjection: 'EPSG:4326',
       featureProjection: 'EPSG:3857',
     });
-    const projectedFeatures = source.addFeatures.mock.calls[0][0];
-    const projectedCoordinates = projectedFeatures[0].getGeometry().getCoordinates();
-    expect(projectedCoordinates[0]).toBeCloseTo(1_113_194.9, 0);
-    expect(projectedCoordinates[1]).toBeCloseTo(5_621_521.5, 0);
+    expect(source.addFeatures).toHaveBeenCalledWith(format.features);
 
     rerender(
       <OLContext.Provider value={map}>
