@@ -89,6 +89,49 @@ projection. Some providers use nonstandard tile matrices that cannot be
 described by the `{z}/{x}/{y}` URL template; use a compatible XYZ MVT endpoint.
 See `tests/demos/vector_tile_demo.py` for a runnable styled example.
 
+`WMTSLayer` reads a WMTS GetCapabilities document and derives the advertised
+tile grid, matrix set, style, and request URLs. Set `layer` to the advertised
+identifier; provide `matrixSet` or `projection` when the service offers more
+than one option. The capabilities endpoint must allow browser CORS access:
+
+```python
+dol.Map(
+    id="wmts-map",
+    center=[0, 0],
+    zoom=2,
+    children=[
+        dol.WMTSLayer(
+            id="basemap-wmts",
+            url="https://tiles.example.com/wmts?SERVICE=WMTS&REQUEST=GetCapabilities",
+            layer="example:basemap",
+            matrixSet="EPSG:3857",
+            projection="EPSG:3857",
+            style="default",
+            format="image/png",
+            requestEncoding="KVP",
+        )
+    ],
+    style={"height": "500px"},
+)
+```
+
+See `tests/demos/wmts_demo.py` for a complete example.
+
+## WFS and WFS-T
+
+WFS features can be fetched as GeoJSON and passed to `VectorLayer`. Combine
+that layer with `ModifyInteraction` to edit features in the browser. The demo
+`tests/demos/wfs_demo.py` shows a WFS 2.0 `GetFeature` request, an edit action,
+and an explicit WFS-T `Transaction` callback that writes edited points back to
+a configured server. It only enables writes when `WFS_TRANSACTION_URL` is set;
+never point the example at a shared or read-only WFS endpoint.
+
+The demo expects the service URL in `WFS_URL`, feature type in
+`WFS_FEATURE_TYPE`, and, for transactional writes, `WFS_TRANSACTION_URL`,
+`WFS_FEATURE_NAMESPACE`, and `WFS_GEOMETRY_PROPERTY`. The sample transaction
+updates Point geometries in CRS84; adapt its geometry encoding and feature ID
+filter to the schema and WFS version supported by your server.
+
 Add a `ModifyInteraction` beside a `VectorLayer` to drag feature vertices.
 Pass the vector layer's Dash `id` as `layerId`; `modifiedGeoJSON` receives the
 updated FeatureCollection after each completed edit:

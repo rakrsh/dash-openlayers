@@ -1,9 +1,10 @@
 import React from 'react';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import MapComponent from '../../src/lib/components/Map.react';
 import TileLayer from '../../src/lib/components/TileLayer.react';
 import VectorLayer from '../../src/lib/components/VectorLayer.react';
 import VectorTileLayer from '../../src/lib/components/VectorTileLayer.react';
+import WMTSLayer from '../../src/lib/components/WMTSLayer.react';
 import TileWMSLayer from '../../src/lib/components/TileWMS.react';
 import ImageWMSLayer from '../../src/lib/components/ImageWMS.react';
 import DrawInteraction from '../../src/lib/components/DrawInteraction.react';
@@ -23,6 +24,8 @@ import VectorSource from 'ol/source/Vector';
 import MVT from 'ol/format/MVT';
 import OpenLayersVectorTileLayer from 'ol/layer/VectorTile';
 import VectorTileSource from 'ol/source/VectorTile';
+import WMTSCapabilities from 'ol/format/WMTSCapabilities';
+import WMTS, { optionsFromCapabilities } from 'ol/source/WMTS';
 import ImageLayer from 'ol/layer/Image';
 import TileWMSSource from 'ol/source/TileWMS';
 import ImageWMSSource from 'ol/source/ImageWMS';
@@ -180,10 +183,33 @@ jest.mock('ol/source/VectorTile', () => ({
   }),
 }));
 
+jest.mock('ol/format/WMTSCapabilities', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockWMTSCapabilities() {
+    this.read = jest.fn(() => ({ contents: true }));
+  }),
+}));
+
+jest.mock('ol/source/WMTS', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockWMTS(options) {
+    this.options = options;
+    this.clear = jest.fn();
+  }),
+  optionsFromCapabilities: jest.fn(),
+}));
+
 afterEach(() => {
   cleanup();
   jest.clearAllMocks();
+  if (originalFetch === undefined) {
+    delete global.fetch;
+  } else {
+    global.fetch = originalFetch;
+  }
 });
+
+const originalFetch = global.fetch;
 
 const makeMap = () => ({
   addLayer: jest.fn(),
@@ -455,6 +481,94 @@ describe('VectorTileLayer', () => {
       </OLContext.Provider>,
     );
     expect(map.addLayer).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('WMTSLayer', () => {
+  it('loads capabilities, derives source options, and removes the WMTS layer on unmount', async () => {
+    const map = makeMap();
+    const capabilities = { contents: true };
+    const sourceOptions = {
+      url: 'https://tiles.example/wmts',
+      layer: 'roads',
+      matrixSet: 'EPSG:3857',
+      tileGrid: { matrixIds: ['0'] },
+      dimensions: { TIME: '2025-01-01' },
+    };
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      text: jest.fn().mockResolvedValue('<Capabilities />'),
+    });
+    optionsFromCapabilities.mockReturnValue(sourceOptions);
+
+    const { unmount } = render(
+      <OLContext.Provider value={map}>
+        <WMTSLayer
+          id="wmts"
+          url="https://tiles.example/wmts?SERVICE=WMTS&REQUEST=GetCapabilities"
+          layer="roads"
+          matrixSet="EPSG:3857"
+          projection="EPSG:3857"
+          style="default"
+          format="image/png"
+          requestEncoding="KVP"
+          dimensions={{ TIME: '2026-01-01' }}
+          attributions="Tile provider"
+        />
+      </OLContext.Provider>,
+    );
+
+    await waitFor(() => expect(map.addLayer).toHaveBeenCalledTimes(1));
+    expect(global.fetch).toHaveBeenCalledWith(
+      'https://tiles.example/wmts?SERVICE=WMTS&REQUEST=GetCapabilities',
+    );
+    expect(WMTSCapabilities.mock.instances[0].read).toHaveBeenCalledWith('<Capabilities />');
+    expect(optionsFromCapabilities).toHaveBeenCalledWith(
+      capabilities,
+      expect.objectContaining({
+        layer: 'roads',
+        matrixSet: 'EPSG:3857',
+        projection: 'EPSG:3857',
+        style: 'default',
+        format: 'image/png',
+        requestEncoding: 'KVP',
+      }),
+    );
+
+    const source = WMTS.mock.instances[0];
+    const tileLayer = Tile.mock.instances[0];
+    expect(source.options).toEqual({
+      ...sourceOptions,
+      dimensions: { TIME: '2026-01-01' },
+      attributions: 'Tile provider',
+    });
+    expect(tileLayer.set).toHaveBeenCalledWith('dashId', 'wmts');
+    expect(map.addLayer).toHaveBeenCalledWith(tileLayer);
+
+    unmount();
+    expect(map.removeLayer).toHaveBeenCalledWith(tileLayer);
+    expect(source.clear).toHaveBeenCalled();
+  });
+
+  it('does not add a layer when capabilities resolve after unmount', async () => {
+    const map = makeMap();
+    let resolveResponse;
+    global.fetch = jest.fn(
+      () =>
+        new Promise((resolve) => {
+          resolveResponse = resolve;
+        }),
+    );
+    const { unmount } = render(
+      <OLContext.Provider value={map}>
+        <WMTSLayer url="https://tiles.example/wmts" layer="roads" />
+      </OLContext.Provider>,
+    );
+
+    unmount();
+    resolveResponse({ ok: true, text: async () => '<Capabilities />' });
+    await waitFor(() => expect(WMTSCapabilities).toHaveBeenCalled());
+    expect(map.addLayer).not.toHaveBeenCalled();
   });
 });
 

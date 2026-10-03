@@ -6,6 +6,7 @@ from .TileLayer import TileLayer
 from .TileWMS import TileWMS
 from .VectorLayer import VectorLayer
 from .VectorTileLayer import VectorTileLayer
+from .WMTSLayer import WMTSLayer
 
 __all__ = [
     "DrawInteraction",
@@ -16,4 +17,5 @@ __all__ = [
     "TileWMS",
     "VectorLayer",
     "VectorTileLayer",
+    "WMTSLayer",
 ]
