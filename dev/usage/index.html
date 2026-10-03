@@ -786,6 +786,37 @@ updated FeatureCollection after each completed edit:</p>
 </code></pre></div>
 <p>Use <code>Input("modify", "modifiedGeoJSON")</code> in a Dash callback to receive the
 edited FeatureCollection.</p>
+<p>Draw and Modify operations share an undo/redo stack owned by the map. Initialize
+the map with <code>undo=0</code> and <code>redo=0</code>, then increment a command counter to execute
+an operation. <code>canUndo</code> and <code>canRedo</code> are read-only outputs you can use to
+disable buttons:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">dash</span><span class="w"> </span><span class="kn">import</span> <span class="n">Input</span><span class="p">,</span> <span class="n">Output</span><span class="p">,</span> <span class="n">State</span>
+
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">"map"</span><span class="p">,</span> <span class="s2">"undo"</span><span class="p">),</span>
+    <span class="n">Input</span><span class="p">(</span><span class="s2">"undo-button"</span><span class="p">,</span> <span class="s2">"n_clicks"</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">"map"</span><span class="p">,</span> <span class="s2">"undo"</span><span class="p">),</span>
+    <span class="n">prevent_initial_call</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">request_undo</span><span class="p">(</span><span class="n">clicks</span><span class="p">,</span> <span class="n">command</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">command</span> <span class="o">+</span> <span class="mi">1</span>
+
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span>
+    <span class="n">Output</span><span class="p">(</span><span class="s2">"map"</span><span class="p">,</span> <span class="s2">"redo"</span><span class="p">),</span>
+    <span class="n">Input</span><span class="p">(</span><span class="s2">"redo-button"</span><span class="p">,</span> <span class="s2">"n_clicks"</span><span class="p">),</span>
+    <span class="n">State</span><span class="p">(</span><span class="s2">"map"</span><span class="p">,</span> <span class="s2">"redo"</span><span class="p">),</span>
+    <span class="n">prevent_initial_call</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">request_redo</span><span class="p">(</span><span class="n">clicks</span><span class="p">,</span> <span class="n">command</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">command</span> <span class="o">+</span> <span class="mi">1</span>
+
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">Output</span><span class="p">(</span><span class="s2">"undo-button"</span><span class="p">,</span> <span class="s2">"disabled"</span><span class="p">),</span> <span class="n">Input</span><span class="p">(</span><span class="s2">"map"</span><span class="p">,</span> <span class="s2">"canUndo"</span><span class="p">))</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">disable_undo</span><span class="p">(</span><span class="n">can_undo</span><span class="p">):</span>
+    <span class="k">return</span> <span class="ow">not</span> <span class="n">can_undo</span>
+</code></pre></div>
 <p><code>VectorLayer</code> renders a GeoJSON Feature or FeatureCollection. Coordinates use
 GeoJSON's <code>[longitude, latitude]</code> order and are transformed into the map's
 projection. Updating <code>geojson</code> from a Dash callback replaces the rendered
