@@ -55,6 +55,7 @@ const WMTSLayer = ({
       });
       tileLayer = new Tile({ source });
       tileLayer.set('dashId', id);
+      tileLayer.set('dashLayerControl', true);
       map.addLayer(tileLayer);
     };
 

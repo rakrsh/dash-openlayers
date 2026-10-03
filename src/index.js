@@ -1,6 +1,7 @@
 import Map from './lib/components/Map.react';
 import DrawInteraction from './lib/components/DrawInteraction.react';
 import ImageWMS from './lib/components/ImageWMS.react';
+import LayerControl from './lib/components/LayerControl.react';
 import ModifyInteraction from './lib/components/ModifyInteraction.react';
 import TileLayer from './lib/components/TileLayer.react';
 import TileWMS from './lib/components/TileWMS.react';
@@ -14,6 +15,7 @@ export {
   Map,
   DrawInteraction,
   ImageWMS,
+  LayerControl,
   ModifyInteraction,
   TileLayer,
   TileWMS,

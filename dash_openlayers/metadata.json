@@ -60,6 +60,43 @@
       "setProps": { "type": { "name": "func" }, "required": false, "description": "" }
     }
   },
+  "src/lib/components/LayerControl.react.js": {
+    "description": "Layer visibility, opacity, and stacking-order controls for map layers.",
+    "displayName": "LayerControl",
+    "methods": [],
+    "props": {
+      "id": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "The ID used to identify this component in Dash callbacks."
+      },
+      "position": {
+        "type": {
+          "name": "enum",
+          "value": [
+            { "value": "'top-left'", "computed": false },
+            { "value": "'top-right'", "computed": false },
+            { "value": "'bottom-left'", "computed": false },
+            { "value": "'bottom-right'", "computed": false }
+          ]
+        },
+        "required": false,
+        "description": "Corner of the map where the control is displayed.",
+        "defaultValue": { "value": "'top-right'", "computed": false }
+      },
+      "title": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "Heading displayed above the layer controls.",
+        "defaultValue": { "value": "'Layers'", "computed": false }
+      },
+      "setProps": {
+        "type": { "name": "func" },
+        "required": false,
+        "description": "Dash-supplied callback used to write component state back to the layout."
+      }
+    }
+  },
   "src/lib/components/Map.react.js": {
     "description": "",
     "displayName": "MapComponent",

@@ -27,6 +27,7 @@ const VectorTileLayer = ({ id, url, urls, projection, attributions, style }) => 
     const source = new VectorTileSource(sourceOptions);
     const layer = new OpenLayersVectorTileLayer({ source });
     layer.set('dashId', id);
+    layer.set('dashLayerControl', true);
     layerRef.current = layer;
     map.addLayer(layer);
 

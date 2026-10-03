@@ -23,6 +23,7 @@ const ImageWMSLayer = ({ id, url, params, serverType }) => {
     const source = new ImageWMSSource({ url, params: paramsRef.current, serverType });
     const layer = new ImageLayer({ source });
     layer.set('dashId', id);
+    layer.set('dashLayerControl', true);
     sourceRef.current = source;
     map.addLayer(layer);
 

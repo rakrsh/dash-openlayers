@@ -8,6 +8,7 @@ def test_components_exported():
     assert hasattr(mod, "Map")
     assert hasattr(mod, "DrawInteraction")
     assert hasattr(mod, "ImageWMS")
+    assert hasattr(mod, "LayerControl")
     assert hasattr(mod, "ModifyInteraction")
     assert hasattr(mod, "TileLayer")
     assert hasattr(mod, "TileWMS")
@@ -59,6 +60,11 @@ def test_component_props_serialize():
             dol.TileLayer(id="tiles", source="OSM"),
             {"id": "tiles", "source": "OSM"},
             "TileLayer",
+        ),
+        (
+            dol.LayerControl(id="layer-control", position="bottom-left", title="Map layers"),
+            {"id": "layer-control", "position": "bottom-left", "title": "Map layers"},
+            "LayerControl",
         ),
         (
             dol.TileWMS(
