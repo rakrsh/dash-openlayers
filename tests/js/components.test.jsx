@@ -447,12 +447,22 @@ describe('VectorLayer', () => {
     expect(OpenLayersVectorLayer).toHaveBeenCalledTimes(1);
     expect(VectorSource).toHaveBeenCalledTimes(1);
 
+    const replacementMap = makeMap();
     rerender(
-      <OLContext.Provider value={map}>
+      <OLContext.Provider value={replacementMap}>
+        <VectorLayer id="styled" geojson={geojson} style={updatedStyle} />
+      </OLContext.Provider>,
+    );
+    const replacementLayer = OpenLayersVectorLayer.mock.instances[1];
+    expect(replacementMap.addLayer).toHaveBeenCalledWith(replacementLayer);
+    expect(replacementLayer.setStyle).toHaveBeenCalledWith(updatedStyle);
+
+    rerender(
+      <OLContext.Provider value={replacementMap}>
         <VectorLayer id="styled" geojson={geojson} />
       </OLContext.Provider>,
     );
-    expect(layer.setStyle).toHaveBeenLastCalledWith(undefined);
+    expect(replacementLayer.setStyle).toHaveBeenLastCalledWith(undefined);
   });
 });
 

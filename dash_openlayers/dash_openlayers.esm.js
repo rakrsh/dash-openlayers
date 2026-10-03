@@ -65701,7 +65701,7 @@ var VectorLayerComponent = _ref => {
     if (layer) {
       layer.setStyle(style !== null && style !== void 0 ? style : undefined);
     }
-  }, [id, style]);
+  }, [id, map, style]);
   useEffect(() => {
     var source = sourceRef.current;
     var format = formatRef.current;
