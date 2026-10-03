@@ -29,6 +29,15 @@ jobs:
           node-version: ${{ vars.NODE_VERSION }}
       - name: Install npm deps
         run: npm install
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ vars.PYTHON_VERSION }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: ${{ vars.UV_VERSION }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Build JS bundles + Python wrappers
         run: npm run build
       - name: Fail on uncommitted dash_openlayers/ generator drift

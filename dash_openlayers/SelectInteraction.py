@@ -20,47 +20,44 @@ ComponentType = typing.Union[
 ]
 
 
-class ImageWMS(Component):
-    """An ImageWMS component.
-Render a single-image OGC Web Map Service layer.
+class SelectInteraction(Component):
+    """A SelectInteraction component.
+Select vector features and report the current selection to Dash.
 
 Keyword arguments:
 
 - id (string; optional):
-    Component ID used to identify this layer in the Dash layout.
+    The ID used to identify this component in Dash callbacks.
 
-- url (string; optional):
-    OGC WMS endpoint URL.
+- layerId (string; optional):
+    Dash ID of the vector layer to select from; omit to allow all
+    selectable layers.
 
-- params (dict; optional):
-    WMS request parameters, including LAYERS; changes refresh the
-    source.
-
-- serverType (a value equal to: 'carmentaserver', 'geoserver', 'mapserver', 'qgis'; optional):
-    WMS server type used for vendor-specific HiDPI request parameters."""
+- selectedGeoJSON (dict; optional):
+    Read-only: current selection as a GeoJSON FeatureCollection in
+    EPSG:4326."""
     _children_props: typing.List[str] = []
     _base_nodes = ['children']
     _namespace = 'dash_openlayers'
-    _type = 'ImageWMS'
+    _type = 'SelectInteraction'
 
 
     def __init__(
         self,
         id: typing.Optional[typing.Union[str, dict]] = None,
-        url: typing.Optional[str] = None,
-        params: typing.Optional[dict] = None,
-        serverType: typing.Optional[Literal["carmentaserver", "geoserver", "mapserver", "qgis"]] = None,
+        layerId: typing.Optional[str] = None,
+        selectedGeoJSON: typing.Optional[dict] = None,
         **kwargs
     ):
-        self._prop_names = ['id', 'url', 'params', 'serverType']
+        self._prop_names = ['id', 'layerId', 'selectedGeoJSON']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'url', 'params', 'serverType']
+        self.available_properties = ['id', 'layerId', 'selectedGeoJSON']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()
         _locals.update(kwargs)  # For wildcard attrs and excess named props
         args = {k: _locals[k] for k in _explicit_args}
 
-        super(ImageWMS, self).__init__(**args)
+        super(SelectInteraction, self).__init__(**args)
 
-setattr(ImageWMS, "__init__", _explicitize_args(ImageWMS.__init__))
+setattr(SelectInteraction, "__init__", _explicitize_args(SelectInteraction.__init__))

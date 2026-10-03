@@ -6,16 +6,14 @@ This file adds Claude-specific workflow guidance.
 
 ## Project shape
 
-- Python/Dash wrapper hand-authored alongside React components
-  (`src/lib/components`). `npm run build` (Rollup) only produces the JS
-  bundles (`dash_openlayers.esm.js`/`.umd.js`) — there is no react-docgen or
-  Python-generation step wired in, despite the `react-docgen` devDependency.
+- React components live in `src/lib/components`; component metadata is
+  maintained in `dash_openlayers/metadata.json`. `npm run build` produces the
+  JS bundles, Python wrappers/imports, and API reference from that metadata.
 - Map instance lives in `OLContext` (`src/lib/context/OLContext.js`);
   children read it with `useMap()`.
-- Never hand-edit `dash_openlayers/*.js` — regenerate with `npm run build`.
-  `dash_openlayers/metadata.json` and `dash_openlayers/*.py` (Python wrapper
-  classes) ARE hand-maintained here; update them yourself whenever
-  `propTypes` change.
+- Never hand-edit generated `dash_openlayers/*.js` bundles or Python wrapper
+  classes. Update the matching metadata entry with React `propTypes` changes,
+  then run `npm run build` to regenerate the artifacts.
 
 ## Non-negotiable invariants (see `.cursorrules` for full detail)
 
@@ -23,13 +21,12 @@ This file adds Claude-specific workflow guidance.
 2. Outward state changes go through `setProps({ ... })`, guarded by
    `if (setProps)`.
 3. Every `propTypes` key has a JSDoc `/** ... */` block immediately above it,
-   mirrored by hand into `metadata.json`'s `description` field and the
-   Python class docstring. No `//` comments.
+   with a matching description in the metadata source. No `//` comments.
 4. Coordinates are `[lon, lat]` (`[x, y]`), never `[lat, lon]`. Use `ol/proj`
    helpers for all transforms.
 5. Components go in `src/lib/components/`, are exported from `src/index.js`,
-   and require a matching hand-written entry in `dash_openlayers/metadata.json`
-   and `dash_openlayers/<Component>.py`; tests live in `tests/`.
+   and require a matching metadata entry; wrappers are generated during build.
+   Tests live in `tests/`.
 6. `dash_openlayers/__init__.py`'s `_js_dist` must list only the UMD bundle.
    Dash renders `relative_package_path` assets as plain `<script>` tags (no
    `type="module"`), so an ESM entry there throws `Unexpected token 'export'`
@@ -44,7 +41,7 @@ silently working around them:
 
 ```bash
 npm install
-npm run build           # regenerate JS bundles only (ESM + UMD)
+npm run build           # regenerate JS bundles, Python wrappers, and API docs
 npm run lint
 npm test                # if/when a JS test runner is configured; currently Python-only via pytest
 uv sync
@@ -54,9 +51,8 @@ uv run coverage xml     # coverage CLI lives in the uv venv; always use `uv run`
 node scripts/check-ai-invariants.js   # JSDoc + cleanup-hook AST gate (same as CI)
 ```
 
-After `npm run build`, manually update `dash_openlayers/metadata.json` and
-the affected `dash_openlayers/<Component>.py` to match any `propTypes`
-change — there is no generator step to do this for you.
+Update `dash_openlayers/metadata.json` with each `propTypes` change, then run
+`npm run build`; Python wrappers and the API reference are generated from it.
 
 Treat a non-zero exit from any of these as a blocking failure to fix before
 declaring a task complete.

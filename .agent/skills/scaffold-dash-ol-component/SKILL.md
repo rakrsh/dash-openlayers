@@ -120,12 +120,10 @@ an `html.Pre`/callback, so the component can be manually verified with
 
 ## Post-generation checklist (report to the user)
 
-1. `npm run build` — produces the JS bundles (`*.esm.js` / `*.umd.js`) only.
-   **`dash_openlayers/metadata.json` and `dash_openlayers/<Component>.py` are
-   hand-maintained** — `npm run build` does NOT regenerate them. After the
-   build, hand-update both files in lockstep with the new `propTypes` (see
-   `.cursorrules` §8 for the exact fields required), then verify the Python
-   wrapper's docstring is correct.
+1. Add the component entry to `dash_openlayers/metadata.json` with descriptions
+  matching its `propTypes` and JSDoc, then run `npm run build`. The build
+  generates Python wrappers/imports and `docs/api.md` from metadata alongside
+  the JS bundles. Verify the generated wrapper and API page.
 2. `npm run lint` — must pass with zero errors.
 3. `uv run pytest -q` — new import test passes.
 4. Remind the user to run `node scripts/check-ai-invariants.js` (or let CI's

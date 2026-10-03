@@ -24,9 +24,6 @@ jobs:
       - name: Install npm deps
         run: npm install
 
-      - name: Build JS bundles
-        run: npm run build
-
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
@@ -37,6 +34,9 @@ jobs:
         with:
           version: ${{ vars.UV_VERSION || 'latest' }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build JS bundles and Python components
+        run: npm run build
 
       - name: Build wheel and sdist
         run: uv build

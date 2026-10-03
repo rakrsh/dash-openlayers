@@ -9,9 +9,9 @@ except ImportError:
     # Backwards compatibility for dash<=4.1.0
     if typing.TYPE_CHECKING:
         raise
-    NumberType = typing.Union(  # noqa: F401
+    NumberType = typing.Union[  # noqa: F401
         typing.SupportsFloat, typing.SupportsInt, typing.SupportsComplex
-    )
+    ]
 
 ComponentSingleType = typing.Union[str, int, float, Component, None]
 ComponentType = typing.Union[
@@ -22,16 +22,18 @@ ComponentType = typing.Union[
 
 class TileLayer(Component):
     """A TileLayer component.
-
+Render OpenStreetMap or custom XYZ tiles on the map.
 
 Keyword arguments:
 
-- id (string; optional)
+- id (string; optional):
+    The ID used to identify this layer in Dash callbacks.
 
-- source (string; optional)
+- source (string; optional):
+    Built-in tile source identifier. Currently supports OSM.
 
-- url (string; optional)
-"""
+- url (string; optional):
+    URL template for a custom XYZ tile source."""
     _children_props: typing.List[str] = []
     _base_nodes = ['children']
     _namespace = 'dash_openlayers'
