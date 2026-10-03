@@ -472,6 +472,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#point-clustering-and-decluttering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Point Clustering and Decluttering
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#wfs-and-wfs-t" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -625,6 +636,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#point-clustering-and-decluttering" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Point Clustering and Decluttering
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#wfs-and-wfs-t" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -691,6 +713,32 @@ moves it lower in the stack.</p>
 </code></pre></div>
 <p>The control's <code>position</code> can be <code>top-left</code>, <code>top-right</code>, <code>bottom-left</code>, or
 <code>bottom-right</code>.</p>
+<h2 id="point-clustering-and-decluttering">Point Clustering and Decluttering</h2>
+<p>Set <code>clusterDistance</code> on a <code>VectorLayer</code> to cluster nearby Point features;
+the distance is measured in screen pixels, and <code>0</code> (the default) disables
+clustering. <code>clusterMinDistance</code> sets a minimum pixel gap between cluster
+symbols and is capped at <code>clusterDistance</code>. Multi-point clusters render with
+a count badge, while individual points retain the layer's configured style.
+When clustering is enabled, use Point geometries in that layer.</p>
+<p>Set <code>declutter=True</code> to prevent overlapping labels and symbols on a vector
+layer. A string such as <code>declutter="map-labels"</code> groups layers that should
+declutter together; layers with different group names are handled separately.
+Decluttering is opt-in and does not change existing layer rendering by default.</p>
+<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span>
+    <span class="nb">id</span><span class="o">=</span><span class="s2">"city-sites"</span><span class="p">,</span>
+    <span class="n">geojson</span><span class="o">=</span><span class="n">city_site_points</span><span class="p">,</span>
+    <span class="n">clusterDistance</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
+    <span class="n">clusterMinDistance</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
+    <span class="n">declutter</span><span class="o">=</span><span class="s2">"place-labels"</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">"circle-radius"</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
+        <span class="s2">"circle-fill-color"</span><span class="p">:</span> <span class="s2">"#d66f41"</span><span class="p">,</span>
+        <span class="s2">"text-value"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"get"</span><span class="p">,</span> <span class="s2">"name"</span><span class="p">],</span>
+        <span class="s2">"text-offset-y"</span><span class="p">:</span> <span class="o">-</span><span class="mi">12</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>See <code>tests/demos/layer_control.py</code> for a runnable example with nearby points.</p>
 <p><code>TileWMS</code> requests tiled WMS images. <code>ImageWMS</code> requests one image for the map
 viewport. Both accept a WMS endpoint, request <code>params</code> (including <code>LAYERS</code>),
 and an optional <code>serverType</code> (<code>geoserver</code>, <code>mapserver</code>, <code>carmentaserver</code>, or
