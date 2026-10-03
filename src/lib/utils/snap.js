@@ -11,7 +11,7 @@ export const addSnapInteraction = (map, { snapToVertex, snapToEdge, snapToleranc
       map
         .getLayers()
         .getArray()
-        .map((layer) => layer.getSource?.())
+        .map((layer) => layer.get('dashVectorSource') || layer.getSource?.())
         .filter((source) => source instanceof VectorSource),
     ),
   ];

@@ -29,10 +29,10 @@ const ModifyInteraction = ({
   useEffect(() => {
     const layers = map.getLayers().getArray();
     const targetLayer = layers.find((layer) => {
-      const source = layer.getSource?.();
+      const source = layer.get('dashVectorSource') || layer.getSource?.();
       return source instanceof VectorSource && (!layerId || layer.get('dashId') === layerId);
     });
-    const source = targetLayer?.getSource();
+    const source = targetLayer?.get('dashVectorSource') || targetLayer?.getSource();
     if (!source) return;
 
     const format = new GeoJSON();
