@@ -36,7 +36,7 @@ const VectorLayerComponent = ({ id, geojson, style }) => {
     if (layer) {
       layer.setStyle(style ?? undefined);
     }
-  }, [id, style]);
+  }, [id, map, style]);
 
   useEffect(() => {
     const source = sourceRef.current;
