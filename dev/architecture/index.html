@@ -590,23 +590,23 @@
 
 <h1 id="architecture">Architecture</h1>
 <p>This diagram shows the high-level component architecture and runtime interactions between the React components (OpenLayers), the Dash Python layer, and projection registration.</p>
-<div class="highlight"><pre><span></span><code>graph TD
-  A[dol.Map&lt;br/&gt;OLContext Provider] --&gt; B[ol/Map instance]
-  A --&gt; C[dol.TileLayer]
-  A --&gt; D[dol.VectorLayer]
-  A --&gt; E[dol.DrawInteraction]
-  B --&gt; F[ol/View]
-  C --&gt; G[ol/layer/Tile]
-  D --&gt; H[ol/layer/Vector]
-  E --&gt; I[ol/interaction/Draw]
-  I --&gt; J[GeoJSON writer]
-  B --&gt; K[Events: click, moveend]
-  K --&gt; L[Dash Python setProps]
-  A --&gt; M[proj4js registration]
+<div class="highlight"><pre><span></span><code>flowchart TD
+  A["dol.Map&lt;br/&gt;OLContext Provider"] --&gt; B["ol/Map instance"]
+  A --&gt; C["dol.TileLayer"]
+  A --&gt; D["dol.VectorLayer"]
+  A --&gt; E["dol.DrawInteraction"]
+  B --&gt; F["ol/View"]
+  C --&gt; G["ol/layer/Tile"]
+  D --&gt; H["ol/layer/Vector"]
+  E --&gt; I["ol/interaction/Draw"]
+  I --&gt; J["GeoJSON writer"]
+  B --&gt; K["Events: click, moveend"]
+  K --&gt; L["Dash Python setProps"]
+  A --&gt; M["proj4js registration"]
   M --&gt; B
   subgraph Python
     L
-    N[usage.py / Dash app]
+    N["usage.py / Dash app"]
     N --&gt; L
   end
 </code></pre></div>

@@ -493,6 +493,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#feature-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feature Selection
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -651,6 +662,17 @@
     <span class="md-ellipsis">
       
         WFS and WFS-T
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#feature-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feature Selection
       
     </span>
   </a>
@@ -829,17 +851,60 @@ than one option. The capabilities endpoint must allow browser CORS access:</p>
 </code></pre></div>
 <p>See <code>tests/demos/wmts_demo.py</code> for a complete example.</p>
 <h2 id="wfs-and-wfs-t">WFS and WFS-T</h2>
-<p>WFS features can be fetched as GeoJSON and passed to <code>VectorLayer</code>. Combine
-that layer with <code>ModifyInteraction</code> to edit features in the browser. The demo
-<code>tests/demos/wfs_demo.py</code> shows a WFS 2.0 <code>GetFeature</code> request, an edit action,
-and an explicit WFS-T <code>Transaction</code> callback that writes edited points back to
-a configured server. It only enables writes when <code>WFS_TRANSACTION_URL</code> is set;
-never point the example at a shared or read-only WFS endpoint.</p>
+<p><code>WFSLayer</code> sends a browser-side WFS <code>GetFeature</code> request and reads its GeoJSON
+response into an editable vector source. Set <code>url</code> and <code>typeNames</code>; use
+<code>version</code>, <code>srsName</code>, <code>outputFormat</code>, and <code>params</code> for service-specific
+requests. <code>params</code> can carry server-supported filters and limits. The endpoint
+must allow CORS, return GeoJSON, and use coordinates compatible with <code>srsName</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
+    <span class="nb">id</span><span class="o">=</span><span class="s2">"wfs-map"</span><span class="p">,</span>
+    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">zoom</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">WFSLayer</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="s2">"places"</span><span class="p">,</span>
+            <span class="n">url</span><span class="o">=</span><span class="s2">"https://maps.example.com/geoserver/wfs"</span><span class="p">,</span>
+            <span class="n">typeNames</span><span class="o">=</span><span class="s2">"workspace:places"</span><span class="p">,</span>
+            <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">"count"</span><span class="p">:</span> <span class="mi">100</span><span class="p">},</span>
+        <span class="p">),</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">ModifyInteraction</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"modify-places"</span><span class="p">,</span> <span class="n">layerId</span><span class="o">=</span><span class="s2">"places"</span><span class="p">),</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">SelectInteraction</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"select-places"</span><span class="p">,</span> <span class="n">layerId</span><span class="o">=</span><span class="s2">"places"</span><span class="p">),</span>
+    <span class="p">],</span>
+    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
+<span class="p">)</span>
+</code></pre></div>
+<p><code>featureCount</code> and <code>loadError</code> report the latest request outcome. <code>WFSLayer</code>
+only reads features; it does not submit WFS-T transactions. The demo
+<code>tests/demos/wfs_demo.py</code> shows an explicit application-owned WFS-T callback
+that updates edited points. Writes are disabled unless <code>WFS_TRANSACTION_URL</code>
+is configured; never point it at a shared or read-only WFS endpoint.</p>
 <p>The demo expects the service URL in <code>WFS_URL</code>, feature type in
 <code>WFS_FEATURE_TYPE</code>, and, for transactional writes, <code>WFS_TRANSACTION_URL</code>,
 <code>WFS_FEATURE_NAMESPACE</code>, and <code>WFS_GEOMETRY_PROPERTY</code>. The sample transaction
 updates Point geometries in CRS84; adapt its geometry encoding and feature ID
 filter to the schema and WFS version supported by your server.</p>
+<h2 id="feature-selection">Feature Selection</h2>
+<p><code>SelectInteraction</code> reports the current selection as a GeoJSON FeatureCollection
+in <code>selectedGeoJSON</code>. Use <code>layerId</code> to restrict selection to a specific layer;
+omit it to allow selection from all map layers. Coordinates are transformed to
+EPSG:4326 for the callback payload.</p>
+<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
+    <span class="nb">id</span><span class="o">=</span><span class="s2">"map"</span><span class="p">,</span>
+    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">45</span><span class="p">],</span>
+    <span class="n">zoom</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">TileLayer</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="s2">"OSM"</span><span class="p">),</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"places"</span><span class="p">,</span> <span class="n">geojson</span><span class="o">=</span><span class="n">features</span><span class="p">),</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">SelectInteraction</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"selection"</span><span class="p">,</span> <span class="n">layerId</span><span class="o">=</span><span class="s2">"places"</span><span class="p">),</span>
+    <span class="p">],</span>
+    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
+<span class="p">)</span>
+
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">Output</span><span class="p">(</span><span class="s2">"selected"</span><span class="p">,</span> <span class="s2">"children"</span><span class="p">),</span> <span class="n">Input</span><span class="p">(</span><span class="s2">"selection"</span><span class="p">,</span> <span class="s2">"selectedGeoJSON"</span><span class="p">))</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">show_selection</span><span class="p">(</span><span class="n">selection</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">selection</span><span class="p">)</span> <span class="k">if</span> <span class="n">selection</span> <span class="k">else</span> <span class="s2">"Select a feature"</span>
+</code></pre></div>
 <p>Add a <code>ModifyInteraction</code> beside a <code>VectorLayer</code> to drag feature vertices.
 Pass the vector layer's Dash <code>id</code> as <code>layerId</code>; <code>modifiedGeoJSON</code> receives the
 updated FeatureCollection after each completed edit:</p>
@@ -885,9 +950,8 @@ coverage rules between separate features.</p>
     <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="k">if</span> <span class="n">result</span> <span class="k">else</span> <span class="s2">""</span>
 </code></pre></div>
 <p>For runnable examples with vector snap targets and validation outputs, see
-<a href="../tests/demos/draw_demo.py">draw_demo.py</a> and
-<a href="../tests/demos/wfs_demo.py">wfs_demo.py</a>. The browser rollback case is covered
-in <a href="../tests/integration/test_simple_map_integration.py">test_simple_map_integration.py</a>.</p>
+<code>tests/demos/draw_demo.py</code> and <code>tests/demos/wfs_demo.py</code>. The browser rollback
+case is covered in <code>tests/integration/test_simple_map_integration.py</code>.</p>
 <p>Draw and Modify operations share an undo/redo stack owned by the map. Initialize
 the map with <code>undo=0</code> and <code>redo=0</code>, then increment a command counter to execute
 an operation. <code>canUndo</code> and <code>canRedo</code> are read-only outputs you can use to

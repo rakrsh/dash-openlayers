@@ -448,6 +448,24 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -464,6 +482,36 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#development-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development Build
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -570,6 +618,25 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#development-build" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development Build
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -589,20 +656,57 @@
 
 
 <h1 id="quickstart">Quickstart</h1>
-<p>Install and build the project for local development:</p>
-<div class="highlight"><pre><span></span><code><span class="c1"># install JS deps</span>
-npm<span class="w"> </span>install
-
-<span class="c1"># install Python dev requirements (editable install)</span>
-pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
-
-<span class="c1"># build JS components (if applicable)</span>
-npm<span class="w"> </span>run<span class="w"> </span>build
-
-<span class="c1"># run the example app</span>
-python<span class="w"> </span>usage.py
+<p>Install the published package into the environment used to run your Dash app:</p>
+<div class="highlight"><pre><span></span><code>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>dash-openlayers
 </code></pre></div>
-<p>For publishing documentation the CI workflow will build the MkDocs site and deploy it to GitHub Pages.</p>
+<p>Create <code>app.py</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">dash</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">dash</span><span class="w"> </span><span class="kn">import</span> <span class="n">Input</span><span class="p">,</span> <span class="n">Output</span><span class="p">,</span> <span class="n">html</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">dash_openlayers</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dol</span>
+
+<span class="n">app</span> <span class="o">=</span> <span class="n">dash</span><span class="o">.</span><span class="n">Dash</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+<span class="n">app</span><span class="o">.</span><span class="n">layout</span> <span class="o">=</span> <span class="n">html</span><span class="o">.</span><span class="n">Div</span><span class="p">(</span>
+    <span class="p">[</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="s2">"map"</span><span class="p">,</span>
+            <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">51.5</span><span class="p">],</span>
+            <span class="n">zoom</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
+            <span class="n">children</span><span class="o">=</span><span class="p">[</span>
+                <span class="n">dol</span><span class="o">.</span><span class="n">TileLayer</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"basemap"</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s2">"OSM"</span><span class="p">),</span>
+                <span class="n">dol</span><span class="o">.</span><span class="n">DrawInteraction</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"draw"</span><span class="p">,</span> <span class="n">geometryType</span><span class="o">=</span><span class="s2">"Polygon"</span><span class="p">),</span>
+            <span class="p">],</span>
+            <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"600px"</span><span class="p">},</span>
+        <span class="p">),</span>
+        <span class="n">html</span><span class="o">.</span><span class="n">Pre</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"drawn-feature"</span><span class="p">),</span>
+    <span class="p">]</span>
+<span class="p">)</span>
+
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">Output</span><span class="p">(</span><span class="s2">"drawn-feature"</span><span class="p">,</span> <span class="s2">"children"</span><span class="p">),</span> <span class="n">Input</span><span class="p">(</span><span class="s2">"draw"</span><span class="p">,</span> <span class="s2">"drawnGeoJSON"</span><span class="p">))</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">show_drawn_feature</span><span class="p">(</span><span class="n">feature</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="n">feature</span> <span class="ow">or</span> <span class="s2">"Draw a polygon on the map"</span><span class="p">)</span>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+    <span class="n">app</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div>
+<p>Run it with <code>python app.py</code>. The browser needs network access to the tile
+provider; third-party WMS/WMTS/WFS endpoints must permit CORS from the app's
+origin.</p>
+<h2 id="development-build">Development Build</h2>
+<p>For a source checkout, install the JavaScript and Python dependencies, then
+build the bundles, Python wrappers, and API reference:</p>
+<div class="highlight"><pre><span></span><code>npm<span class="w"> </span>install
+uv<span class="w"> </span>sync
+npm<span class="w"> </span>run<span class="w"> </span>build
+uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-q
+</code></pre></div>
+<p>The component metadata in <code>dash_openlayers/metadata.json</code> is the input for
+Python wrapper generation. The full build also regenerates <code>docs/api.md</code> from
+that metadata. Run <code>uv run python scripts/generate_components.py</code> or
+<code>npm run docs:api</code> separately when only one generated surface needs updating.</p>
+<p>Runnable component examples are under <code>tests/demos/</code>. The MkDocs site can be
+previewed locally with <code>uv run mkdocs serve</code>.</p>
 
 
 
