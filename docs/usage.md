@@ -177,18 +177,68 @@ See `tests/demos/wmts_demo.py` for a complete example.
 
 ## WFS and WFS-T
 
-WFS features can be fetched as GeoJSON and passed to `VectorLayer`. Combine
-that layer with `ModifyInteraction` to edit features in the browser. The demo
-`tests/demos/wfs_demo.py` shows a WFS 2.0 `GetFeature` request, an edit action,
-and an explicit WFS-T `Transaction` callback that writes edited points back to
-a configured server. It only enables writes when `WFS_TRANSACTION_URL` is set;
-never point the example at a shared or read-only WFS endpoint.
+`WFSLayer` sends a browser-side WFS `GetFeature` request and reads its GeoJSON
+response into an editable vector source. Set `url` and `typeNames`; use
+`version`, `srsName`, `outputFormat`, and `params` for service-specific
+requests. `params` can carry server-supported filters and limits. The endpoint
+must allow CORS, return GeoJSON, and use coordinates compatible with `srsName`.
+
+```python
+dol.Map(
+    id="wfs-map",
+    center=[0, 0],
+    zoom=2,
+    children=[
+        dol.WFSLayer(
+            id="places",
+            url="https://maps.example.com/geoserver/wfs",
+            typeNames="workspace:places",
+            params={"count": 100},
+        ),
+        dol.ModifyInteraction(id="modify-places", layerId="places"),
+        dol.SelectInteraction(id="select-places", layerId="places"),
+    ],
+    style={"height": "500px"},
+)
+```
+
+`featureCount` and `loadError` report the latest request outcome. `WFSLayer`
+only reads features; it does not submit WFS-T transactions. The demo
+`tests/demos/wfs_demo.py` shows an explicit application-owned WFS-T callback
+that updates edited points. Writes are disabled unless `WFS_TRANSACTION_URL`
+is configured; never point it at a shared or read-only WFS endpoint.
 
 The demo expects the service URL in `WFS_URL`, feature type in
 `WFS_FEATURE_TYPE`, and, for transactional writes, `WFS_TRANSACTION_URL`,
 `WFS_FEATURE_NAMESPACE`, and `WFS_GEOMETRY_PROPERTY`. The sample transaction
 updates Point geometries in CRS84; adapt its geometry encoding and feature ID
 filter to the schema and WFS version supported by your server.
+
+## Feature Selection
+
+`SelectInteraction` reports the current selection as a GeoJSON FeatureCollection
+in `selectedGeoJSON`. Use `layerId` to restrict selection to a specific layer;
+omit it to allow selection from all map layers. Coordinates are transformed to
+EPSG:4326 for the callback payload.
+
+```python
+dol.Map(
+    id="map",
+    center=[10, 45],
+    zoom=5,
+    children=[
+        dol.TileLayer(source="OSM"),
+        dol.VectorLayer(id="places", geojson=features),
+        dol.SelectInteraction(id="selection", layerId="places"),
+    ],
+    style={"height": "500px"},
+)
+
+
+@app.callback(Output("selected", "children"), Input("selection", "selectedGeoJSON"))
+def show_selection(selection):
+    return json.dumps(selection) if selection else "Select a feature"
+```
 
 Add a `ModifyInteraction` beside a `VectorLayer` to drag feature vertices.
 Pass the vector layer's Dash `id` as `layerId`; `modifiedGeoJSON` receives the
@@ -246,9 +296,8 @@ def show_edit_validation(result):
 ```
 
 For runnable examples with vector snap targets and validation outputs, see
-[draw_demo.py](../tests/demos/draw_demo.py) and
-[wfs_demo.py](../tests/demos/wfs_demo.py). The browser rollback case is covered
-in [test_simple_map_integration.py](../tests/integration/test_simple_map_integration.py).
+`tests/demos/draw_demo.py` and `tests/demos/wfs_demo.py`. The browser rollback
+case is covered in `tests/integration/test_simple_map_integration.py`.
 
 Draw and Modify operations share an undo/redo stack owned by the map. Initialize
 the map with `undo=0` and `redo=0`, then increment a command counter to execute

@@ -1,17 +1,17 @@
 # AUTO GENERATED FILE - DO NOT EDIT
 
 import typing  # noqa: F401
-from typing_extensions import TypedDict, NotRequired, Literal  # noqa: F401
+from typing_extensions import TypedDict, NotRequired, Literal # noqa: F401
 from dash.development.base_component import Component, _explicitize_args
-
 try:
     from dash.types import NumberType  # noqa: F401
 except ImportError:
+    # Backwards compatibility for dash<=4.1.0
     if typing.TYPE_CHECKING:
         raise
-    NumberType = typing.Union(  # noqa: F401
+    NumberType = typing.Union[  # noqa: F401
         typing.SupportsFloat, typing.SupportsInt, typing.SupportsComplex
-    )
+    ]
 
 ComponentSingleType = typing.Union[str, int, float, Component, None]
 ComponentType = typing.Union[
@@ -21,40 +21,49 @@ ComponentType = typing.Union[
 
 
 class ModifyInteraction(Component):
-    """Allow editing vertices in a VectorLayer and report updated GeoJSON.
+    """A ModifyInteraction component.
+Allow editing vertices in a VectorLayer and report the updated features.
 
+Keyword arguments:
 
-    Keyword arguments:
+- id (string; optional):
+    The ID used to identify this component in Dash callbacks.
 
-    - id (string; optional)
+- layerId (string; optional):
+    Dash ID of the VectorLayer to modify; defaults to the first vector
+    layer on the map.
 
-    - layerId (string; optional): Dash ID of the VectorLayer to modify; defaults
-      to the first vector layer on the map.
+- snapToVertex (boolean; default True):
+    Whether editing snaps to vector vertices.
 
-        - snapToVertex (boolean; default True): Snap edits to vector vertices.
+- snapToEdge (boolean; default True):
+    Whether editing snaps to vector edges.
 
-        - snapToEdge (boolean; default True): Snap edits to vector edges.
+- snapTolerance (number; default 10):
+    Maximum snap distance in screen pixels.
 
-        - snapTolerance (number; default 10): Maximum snap distance in screen pixels.
+- preserveTopology (boolean; default True):
+    Revert polygon edits that introduce invalid topology.
 
-        - preserveTopology (boolean; default True): Revert polygon edits that
-            introduce invalid topology.
+- modifiedGeoJSON (dict; optional):
+    Read-only: GeoJSON FeatureCollection of the target layer after a
+    modify operation.
 
-    - modifiedGeoJSON (dict; optional): Read-only GeoJSON FeatureCollection
-      emitted after a modify operation.
+- modifiedWKT (string; optional):
+    Read-only: WKT geometry collection of the target layer after
+    modification.
 
-        - modifiedWKT (string; optional): Read-only WKT geometry collection after modification.
+- modifiedTopoJSON (dict; optional):
+    Read-only: TopoJSON topology of the target layer after
+    modification.
 
-        - modifiedTopoJSON (dict; optional): Read-only TopoJSON topology after modification.
-
-        - geometryValidation (dict; optional): Read-only topology validation from
-            the last modification.
-    """
-
+- geometryValidation (dict; optional):
+    Read-only: topology validation result from the last modification."""
     _children_props: typing.List[str] = []
-    _base_nodes = ["children"]
-    _namespace = "dash_openlayers"
-    _type = "ModifyInteraction"
+    _base_nodes = ['children']
+    _namespace = 'dash_openlayers'
+    _type = 'ModifyInteraction'
+
 
     def __init__(
         self,
@@ -68,40 +77,17 @@ class ModifyInteraction(Component):
         modifiedWKT: typing.Optional[str] = None,
         modifiedTopoJSON: typing.Optional[dict] = None,
         geometryValidation: typing.Optional[dict] = None,
-        **kwargs,
+        **kwargs
     ):
-        self._prop_names = [
-            "id",
-            "layerId",
-            "snapToVertex",
-            "snapToEdge",
-            "snapTolerance",
-            "preserveTopology",
-            "modifiedGeoJSON",
-            "modifiedWKT",
-            "modifiedTopoJSON",
-            "geometryValidation",
-        ]
-        self._valid_wildcard_attributes = []
-        self.available_properties = [
-            "id",
-            "layerId",
-            "snapToVertex",
-            "snapToEdge",
-            "snapTolerance",
-            "preserveTopology",
-            "modifiedGeoJSON",
-            "modifiedWKT",
-            "modifiedTopoJSON",
-            "geometryValidation",
-        ]
-        self.available_wildcard_properties = []
-        _explicit_args = kwargs.pop("_explicit_args")
+        self._prop_names = ['id', 'layerId', 'snapToVertex', 'snapToEdge', 'snapTolerance', 'preserveTopology', 'modifiedGeoJSON', 'modifiedWKT', 'modifiedTopoJSON', 'geometryValidation']
+        self._valid_wildcard_attributes =            []
+        self.available_properties = ['id', 'layerId', 'snapToVertex', 'snapToEdge', 'snapTolerance', 'preserveTopology', 'modifiedGeoJSON', 'modifiedWKT', 'modifiedTopoJSON', 'geometryValidation']
+        self.available_wildcard_properties =            []
+        _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()
-        _locals.update(kwargs)
+        _locals.update(kwargs)  # For wildcard attrs and excess named props
         args = {k: _locals[k] for k in _explicit_args}
 
         super(ModifyInteraction, self).__init__(**args)
-
 
 setattr(ModifyInteraction, "__init__", _explicitize_args(ModifyInteraction.__init__))

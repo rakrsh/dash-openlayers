@@ -1,11 +1,10 @@
 import json
 import os
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 from xml.etree import ElementTree as ET
 
 import dash
-from dash import Input, Output, State, dcc, html
+from dash import Input, Output, State, html
 
 import dash_openlayers as dol
 
@@ -23,17 +22,21 @@ app = dash.Dash(__name__)
 
 app.layout = html.Div(
     [
-        html.Button("Load one WFS feature", id="load-wfs", n_clicks=0),
         html.Button("Sync edited point with WFS-T", id="sync-wfs", n_clicks=0),
         html.Div(id="wfs-status"),
         html.Pre(id="edit-validation"),
-        dcc.Store(id="wfs-features"),
         dol.Map(
             id="map",
             center=[0, 0],
             zoom=2,
             children=[
-                dol.VectorLayer(id="wfs-features-layer", geojson=None),
+                dol.WFSLayer(
+                    id="wfs-features-layer",
+                    url=WFS_URL,
+                    typeNames=WFS_FEATURE_TYPE,
+                    srsName="EPSG:4326",
+                    params={"count": 1},
+                ),
                 dol.ModifyInteraction(
                     id="wfs-modify",
                     layerId="wfs-features-layer",
@@ -50,31 +53,18 @@ app.layout = html.Div(
 
 
 @app.callback(
-    Output("wfs-features-layer", "geojson"),
     Output("wfs-status", "children"),
-    Input("load-wfs", "n_clicks"),
-    prevent_initial_call=True,
+    Input("wfs-features-layer", "featureCount"),
+    Input("wfs-features-layer", "loadError"),
 )
-def load_wfs_feature(_clicks):
-    params = {
-        "service": "WFS",
-        "version": "2.0.0",
-        "request": "GetFeature",
-        "typeNames": WFS_FEATURE_TYPE,
-        "outputFormat": "application/json",
-        "srsName": "CRS:84",
-        "count": 1,
-    }
-    parsed_url = urlsplit(WFS_URL)
-    query = dict(parse_qsl(parsed_url.query))
-    query.update(params)
-    request_url = urlunsplit(parsed_url._replace(query=urlencode(query)))
-    request = Request(request_url, headers={"Accept": "application/json"})
-    with urlopen(request, timeout=20) as response:
-        feature_collection = json.loads(response.read())
-    if not feature_collection.get("features"):
-        return None, "The WFS request returned no features."
-    return feature_collection, "Loaded one WFS feature. Drag its point to edit it."
+def show_wfs_status(feature_count, load_error):
+    if load_error:
+        return f"WFS request failed: {load_error}"
+    if feature_count is None:
+        return "Loading WFS features..."
+    if feature_count == 0:
+        return "The WFS request returned no features."
+    return f"Loaded {feature_count} WFS feature(s). Drag a point to edit it."
 
 
 def make_point_update_transaction(feature_collection):

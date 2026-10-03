@@ -97,7 +97,7 @@ Dependencies are split into groups (`pyproject.toml` `[dependency-groups]`):
 installs by default.
 
 ```bash
-# install JS deps and build the JS bundles (needed before Python tests/imports)
+# install JS deps and build bundles, Python wrappers, and API docs
 npm install
 npm run build
 npm test
@@ -108,6 +108,16 @@ uv sync
 # install the git hook so checks run automatically on every commit
 uv run pre-commit install
 ```
+
+## Component metadata and generated files
+
+When adding or changing a React component, update its export in `src/index.js`
+and its entry in `dash_openlayers/metadata.json`. The metadata is the source
+for Python component classes, `dash_openlayers/_imports_.py`, packaged
+`package-info.json`, and `docs/api.md`; `npm run build` regenerates those along
+with both JS bundles. Do not edit generated wrappers or API docs directly.
+The build fails if a component file lacks metadata or a component/prop
+description is empty.
 
 `npm test` runs the Jest/React Testing Library suite in jsdom and reports
 statement coverage for `Map`, `TileLayer`, and `VectorLayer`. Each component

@@ -14,21 +14,18 @@ must-follow rules and the exact commands to use when verifying work.
 2. **Dash bridge**: Outward state only via `setProps({ ... })`, always guarded
    with `if (setProps) { ... }`.
 3. **Docstrings**: Every `propTypes` key has a `/** ... */` JSDoc block
-   directly above it — no `//` comments. This JSDoc format mirrors what
-   `react-docgen` expects for the Python wrapper's docstrings. `npm run build`
-   only runs Rollup; it does **not** regenerate `dash_openlayers/metadata.json`
-   or the Python `Component` classes. Update those two by hand whenever
-   `propTypes` changes (see rule 5 and Task 5).
+   directly above it — no `//` comments. Keep the matching descriptions in
+   `dash_openlayers/metadata.json`; `npm run build` generates the Python
+   `Component` classes and API reference from that metadata.
 4. **Coordinates**: OpenLayers coordinate order is `[lon, lat]` / `[x, y]`,
    never `[lat, lon]`. Use `ol/proj` helpers (`fromLonLat`, `toLonLat`,
    `transform`) for conversions.
 5. **File locations**: components in `src/lib/components/*.react.js`, context
    in `src/lib/context/`, exports wired in `src/index.js`. Never hand-edit the
    generated JS bundles (`dash_openlayers/*.esm.js`/`*.umd.js`) — they're
-   produced by `npm run build`. `dash_openlayers/metadata.json` and
-   `dash_openlayers/<Component>.py` are **hand-maintained**; update all three
-   of `src/index.js`, `metadata.json`, and `<Component>.py` together whenever
-   a component is added or its props change.
+   produced by `npm run build`. `dash_openlayers/metadata.json` is maintained;
+   Python wrappers and `_imports_.py` are generated. Update `src/index.js` and
+   metadata when a component is added or its props change, then run the build.
 6. **Dash bundle loading**: `dash_openlayers/__init__.py`'s `_js_dist` must
    list only the UMD bundle — Dash serves `relative_package_path` assets as
    plain `<script>` tags (no `type="module"`), so an ESM bundle listed there
@@ -46,7 +43,7 @@ uv sync
 npm test              # Jest + React Testing Library; enforces 80% statements per core component
 
 # After any component/propTypes change
-npm run build          # regenerates dash_openlayers/*.esm.js + *.umd.js only
+npm run build          # bundles + Python wrappers/imports + docs/api.md
 npm test               # frontend unit tests and per-component coverage thresholds
 npm run lint
 npm run format
@@ -59,10 +56,8 @@ uv run coverage xml    # coverage CLI lives in the uv venv; always use `uv run`
 node scripts/check-ai-invariants.js
 ```
 
-Always run `npm run build` after touching `propTypes`, then hand-update
-`dash_openlayers/metadata.json` and the component's `.py` wrapper class to
-match — check that the diff under `dash_openlayers/` reflects only the
-intended prop changes before committing.
+Always update `dash_openlayers/metadata.json` alongside `propTypes`, then run
+`npm run build` and check the generated wrapper/API diffs before committing.
 
 ## Adding a new component
 

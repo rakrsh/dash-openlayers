@@ -73,7 +73,7 @@ DOM/map event handler → `setProps` → Dash renderer → Python callback `Inpu
 | 5 | `propTypes` entries with a `//` comment or no comment | `/** JSDoc */` immediately above every `propTypes` key |
 | 6 | Re-creating a `VectorSource`/`GeoJSON` reader inside a `useEffect` with a dependency that changes every render (e.g. an inline object/array literal prop), causing an add/remove/re-render loop | Memoize the input (stable prop reference from Python, or `useMemo`) and only rebuild the source when the actual GeoJSON data changes, not on every render |
 | 7 | Adding a new component but forgetting to export it from `src/index.js` | Every new component is exported from `src/index.js` so it reaches the client bundle on build |
-| 8 | Assuming `npm run build` regenerates `dash_openlayers/metadata.json` or the Python `<Component>.py` wrapper classes | It only runs Rollup (JS bundles). Hand-update `metadata.json` and the Python class yourself, in lockstep with `propTypes` — see `.cursorrules` §8 |
+| 8 | Treating generated Python wrappers or API docs as hand-maintained | Update component metadata and run `npm run build`; it generates wrappers/imports and `docs/api.md` — see `.cursorrules` §8 |
 | 9 | Re-importing `ol/ol.css` from every component | Import once, at the `Map` component boundary |
 | 10 | Holding derived/duplicate state for a Dash-owned prop in local `useState` and drifting from the prop | Treat the incoming prop as source of truth; call the OpenLayers setter directly in an effect keyed on that prop |
 | 11 | Listing the ESM bundle (`dash_openlayers.esm.js`) in `dash_openlayers/__init__.py`'s `_js_dist` | Dash serves `relative_package_path` assets as plain `<script>` tags (no `type="module"`) — list only the UMD bundle there; the ESM build is for npm/bundler consumers via `package-info.json`'s `module` field |
@@ -88,7 +88,8 @@ DOM/map event handler → `setProps` → Dash renderer → Python callback `Inpu
 | `src/lib/context/OLContext.js` | `React.createContext` + `useMap()` hook |
 | `src/index.js` | Public export surface consumed by the Python wrapper generator |
 | `dash_openlayers/*.esm.js`, `*.umd.js` | **Generated** by `npm run build` (Rollup) — never hand-edit |
-| `dash_openlayers/metadata.json`, `dash_openlayers/<Component>.py` | **Hand-maintained** — no docgen/generator step exists in this repo; update whenever `propTypes` change |
+| `dash_openlayers/metadata.json` | Maintained component metadata source, aligned with React `propTypes` and JSDoc |
+| `dash_openlayers/<Component>.py`, `_imports_.py`, `docs/api.md` | Generated from metadata by `npm run build` |
 | `tests/test_*.py` | pytest suite (import + `dash_duo` integration tests) |
 | `usage*.py` | Manual/demo Dash apps for local verification |
 | `.agent/skills/` | Executable skill recipes for scaffolding components, validating projections, generating tests |

@@ -10,10 +10,12 @@ def test_components_exported():
     assert hasattr(mod, "ImageWMS")
     assert hasattr(mod, "LayerControl")
     assert hasattr(mod, "ModifyInteraction")
+    assert hasattr(mod, "SelectInteraction")
     assert hasattr(mod, "TileLayer")
     assert hasattr(mod, "TileWMS")
     assert hasattr(mod, "VectorLayer")
     assert hasattr(mod, "VectorTileLayer")
+    assert hasattr(mod, "WFSLayer")
     assert hasattr(mod, "WMTSLayer")
     assert hasattr(mod, "__version__")
 
@@ -223,6 +225,36 @@ def test_component_props_serialize():
                 "modifiedTopoJSON": {"type": "Topology"},
             },
             "ModifyInteraction",
+        ),
+        (
+            dol.SelectInteraction(
+                id="select",
+                layerId="vectors",
+                selectedGeoJSON={"type": "FeatureCollection", "features": []},
+            ),
+            {
+                "id": "select",
+                "layerId": "vectors",
+                "selectedGeoJSON": {"type": "FeatureCollection", "features": []},
+            },
+            "SelectInteraction",
+        ),
+        (
+            dol.WFSLayer(
+                id="wfs",
+                url="https://maps.example.com/geoserver/wfs",
+                typeNames="workspace:roads",
+                params={"count": 100},
+                featureCount=5,
+            ),
+            {
+                "id": "wfs",
+                "url": "https://maps.example.com/geoserver/wfs",
+                "typeNames": "workspace:roads",
+                "params": {"count": 100},
+                "featureCount": 5,
+            },
+            "WFSLayer",
         ),
     ]
 

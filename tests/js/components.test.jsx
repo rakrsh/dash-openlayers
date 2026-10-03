@@ -9,6 +9,8 @@ import TileWMSLayer from '../../src/lib/components/TileWMS.react';
 import ImageWMSLayer from '../../src/lib/components/ImageWMS.react';
 import DrawInteraction from '../../src/lib/components/DrawInteraction.react';
 import ModifyInteraction from '../../src/lib/components/ModifyInteraction.react';
+import SelectInteraction from '../../src/lib/components/SelectInteraction.react';
+import WFSLayer from '../../src/lib/components/WFSLayer.react';
 import { OLContext, useMap } from '../../src/lib/context/OLContext';
 import { getEditHistory } from '../../src/lib/utils/editHistory';
 import { exportFeature, exportFeatures, readFeatures } from '../../src/lib/utils/featureFormats';
@@ -19,6 +21,7 @@ import { toLonLat } from 'ol/proj';
 import { registerProjections } from '../../src/lib/utils/projection';
 import Draw from 'ol/interaction/Draw';
 import Modify from 'ol/interaction/Modify';
+import Select from 'ol/interaction/Select';
 import { unByKey } from 'ol/Observable';
 import Tile from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
@@ -176,6 +179,27 @@ jest.mock('ol/interaction/Modify', () => ({
       this.listeners[event] = listener;
       return listenerKey;
     });
+  }),
+}));
+
+jest.mock('ol/interaction/Select', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockSelect(options) {
+    this.options = options;
+    this.listeners = {};
+    this.selectedFeatures = {
+      items: [],
+      getArray: jest.fn(() => this.selectedFeatures.items),
+      clear: jest.fn(() => {
+        this.selectedFeatures.items = [];
+      }),
+    };
+    this.on = jest.fn((event, listener) => {
+      const listenerKey = { event, listener };
+      this.listeners[event] = listener;
+      return listenerKey;
+    });
+    this.getFeatures = jest.fn(() => this.selectedFeatures);
   }),
 }));
 
@@ -592,7 +616,7 @@ describe('OpenLayers context', () => {
 describe('TileLayer', () => {
   it('adds and removes an OSM tile layer', () => {
     const map = makeMap();
-    const { unmount } = render(
+    const { rerender, unmount } = render(
       <OLContext.Provider value={map}>
         <TileLayer source="OSM" />
       </OLContext.Provider>,
@@ -919,6 +943,70 @@ describe('VectorTileLayer', () => {
   });
 });
 
+describe('WFSLayer', () => {
+  it('loads WFS GeoJSON, reports the feature count, and aborts on unmount', async () => {
+    const map = makeMap();
+    const setProps = jest.fn();
+    const featureCollection = { type: 'FeatureCollection', features: [{ id: 'road-1' }] };
+    const params = { count: 10, CQL_FILTER: 'status=active' };
+    global.fetch = jest.fn().mockResolvedValue({
+      ok: true,
+      json: jest.fn().mockResolvedValue(featureCollection),
+    });
+    const { rerender, unmount } = render(
+      <OLContext.Provider value={map}>
+        <WFSLayer
+          id="roads"
+          url="https://maps.example.com/wfs?token=abc"
+          typeNames="workspace:roads"
+          params={params}
+          setProps={setProps}
+        />
+      </OLContext.Provider>,
+    );
+
+    const requestURL = new URL(global.fetch.mock.calls[0][0]);
+    const requestOptions = global.fetch.mock.calls[0][1];
+    const layer = OpenLayersVectorLayer.mock.instances.at(-1);
+    const source = VectorSource.mock.instances.at(-1);
+    expect(requestURL.searchParams.get('token')).toBe('abc');
+    expect(requestURL.searchParams.get('service')).toBe('WFS');
+    expect(requestURL.searchParams.get('version')).toBe('2.0.0');
+    expect(requestURL.searchParams.get('request')).toBe('GetFeature');
+    expect(requestURL.searchParams.get('typeNames')).toBe('workspace:roads');
+    expect(requestURL.searchParams.get('count')).toBe('10');
+    expect(requestURL.searchParams.get('CQL_FILTER')).toBe('status=active');
+    expect(layer.set).toHaveBeenCalledWith('dashId', 'roads');
+    expect(map.addLayer).toHaveBeenCalledWith(layer);
+
+    await waitFor(() =>
+      expect(setProps).toHaveBeenCalledWith({ featureCount: 1, loadError: null }),
+    );
+    rerender(
+      <OLContext.Provider value={map}>
+        <WFSLayer
+          id="roads"
+          url="https://maps.example.com/wfs?token=abc"
+          typeNames="workspace:roads"
+          params={params}
+          setProps={setProps}
+        />
+      </OLContext.Provider>,
+    );
+    expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(source.addFeatures).toHaveBeenCalledWith([{ id: 'feature' }]);
+    expect(GeoJSON.mock.instances.at(-1).readFeatures).toHaveBeenCalledWith(featureCollection, {
+      dataProjection: 'EPSG:4326',
+      featureProjection: 'EPSG:3857',
+    });
+
+    unmount();
+    expect(requestOptions.signal.aborted).toBe(true);
+    expect(map.removeLayer).toHaveBeenCalledWith(layer);
+    expect(source.clear).toHaveBeenCalled();
+  });
+});
+
 describe('WMTSLayer', () => {
   it('loads capabilities, derives source options, and removes the WMTS layer on unmount', async () => {
     const map = makeMap();
@@ -1091,6 +1179,42 @@ describe('WMS layers', () => {
 
     unmount();
     expect(map.removeLayer).toHaveBeenCalledWith(layer);
+  });
+});
+
+describe('SelectInteraction', () => {
+  it('filters by layer, emits the selected FeatureCollection, and cleans up', () => {
+    const map = makeMap();
+    const setProps = jest.fn();
+    const { unmount } = render(
+      <OLContext.Provider value={map}>
+        <SelectInteraction id="select" layerId="vectors" setProps={setProps} />
+      </OLContext.Provider>,
+    );
+
+    const select = Select.mock.instances[0];
+    const feature = { id: 'selected-feature' };
+    select.selectedFeatures.items = [feature];
+    expect(select.options.layers({ get: (key) => (key === 'dashId' ? 'vectors' : undefined) })).toBe(
+      true,
+    );
+    expect(select.options.layers({ get: () => 'other-layer' })).toBe(false);
+    expect(map.addInteraction).toHaveBeenCalledWith(select);
+
+    select.listeners.select();
+    expect(GeoJSON.mock.instances.at(-1).writeFeaturesObject).toHaveBeenCalledWith([feature], {
+      featureProjection: 'EPSG:3857',
+      dataProjection: 'EPSG:4326',
+    });
+    expect(setProps).toHaveBeenCalledWith({
+      selectedGeoJSON: { type: 'FeatureCollection', features: [] },
+    });
+
+    const listenerKey = { event: 'select', listener: select.listeners.select };
+    unmount();
+    expect(unByKey).toHaveBeenCalledWith(listenerKey);
+    expect(map.removeInteraction).toHaveBeenCalledWith(select);
+    expect(select.selectedFeatures.clear).toHaveBeenCalled();
   });
 });
 

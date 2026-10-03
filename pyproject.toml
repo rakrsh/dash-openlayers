@@ -32,6 +32,7 @@ test = [
 ]
 build = [
     "build>=1.2.0",
+    "pyyaml>=6.0.2",
 ]
 lint = [
     "ruff>=0.8.0",

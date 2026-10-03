@@ -30,9 +30,6 @@ jobs:
       - name: Install npm deps
         run: npm install
 
-      - name: Build JS bundles
-        run: npm run build
-
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
@@ -43,6 +40,9 @@ jobs:
         with:
           version: ${{ inputs.uv-version }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build JS bundles and Python components
+        run: npm run build
 
       - name: Install browser & chromedriver (Linux)
         if: startsWith(runner.os, 'Linux')

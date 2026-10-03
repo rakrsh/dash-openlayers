@@ -1,11 +1,14 @@
 # dash-openlayers
 
-dash-openlayers provides OpenLayers-based mapping components for Plotly Dash.
+`dash-openlayers` provides OpenLayers-based map, layer, and interaction
+components for Plotly Dash. Components are composed as `Map` children, while
+map state and selected or edited features flow back through Dash properties.
 
-This documentation is a minimal site to get started. It is generated with MkDocs and the Material theme.
-
-- Quick start and installation: [Quickstart](quickstart.md)
-- Usage example: [Usage](usage.md)
+- [Install and build a first map](quickstart.md)
+- [Layer, projection, selection, and editing examples](usage.md)
+- [Component props and defaults](api.md)
+- [Architecture](architecture.md)
+- [Test suite](testing.md)
 
 ## Contributing
 

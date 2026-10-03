@@ -22,27 +22,30 @@ ComponentType = typing.Union[
 
 class Map(Component):
     """A Map component.
-
+Create an OpenLayers map and synchronize its view and click events with Dash.
 
 Keyword arguments:
 
-- children (a list of or a singular dash component, string or number; optional)
+- id (string; optional):
+    The ID used to identify this component in Dash callbacks.
 
-- id (string; optional)
+- children (a list of or a singular dash component, string or number; optional):
+    OpenLayers layer and interaction components rendered inside this
+    map.
 
-- center (list of numbers; default [0, 0])
+- center (list of numbers; default [0, 0]):
+    Map view center as [x, y] in projection units; bidirectional with
+    the rendered view.
 
-- clickData (dict; optional)
+- zoom (number; default 2):
+    Map zoom level; bidirectional with the rendered view.
 
-- undo (number; optional): Increment to undo the latest Draw or Modify operation.
+- projection (string; default 'EPSG:3857'):
+    EPSG code used for the map view.
 
-- redo (number; optional): Increment to redo the latest undone operation.
-
-- canUndo (bool; optional): Read-only; whether an operation is available to undo.
-
-- canRedo (bool; optional): Read-only; whether an operation is available to redo.
-
-- proj4Defs (list of dicts; optional)
+- proj4Defs (list of dicts; optional):
+    Custom proj4 definitions registered before the map view is
+    created.
 
     `proj4Defs` is a list of dicts with keys:
 
@@ -50,9 +53,21 @@ Keyword arguments:
 
     - def (string; required)
 
-- projection (string; default 'EPSG:3857')
+- clickData (dict; optional):
+    Read-only click position with raw projected coordinates and
+    [latitude, longitude].
 
-- zoom (number; default 2)"""
+- undo (number; default 0):
+    Increment to undo the latest Draw or Modify operation.
+
+- redo (number; default 0):
+    Increment to redo the latest undone operation.
+
+- canUndo (boolean; optional):
+    Read-only; whether an operation is available to undo.
+
+- canRedo (boolean; optional):
+    Read-only; whether an operation is available to redo."""
     _children_props: typing.List[str] = []
     _base_nodes = ['children']
     _namespace = 'dash_openlayers'
@@ -82,9 +97,9 @@ Keyword arguments:
         canRedo: typing.Optional[bool] = None,
         **kwargs
     ):
-        self._prop_names = ['children', 'id', 'center', 'clickData', 'proj4Defs', 'projection', 'style', 'zoom', 'undo', 'redo', 'canUndo', 'canRedo']
+        self._prop_names = ['id', 'children', 'center', 'zoom', 'projection', 'proj4Defs', 'style', 'clickData', 'undo', 'redo', 'canUndo', 'canRedo']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['children', 'id', 'center', 'clickData', 'proj4Defs', 'projection', 'style', 'zoom', 'undo', 'redo', 'canUndo', 'canRedo']
+        self.available_properties = ['id', 'children', 'center', 'zoom', 'projection', 'proj4Defs', 'style', 'clickData', 'undo', 'redo', 'canUndo', 'canRedo']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()

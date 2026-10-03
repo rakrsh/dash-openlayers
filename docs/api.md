@@ -1,3 +1,168 @@
-# API
+# API Reference
 
-API reference will be added here. Consider generating API docs from the Python package (Sphinx) or with mkdocstrings in a future iteration.
+This reference is generated from the component metadata used to build the Python wrappers.
+For runnable examples, see the [usage guide](usage.md).
+
+## `DrawInteraction`
+
+Draw and validate OpenLayers features, then publish their serialized geometry to Dash.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | — | The ID used to identify this component in Dash callbacks. |
+| `geometryType` | `'Point' \| 'LineString' \| 'Polygon' \| 'Circle'` | `'Polygon'` | Geometry type drawn by this interaction. |
+| `drawnGeoJSON` | `dict` | — | Read-only GeoJSON Feature emitted only when geometry validation succeeds. |
+| `drawnWKT` | `string` | — | Read-only WKT geometry emitted only when geometry validation succeeds. |
+| `drawnTopoJSON` | `dict` | — | Read-only TopoJSON topology emitted only when geometry validation succeeds. |
+| `geometryValidation` | `dict` | — | Read-only validity, topology errors, and repair suggestions from the last draw. |
+| `snapToVertex` | `bool` | `true` | Whether drawing snaps to existing vector vertices. |
+| `snapToEdge` | `bool` | `true` | Whether drawing snaps to existing vector edges. |
+| `snapTolerance` | `number` | `10` | Maximum snap distance in screen pixels. |
+
+## `ImageWMS`
+
+Render a single-image OGC Web Map Service layer.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | — | Component ID used to identify this layer in the Dash layout. |
+| `url` | `string` | `null` | OGC WMS endpoint URL. |
+| `params` | `dict` | `{}` | WMS request parameters, including LAYERS; changes refresh the source. |
+| `serverType` | `'carmentaserver' \| 'geoserver' \| 'mapserver' \| 'qgis'` | `null` | WMS server type used for vendor-specific HiDPI request parameters. |
+
+## `LayerControl`
+
+Layer visibility, opacity, and stacking-order controls for map layers.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | — | The ID used to identify this component in Dash callbacks. |
+| `position` | `'top-left' \| 'top-right' \| 'bottom-left' \| 'bottom-right'` | `'top-right'` | Corner of the map where the control is displayed. |
+| `title` | `string` | `'Layers'` | Heading displayed above the layer controls. |
+
+## `Map`
+
+Create an OpenLayers map and synchronize its view and click events with Dash.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | — | The ID used to identify this component in Dash callbacks. |
+| `children` | `Dash component` | — | OpenLayers layer and interaction components rendered inside this map. |
+| `center` | `list[number]` | `[0, 0]` | Map view center as [x, y] in projection units; bidirectional with the rendered view. |
+| `zoom` | `number` | `2` | Map zoom level; bidirectional with the rendered view. |
+| `projection` | `string` | `'EPSG:3857'` | EPSG code used for the map view. |
+| `proj4Defs` | `list[dict]` | `[]` | Custom proj4 definitions registered before the map view is created. |
+| `style` | `dict` | — | Inline CSS style applied to the map container. |
+| `clickData` | `dict` | — | Read-only click position with raw projected coordinates and [latitude, longitude]. |
+| `undo` | `number` | `0` | Increment to undo the latest Draw or Modify operation. |
+| `redo` | `number` | `0` | Increment to redo the latest undone operation. |
+| `canUndo` | `bool` | — | Read-only; whether an operation is available to undo. |
+| `canRedo` | `bool` | — | Read-only; whether an operation is available to redo. |
+
+## `ModifyInteraction`
+
+Allow editing vertices in a VectorLayer and report the updated features.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | — | The ID used to identify this component in Dash callbacks. |
+| `layerId` | `string` | `null` | Dash ID of the VectorLayer to modify; defaults to the first vector layer on the map. |
+| `snapToVertex` | `bool` | `true` | Whether editing snaps to vector vertices. |
+| `snapToEdge` | `bool` | `true` | Whether editing snaps to vector edges. |
+| `snapTolerance` | `number` | `10` | Maximum snap distance in screen pixels. |
+| `preserveTopology` | `bool` | `true` | Revert polygon edits that introduce invalid topology. |
+| `modifiedGeoJSON` | `dict` | — | Read-only: GeoJSON FeatureCollection of the target layer after a modify operation. |
+| `modifiedWKT` | `string` | — | Read-only: WKT geometry collection of the target layer after modification. |
+| `modifiedTopoJSON` | `dict` | — | Read-only: TopoJSON topology of the target layer after modification. |
+| `geometryValidation` | `dict` | — | Read-only: topology validation result from the last modification. |
+
+## `SelectInteraction`
+
+Select vector features and report the current selection to Dash.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | — | The ID used to identify this component in Dash callbacks. |
+| `layerId` | `string` | `null` | Dash ID of the vector layer to select from; omit to allow all selectable layers. |
+| `selectedGeoJSON` | `dict` | — | Read-only: current selection as a GeoJSON FeatureCollection in EPSG:4326. |
+
+## `TileLayer`
+
+Render OpenStreetMap or custom XYZ tiles on the map.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | — | The ID used to identify this layer in Dash callbacks. |
+| `source` | `string` | `null` | Built-in tile source identifier. Currently supports OSM. |
+| `url` | `string` | `null` | URL template for a custom XYZ tile source. |
+
+## `TileWMS`
+
+Render a tiled OGC Web Map Service layer.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | — | Component ID used to identify this layer in the Dash layout. |
+| `url` | `string` | `null` | OGC WMS endpoint URL. |
+| `params` | `dict` | `{}` | WMS request parameters, including LAYERS; changes refresh the source. |
+| `serverType` | `'carmentaserver' \| 'geoserver' \| 'mapserver' \| 'qgis'` | `null` | WMS server type used for vendor-specific HiDPI request parameters. |
+
+## `VectorLayer`
+
+Render GeoJSON features in a canvas-backed OpenLayers vector layer.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | — | Dash component ID; also used by ModifyInteraction to target this vector layer. |
+| `geojson` | `dict` | `null` | GeoJSON Feature or FeatureCollection with coordinates in [longitude, latitude] order; updates are rendered in the map projection. |
+| `wkt` | `string` | `null` | WKT geometry in [x, y] order; takes precedence over geojson when non-empty. |
+| `style` | `dict \| list[dict]` | `null` | OpenLayers flat style object or rule array; supports icon, fill, stroke, feature filters, and resolution expressions. |
+| `clusterDistance` | `number` | `0` | Point clustering distance in screen pixels; set to 0 to disable clustering. |
+| `clusterMinDistance` | `number` | `0` | Minimum distance in screen pixels between clusters; capped at clusterDistance. |
+| `declutter` | `bool \| string` | `false` | Enable label decluttering or set a shared group name for decluttering across layers. |
+
+## `VectorTileLayer`
+
+Render Mapbox Vector Tiles from an MVT endpoint with an OpenLayers flat style.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | — | Component ID used to identify this layer in the Dash layout. |
+| `url` | `string` | `null` | MVT URL template containing {z}, {x}, and {y} or {-y}; ignored when urls is provided. |
+| `urls` | `list[string]` | `null` | Alternative MVT URL templates for load balancing; takes precedence over url. |
+| `projection` | `string` | `'EPSG:3857'` | Projection of the vector tile grid; use the CRS served by the tile endpoint. |
+| `attributions` | `string \| list[string]` | `null` | Attribution text or a list of attribution strings for the tile provider. |
+| `style` | `dict` | `null` | OpenLayers flat-style object used to style MVT features. |
+
+## `WFSLayer`
+
+Load WFS GeoJSON features into an editable vector layer.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | — | The ID used to identify this component and layer in Dash callbacks. |
+| `url` | `string` | `null` | WFS endpoint URL; the service must allow browser CORS access. |
+| `typeNames` | `string` | `null` | WFS feature type name (sent as typeNames for 2.x, typeName for 1.x). |
+| `version` | `string` | `'2.0.0'` | WFS protocol version. |
+| `srsName` | `string` | `'EPSG:4326'` | Coordinate reference system requested from the service and used to parse response coordinates. |
+| `outputFormat` | `string` | `'application/json'` | WFS response format; the component currently parses GeoJSON responses. |
+| `params` | `dict` | `{}` | Additional GetFeature query parameters, such as count, bbox, or CQL_FILTER. |
+| `featureCount` | `number` | — | Read-only: number of features loaded by the last successful request. |
+| `loadError` | `string` | — | Read-only: message from the last failed request, or null after success. |
+
+## `WMTSLayer`
+
+Render a WMTS layer using its service capabilities to configure the tile grid.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | — | Component ID used to identify this layer in the Dash layout. |
+| `url` | `string` | `null` | URL of the WMTS GetCapabilities document; the server must allow browser CORS access. |
+| `layer` | `string` | `null` | Layer identifier advertised by the WMTS capabilities. |
+| `matrixSet` | `string` | `null` | Tile matrix set identifier; inferred when the capabilities advertise a single set. |
+| `projection` | `string` | `null` | Projection code to select a compatible matrix set, such as EPSG:3857. |
+| `style` | `string` | `null` | Advertised WMTS style identifier. |
+| `format` | `string` | `null` | Tile image format; defaults to the first advertised format. |
+| `requestEncoding` | `'KVP' \| 'REST'` | `null` | WMTS request encoding, either KVP or REST. |
+| `dimensions` | `dict` | `null` | Values for advertised WMTS dimensions, such as TIME or ELEVATION. |
+| `attributions` | `string \| list[string]` | `null` | Attribution text or a list of attribution strings for the tile provider. |
