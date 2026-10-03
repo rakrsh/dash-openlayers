@@ -1,6 +1,8 @@
 import React from 'react';
 import { useEffect } from 'react';
 import PropTypes from 'prop-types';
+import { booleanValid } from '@turf/boolean-valid';
+import { kinks } from '@turf/kinks';
 import Draw from 'ol/interaction/Draw';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
@@ -31,10 +33,38 @@ const DrawInteraction = ({ id, geometryType, setProps }) => {
         featureProjection: map.getView().getProjection(),
         dataProjection: 'EPSG:4326',
       });
+      const polygonGeometry = ['Polygon', 'MultiPolygon'].includes(geojson.geometry.type);
+      const intersections = polygonGeometry
+        ? kinks(geojson).features.map(({ geometry }) => ({
+            code: 'self_intersection',
+            coordinates: geometry.coordinates,
+          }))
+        : [];
+      const structurallyValid = booleanValid(geojson);
+      const errors = [...intersections];
+      if (!structurallyValid) {
+        errors.unshift({ code: 'invalid_geometry' });
+      }
+
+      const suggestions = [];
+      if (intersections.length > 0) {
+        suggestions.push('Move the reported vertices so polygon boundaries do not cross.');
+      }
+      if (!structurallyValid) {
+        suggestions.push(
+          'Close each ring, provide at least four positions, and keep holes inside the outer ring without overlap.',
+        );
+      }
+
+      const valid = structurallyValid && intersections.length === 0;
+      if (!valid) {
+        source.removeFeature(evt.feature);
+      }
 
       if (setProps) {
         setProps({
-          drawnGeoJSON: geojson,
+          drawnGeoJSON: valid ? geojson : null,
+          geometryValidation: { valid, errors, suggestions },
         });
       }
     });
@@ -59,8 +89,14 @@ DrawInteraction.propTypes = {
   id: PropTypes.string,
   /** Geometry type drawn by this interaction. */
   geometryType: PropTypes.oneOf(['Point', 'LineString', 'Polygon', 'Circle']),
-  /** Read-only: GeoJSON Feature emitted on `drawend`, set via `setProps`. */
+  /** Read-only: GeoJSON Feature emitted only when geometry validation succeeds. */
   drawnGeoJSON: PropTypes.object,
+  /** Read-only: validity, topology errors, and repair suggestions from the last draw. */
+  geometryValidation: PropTypes.shape({
+    valid: PropTypes.bool,
+    errors: PropTypes.arrayOf(PropTypes.object),
+    suggestions: PropTypes.arrayOf(PropTypes.string),
+  }),
   /** Dash-supplied prop setter; internal, do not set from Python. */
   setProps: PropTypes.func,
 };

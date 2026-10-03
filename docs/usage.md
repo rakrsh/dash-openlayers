@@ -229,7 +229,25 @@ dol.VectorLayer(
 )
 ```
 
-Example usage (from the repository `usage.py`) — draw polygons and capture GeoJSON:
+The runnable example below draws polygons and captures GeoJSON:
+
+`DrawInteraction` validates completed features before emitting `drawnGeoJSON`.
+Valid features are exported normally. Invalid features are removed from the
+drawing layer, `drawnGeoJSON` is cleared, and the read-only `geometryValidation`
+prop reports errors and suggestions. Self-intersection errors include their
+`[longitude, latitude]` crossing coordinates; malformed rings suggest closing
+the ring and providing enough positions.
+
+Listen to the validation result with `Input("draw-tool", "geometryValidation")`
+in a Dash callback. A self-intersection result has this shape:
+
+```python
+{
+    "valid": False,
+    "errors": [{"code": "self_intersection", "coordinates": [1, 1]}],
+    "suggestions": ["Move the reported vertices so polygon boundaries do not cross."],
+}
+```
 
 ```python
 import dash
