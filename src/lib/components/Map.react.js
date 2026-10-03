@@ -6,9 +6,23 @@ import View from 'ol/View';
 import { toLonLat } from 'ol/proj';
 import { OLContext } from '../context/OLContext';
 import { registerProjections } from '../utils/projection';
+import { getEditHistory } from '../utils/editHistory';
 
-const MapComponent = ({ id, children, center, zoom, projection, proj4Defs, style, setProps }) => {
+const MapComponent = ({
+  id,
+  children,
+  center,
+  zoom,
+  projection,
+  proj4Defs,
+  style,
+  undo,
+  redo,
+  setProps,
+}) => {
   const mapElement = useRef(null);
+  const undoCommandRef = useRef(undo);
+  const redoCommandRef = useRef(redo);
   const [map, setMap] = useState(null);
 
   useEffect(() => {
@@ -71,6 +85,27 @@ const MapComponent = ({ id, children, center, zoom, projection, proj4Defs, style
     }
   }, [center, map, zoom]);
 
+  useEffect(() => {
+    if (!map) return;
+
+    const history = getEditHistory(map);
+    return history.subscribe(({ canUndo, canRedo }) => {
+      if (setProps) {
+        setProps({ canUndo, canRedo });
+      }
+    });
+  }, [map, setProps]);
+
+  useEffect(() => {
+    if (!map) return;
+
+    const history = getEditHistory(map);
+    if (undo !== undoCommandRef.current) history.undo();
+    if (redo !== redoCommandRef.current) history.redo();
+    undoCommandRef.current = undo;
+    redoCommandRef.current = redo;
+  }, [map, redo, undo]);
+
   return (
     <OLContext.Provider value={map}>
       <div id={id} ref={mapElement} style={style || { width: '100%', height: '500px' }}>
@@ -85,6 +120,8 @@ MapComponent.defaultProps = {
   zoom: 2,
   projection: 'EPSG:3857',
   proj4Defs: [],
+  undo: 0,
+  redo: 0,
 };
 
 MapComponent.propTypes = {
@@ -113,6 +150,14 @@ MapComponent.propTypes = {
   style: PropTypes.object,
   /** Read-only: set on `singleclick` with `{ coordinate: [x, y], latLon: [lat, lon] }`. */
   clickData: PropTypes.object,
+  /** Increment to undo the latest draw or modify operation on this map. */
+  undo: PropTypes.number,
+  /** Increment to redo the latest undone draw or modify operation on this map. */
+  redo: PropTypes.number,
+  /** Read-only: whether this map's edit history has an operation to undo. */
+  canUndo: PropTypes.bool,
+  /** Read-only: whether this map's edit history has an operation to redo. */
+  canRedo: PropTypes.bool,
   /** Dash-supplied prop setter; internal, do not set from Python. */
   setProps: PropTypes.func,
 };

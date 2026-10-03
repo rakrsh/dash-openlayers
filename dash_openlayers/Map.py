@@ -34,6 +34,14 @@ Keyword arguments:
 
 - clickData (dict; optional)
 
+- undo (number; optional): Increment to undo the latest Draw or Modify operation.
+
+- redo (number; optional): Increment to redo the latest undone operation.
+
+- canUndo (bool; optional): Read-only; whether an operation is available to undo.
+
+- canRedo (bool; optional): Read-only; whether an operation is available to redo.
+
 - proj4Defs (list of dicts; optional)
 
     `proj4Defs` is a list of dicts with keys:
@@ -68,11 +76,15 @@ Keyword arguments:
         proj4Defs: typing.Optional[typing.Sequence["Proj4Defs"]] = None,
         style: typing.Optional[typing.Any] = None,
         clickData: typing.Optional[dict] = None,
+        undo: typing.Optional[NumberType] = None,
+        redo: typing.Optional[NumberType] = None,
+        canUndo: typing.Optional[bool] = None,
+        canRedo: typing.Optional[bool] = None,
         **kwargs
     ):
-        self._prop_names = ['children', 'id', 'center', 'clickData', 'proj4Defs', 'projection', 'style', 'zoom']
+        self._prop_names = ['children', 'id', 'center', 'clickData', 'proj4Defs', 'projection', 'style', 'zoom', 'undo', 'redo', 'canUndo', 'canRedo']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['children', 'id', 'center', 'clickData', 'proj4Defs', 'projection', 'style', 'zoom']
+        self.available_properties = ['children', 'id', 'center', 'clickData', 'proj4Defs', 'projection', 'style', 'zoom', 'undo', 'redo', 'canUndo', 'canRedo']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()

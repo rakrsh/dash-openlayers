@@ -1,14 +1,20 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import GeoJSON from 'ol/format/GeoJSON';
 import Modify from 'ol/interaction/Modify';
 import VectorSource from 'ol/source/Vector';
 import { unByKey } from 'ol/Observable';
 import { useMap } from '../context/OLContext';
+import { getEditHistory } from '../utils/editHistory';
 
 /** Allow editing vertices in a VectorLayer and report the updated features. */
 const ModifyInteraction = ({ layerId, setProps }) => {
   const map = useMap();
+  const setPropsRef = useRef(setProps);
+
+  useEffect(() => {
+    setPropsRef.current = setProps;
+  }, [setProps]);
 
   useEffect(() => {
     const layers = map.getLayers().getArray();
@@ -20,25 +26,66 @@ const ModifyInteraction = ({ layerId, setProps }) => {
     if (!source) return;
 
     const format = new GeoJSON();
+    const history = getEditHistory(map);
     const modify = new Modify({ source });
     map.addInteraction(modify);
-
-    const listenerKey = modify.on('modifyend', () => {
-      if (setProps) {
-        setProps({
+    const publishModifiedGeoJSON = () => {
+      if (setPropsRef.current) {
+        setPropsRef.current({
           modifiedGeoJSON: format.writeFeaturesObject(source.getFeatures(), {
             featureProjection: map.getView().getProjection(),
             dataProjection: 'EPSG:4326',
           }),
         });
       }
+    };
+
+    let beforeGeometries = null;
+    const startListenerKey = modify.on('modifystart', (event) => {
+      beforeGeometries = event.features.getArray().map((feature) => ({
+        feature,
+        geometry: feature.getGeometry().clone(),
+      }));
+    });
+
+    const endListenerKey = modify.on('modifyend', (event) => {
+      const features = event.features.getArray();
+      const afterGeometries = features.map((feature) => ({
+        feature,
+        geometry: feature.getGeometry().clone(),
+      }));
+      const previousGeometries = beforeGeometries;
+
+      if (previousGeometries) {
+        history.record(
+          {
+            undo: () => {
+              previousGeometries.forEach(({ feature, geometry }) =>
+                feature.setGeometry(geometry.clone()),
+              );
+              publishModifiedGeoJSON();
+            },
+            redo: () => {
+              afterGeometries.forEach(({ feature, geometry }) =>
+                feature.setGeometry(geometry.clone()),
+              );
+              publishModifiedGeoJSON();
+            },
+          },
+          source,
+        );
+      }
+      beforeGeometries = null;
+
+      publishModifiedGeoJSON();
     });
 
     return () => {
-      unByKey(listenerKey);
+      unByKey(startListenerKey);
+      unByKey(endListenerKey);
       map.removeInteraction(modify);
     };
-  }, [layerId, map, setProps]);
+  }, [layerId, map]);
 
   return null;
 };

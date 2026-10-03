@@ -1,8 +1,9 @@
 import json
 
 import dash
-from dash import Input, Output, html
+from dash import Input, Output, State, html
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import WebDriverWait
 
 import dash_openlayers as dol
 
@@ -15,6 +16,8 @@ def test_draw_interaction(dash_duo):
                 id="map",
                 center=[1_113_194.9, 5_621_521.5],
                 zoom=5,
+                undo=0,
+                redo=0,
                 children=[
                     dol.TileLayer(source="OSM"),
                     dol.DrawInteraction(id="draw-tool", geometryType="Polygon"),
@@ -23,6 +26,9 @@ def test_draw_interaction(dash_duo):
             ),
             html.Pre(id="geojson-output"),
             html.Pre(id="validation-output"),
+            html.Button("Undo", id="undo-button"),
+            html.Button("Redo", id="redo-button"),
+            html.Pre(id="history-output"),
         ]
     )
 
@@ -33,6 +39,32 @@ def test_draw_interaction(dash_duo):
     @app.callback(Output("validation-output", "children"), Input("draw-tool", "geometryValidation"))
     def show_geometry_validation(result):
         return json.dumps(result) if result else ""
+
+    @app.callback(
+        Output("map", "undo"),
+        Input("undo-button", "n_clicks"),
+        State("map", "undo"),
+        prevent_initial_call=True,
+    )
+    def request_undo(clicks, command):
+        return command + 1
+
+    @app.callback(
+        Output("map", "redo"),
+        Input("redo-button", "n_clicks"),
+        State("map", "redo"),
+        prevent_initial_call=True,
+    )
+    def request_redo(clicks, command):
+        return command + 1
+
+    @app.callback(
+        Output("history-output", "children"),
+        Input("map", "canUndo"),
+        Input("map", "canRedo"),
+    )
+    def show_history(can_undo, can_redo):
+        return json.dumps({"canUndo": can_undo, "canRedo": can_redo})
 
     dash_duo.start_server(app)
     # Wait for OpenLayers map viewport to appear (created by the client-side JS)
@@ -71,6 +103,18 @@ def test_draw_interaction(dash_duo):
     assert len(ring) >= 4
     assert all(-180 <= longitude <= 180 and -90 <= latitude <= 90 for longitude, latitude in ring)
     assert all(8 < longitude < 12 and 43 < latitude < 47 for longitude, latitude in ring)
+
+    dash_duo.wait_for_contains_text("#history-output", '"canUndo": true', timeout=10)
+    dash_duo.find_element("#undo-button").click()
+    dash_duo.wait_for_contains_text("#history-output", '"canUndo": false', timeout=10)
+    dash_duo.wait_for_contains_text("#history-output", '"canRedo": true', timeout=10)
+    WebDriverWait(dash_duo.driver, 10).until(
+        lambda _: dash_duo.find_element("#geojson-output").text == ""
+    )
+
+    dash_duo.find_element("#redo-button").click()
+    dash_duo.wait_for_contains_text("#history-output", '"canUndo": true', timeout=10)
+    dash_duo.wait_for_contains_text("#geojson-output", '"type": "Feature"', timeout=10)
     assert dash_duo.get_logs() == []
 
 

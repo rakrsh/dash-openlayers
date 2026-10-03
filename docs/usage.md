@@ -152,6 +152,40 @@ dol.Map(
 Use `Input("modify", "modifiedGeoJSON")` in a Dash callback to receive the
 edited FeatureCollection.
 
+Draw and Modify operations share an undo/redo stack owned by the map. Initialize
+the map with `undo=0` and `redo=0`, then increment a command counter to execute
+an operation. `canUndo` and `canRedo` are read-only outputs you can use to
+disable buttons:
+
+```python
+from dash import Input, Output, State
+
+
+@app.callback(
+    Output("map", "undo"),
+    Input("undo-button", "n_clicks"),
+    State("map", "undo"),
+    prevent_initial_call=True,
+)
+def request_undo(clicks, command):
+    return command + 1
+
+
+@app.callback(
+    Output("map", "redo"),
+    Input("redo-button", "n_clicks"),
+    State("map", "redo"),
+    prevent_initial_call=True,
+)
+def request_redo(clicks, command):
+    return command + 1
+
+
+@app.callback(Output("undo-button", "disabled"), Input("map", "canUndo"))
+def disable_undo(can_undo):
+    return not can_undo
+```
+
 `VectorLayer` renders a GeoJSON Feature or FeatureCollection. Coordinates use
 GeoJSON's `[longitude, latitude]` order and are transformed into the map's
 projection. Updating `geojson` from a Dash callback replaces the rendered

@@ -37,6 +37,10 @@
 			"proj4Defs": { "type": { "name": "arrayOf", "value": { "name": "shape", "value": { "code": { "name": "string", "required": true }, "def": { "name": "string", "required": true } } } }, "required": false, "description": "", "defaultValue": { "value": "[]", "computed": false } },
 			"style": { "type": { "name": "object" }, "required": false, "description": "" },
 			"clickData": { "type": { "name": "object" }, "required": false, "description": "" },
+			"undo": { "type": { "name": "number" }, "required": false, "description": "Increment to undo the latest Draw or Modify operation.", "defaultValue": { "value": "0", "computed": false } },
+			"redo": { "type": { "name": "number" }, "required": false, "description": "Increment to redo the latest undone operation.", "defaultValue": { "value": "0", "computed": false } },
+			"canUndo": { "type": { "name": "boolean" }, "required": false, "description": "Read-only; whether an operation is available to undo." },
+			"canRedo": { "type": { "name": "boolean" }, "required": false, "description": "Read-only; whether an operation is available to redo." },
 			"setProps": { "type": { "name": "func" }, "required": false, "description": "" }
 		}
 	},
