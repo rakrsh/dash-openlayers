@@ -8,6 +8,7 @@ import { useMap } from '../context/OLContext';
 import { getEditHistory } from '../utils/editHistory';
 import { getTopologyErrors } from '../utils/geometryValidation';
 import { addSnapInteraction } from '../utils/snap';
+import { exportFeatures } from '../utils/featureFormats';
 
 /** Allow editing vertices in a VectorLayer and report the updated features. */
 const ModifyInteraction = ({
@@ -40,11 +41,14 @@ const ModifyInteraction = ({
     map.addInteraction(modify);
     const publishModifiedGeoJSON = () => {
       if (setPropsRef.current) {
+        const outputFormats = exportFeatures(source.getFeatures(), {
+          featureProjection: map.getView().getProjection(),
+          dataProjection: 'EPSG:4326',
+        });
         setPropsRef.current({
-          modifiedGeoJSON: format.writeFeaturesObject(source.getFeatures(), {
-            featureProjection: map.getView().getProjection(),
-            dataProjection: 'EPSG:4326',
-          }),
+          modifiedGeoJSON: outputFormats.geojson,
+          modifiedWKT: outputFormats.wkt,
+          modifiedTopoJSON: outputFormats.topojson,
         });
       }
     };
@@ -161,6 +165,10 @@ ModifyInteraction.propTypes = {
   preserveTopology: PropTypes.bool,
   /** Read-only: GeoJSON FeatureCollection of the target layer after a modify operation. */
   modifiedGeoJSON: PropTypes.object,
+  /** Read-only: WKT geometry collection of the target layer after modification. */
+  modifiedWKT: PropTypes.string,
+  /** Read-only: TopoJSON topology of the target layer after modification. */
+  modifiedTopoJSON: PropTypes.object,
   /** Read-only: topology validation result from the last modification. */
   geometryValidation: PropTypes.shape({
     valid: PropTypes.bool,

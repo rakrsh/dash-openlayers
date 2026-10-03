@@ -11,6 +11,7 @@ import DrawInteraction from '../../src/lib/components/DrawInteraction.react';
 import ModifyInteraction from '../../src/lib/components/ModifyInteraction.react';
 import { OLContext, useMap } from '../../src/lib/context/OLContext';
 import { getEditHistory } from '../../src/lib/utils/editHistory';
+import { exportFeature, exportFeatures, readFeatures } from '../../src/lib/utils/featureFormats';
 import Snap from 'ol/interaction/Snap';
 import Map from 'ol/Map';
 import View from 'ol/View';
@@ -23,6 +24,7 @@ import Tile from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
 import XYZ from 'ol/source/XYZ';
 import GeoJSON from 'ol/format/GeoJSON';
+import WKT from 'ol/format/WKT';
 import OpenLayersVectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import MVT from 'ol/format/MVT';
@@ -128,6 +130,15 @@ jest.mock('ol/format/GeoJSON', () => ({
       properties: {},
     }));
     this.writeFeaturesObject = jest.fn(() => ({ type: 'FeatureCollection', features: [] }));
+  }),
+}));
+
+jest.mock('ol/format/WKT', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockWKT() {
+    this.readFeatures = jest.fn(() => [{ id: 'wkt-feature' }]);
+    this.writeFeature = jest.fn(() => 'POINT (10 45)');
+    this.writeFeatures = jest.fn(() => 'GEOMETRYCOLLECTION EMPTY');
   }),
 }));
 
@@ -253,6 +264,35 @@ afterEach(() => {
 
 const originalFetch = global.fetch;
 
+describe('feature format helpers', () => {
+  it('imports WKT and exports feature and collection formats', () => {
+    const feature = { id: 'feature' };
+    const options = { dataProjection: 'EPSG:4326', featureProjection: 'EPSG:3857' };
+    const exportedFeature = exportFeature(feature, options);
+
+    expect(exportedFeature.geojson.type).toBe('Feature');
+    expect(exportedFeature.wkt).toBe('POINT (10 45)');
+    expect(exportedFeature.topojson.type).toBe('Topology');
+    expect(WKT.mock.instances.at(-1).writeFeature).toHaveBeenCalledWith(feature, options);
+
+    const features = [{ id: 'feature-a' }, { id: 'feature-b' }];
+    const exportedFeatures = exportFeatures(features, options);
+    expect(exportedFeatures.geojson.type).toBe('FeatureCollection');
+    expect(exportedFeatures.wkt).toBe('GEOMETRYCOLLECTION EMPTY');
+    expect(exportedFeatures.topojson.type).toBe('Topology');
+    expect(WKT.mock.instances.at(-1).writeFeatures).toHaveBeenCalledWith(features, options);
+
+    readFeatures('POINT (10 45)', { format: 'WKT', ...options });
+    expect(WKT.mock.instances.at(-1).readFeatures).toHaveBeenCalledWith('POINT (10 45)', options);
+  });
+
+  it('rejects unsupported input formats', () => {
+    expect(() => readFeatures('{}', { format: 'TopoJSON' })).toThrow(
+      'Unsupported feature format: TopoJSON',
+    );
+  });
+});
+
 const makeMap = () => ({
   addLayer: jest.fn(),
   removeLayer: jest.fn(),
@@ -370,9 +410,13 @@ describe('ModifyInteraction history', () => {
     currentGeometry = makeTestGeometry('after');
     modify.listeners.modifyend(event);
 
-    expect(setProps).toHaveBeenCalledWith({
-      modifiedGeoJSON: { type: 'FeatureCollection', features: [] },
-    });
+    expect(setProps).toHaveBeenCalledWith(
+      expect.objectContaining({
+        modifiedGeoJSON: { type: 'FeatureCollection', features: [] },
+        modifiedWKT: 'GEOMETRYCOLLECTION EMPTY',
+        modifiedTopoJSON: expect.objectContaining({ type: 'Topology' }),
+      }),
+    );
 
     const history = getEditHistory(map);
     expect(history.getState()).toEqual({ canUndo: true, canRedo: false });
@@ -380,16 +424,24 @@ describe('ModifyInteraction history', () => {
     expect(feature.setGeometry).toHaveBeenLastCalledWith(
       expect.objectContaining({ label: 'before' }),
     );
-    expect(setProps).toHaveBeenLastCalledWith({
-      modifiedGeoJSON: { type: 'FeatureCollection', features: [] },
-    });
+    expect(setProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        modifiedGeoJSON: { type: 'FeatureCollection', features: [] },
+        modifiedWKT: 'GEOMETRYCOLLECTION EMPTY',
+        modifiedTopoJSON: expect.objectContaining({ type: 'Topology' }),
+      }),
+    );
     history.redo();
     expect(feature.setGeometry).toHaveBeenLastCalledWith(
       expect.objectContaining({ label: 'after' }),
     );
-    expect(setProps).toHaveBeenLastCalledWith({
-      modifiedGeoJSON: { type: 'FeatureCollection', features: [] },
-    });
+    expect(setProps).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        modifiedGeoJSON: { type: 'FeatureCollection', features: [] },
+        modifiedWKT: 'GEOMETRYCOLLECTION EMPTY',
+        modifiedTopoJSON: expect.objectContaining({ type: 'Topology' }),
+      }),
+    );
   });
 
   it('snaps with configured options and reverts topology-invalid polygon edits', () => {
@@ -558,14 +610,14 @@ describe('VectorLayer', () => {
 
     const source = VectorSource.mock.instances[0];
     const layer = OpenLayersVectorLayer.mock.instances[0];
-    const format = GeoJSON.mock.instances[0];
+    const initialFormat = GeoJSON.mock.instances.at(-1);
     expect(layer.set).toHaveBeenCalledWith('dashId', 'features');
     expect(map.addLayer).toHaveBeenCalledWith(layer);
-    expect(format.readFeatures).toHaveBeenCalledWith(initialGeoJSON, {
+    expect(initialFormat.readFeatures).toHaveBeenCalledWith(initialGeoJSON, {
       dataProjection: 'EPSG:4326',
       featureProjection: 'EPSG:3857',
     });
-    expect(source.addFeatures).toHaveBeenCalledWith(format.features);
+    expect(source.addFeatures).toHaveBeenCalledWith(initialFormat.features);
 
     rerender(
       <OLContext.Provider value={map}>
@@ -573,7 +625,8 @@ describe('VectorLayer', () => {
       </OLContext.Provider>,
     );
     expect(source.clear).toHaveBeenCalledTimes(2);
-    expect(format.readFeatures).toHaveBeenLastCalledWith(updatedGeoJSON, {
+    const updatedFormat = GeoJSON.mock.instances.at(-1);
+    expect(updatedFormat.readFeatures).toHaveBeenCalledWith(updatedGeoJSON, {
       dataProjection: 'EPSG:4326',
       featureProjection: 'EPSG:3857',
     });
@@ -581,6 +634,24 @@ describe('VectorLayer', () => {
     unmount();
     expect(map.removeLayer).toHaveBeenCalledWith(layer);
     expect(source.clear).toHaveBeenCalledTimes(3);
+  });
+
+  it('loads WKT input in the map projection ahead of GeoJSON input', () => {
+    const map = makeMap();
+    const wkt = 'POINT (10 45)';
+    render(
+      <OLContext.Provider value={map}>
+        <VectorLayer id="features" geojson={{ type: 'FeatureCollection', features: [] }} wkt={wkt} />
+      </OLContext.Provider>,
+    );
+
+    const source = VectorSource.mock.instances[0];
+    const format = WKT.mock.instances.at(-1);
+    expect(format.readFeatures).toHaveBeenCalledWith(wkt, {
+      dataProjection: 'EPSG:4326',
+      featureProjection: 'EPSG:3857',
+    });
+    expect(source.addFeatures).toHaveBeenCalledWith([{ id: 'wkt-feature' }]);
   });
 
   it('clears the source when GeoJSON is removed', () => {
@@ -932,6 +1003,8 @@ describe('DrawInteraction', () => {
         geometry: { type: 'Point', coordinates: [10, 45] },
         properties: {},
       },
+      drawnWKT: 'POINT (10 45)',
+      drawnTopoJSON: expect.objectContaining({ type: 'Topology' }),
       geometryValidation: { valid: true, errors: [], suggestions: [] },
     });
 
@@ -939,7 +1012,11 @@ describe('DrawInteraction', () => {
     expect(history.getState()).toEqual({ canUndo: true, canRedo: false });
     history.undo();
     expect(source.removeFeature).toHaveBeenCalledWith(feature);
-    expect(setProps).toHaveBeenLastCalledWith({ drawnGeoJSON: null });
+    expect(setProps).toHaveBeenLastCalledWith({
+      drawnGeoJSON: null,
+      drawnWKT: null,
+      drawnTopoJSON: null,
+    });
     history.redo();
     expect(source.addFeature).toHaveBeenCalledWith(feature);
     expect(setProps).toHaveBeenLastCalledWith({
@@ -948,6 +1025,8 @@ describe('DrawInteraction', () => {
         geometry: { type: 'Point', coordinates: [10, 45] },
         properties: {},
       },
+      drawnWKT: 'POINT (10 45)',
+      drawnTopoJSON: expect.objectContaining({ type: 'Topology' }),
     });
 
     unmount();
@@ -992,6 +1071,8 @@ describe('DrawInteraction', () => {
     expect(source.removeFeature).toHaveBeenCalledWith(feature);
     expect(setProps).toHaveBeenCalledWith({
       drawnGeoJSON: null,
+      drawnWKT: null,
+      drawnTopoJSON: null,
       geometryValidation: {
         valid: false,
         errors: [{ code: 'self_intersection', coordinates: [1, 1] }],
@@ -1034,6 +1115,8 @@ describe('DrawInteraction', () => {
     expect(source.removeFeature).toHaveBeenCalledWith(feature);
     expect(setProps).toHaveBeenCalledWith({
       drawnGeoJSON: null,
+      drawnWKT: null,
+      drawnTopoJSON: null,
       geometryValidation: {
         valid: false,
         errors: [{ code: 'invalid_geometry' }],

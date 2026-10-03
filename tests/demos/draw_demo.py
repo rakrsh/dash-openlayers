@@ -43,6 +43,11 @@ app.layout = html.Div(
                         "stroke-width": 2,
                     },
                 ),
+                dol.VectorLayer(
+                    id="wkt-reference",
+                    wkt="LINESTRING (-20 0, -10 0)",
+                    style={"stroke-color": "#c2410c", "stroke-width": 3},
+                ),
                 dol.ModifyInteraction(
                     id="modify-tool",
                     layerId="snap-targets",
@@ -74,16 +79,22 @@ app.layout = html.Div(
             value=14,
             marks={0: "0", 10: "10", 20: "20", 30: "30"},
         ),
-        html.Pre(id="geojson-output"),
+        html.Pre(id="feature-formats-output"),
         html.Pre(id="draw-validation-output"),
         html.Pre(id="modify-validation-output"),
     ]
 )
 
 
-@app.callback(Output("geojson-output", "children"), Input("draw-tool", "drawnGeoJSON"))
-def show_drawn_geojson(feature):
-    return json.dumps(feature, indent=2) if feature else "Draw a feature to inspect its GeoJSON."
+@app.callback(
+    Output("feature-formats-output", "children"),
+    Input("draw-tool", "drawnGeoJSON"),
+    Input("draw-tool", "drawnWKT"),
+    Input("draw-tool", "drawnTopoJSON"),
+)
+def show_drawn_formats(geojson, wkt, topojson):
+    formats = {"geojson": geojson, "wkt": wkt, "topojson": topojson}
+    return json.dumps(formats, indent=2) if geojson else "Draw a feature to inspect its formats."
 
 
 @app.callback(

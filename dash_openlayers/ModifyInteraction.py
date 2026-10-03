@@ -43,6 +43,10 @@ class ModifyInteraction(Component):
     - modifiedGeoJSON (dict; optional): Read-only GeoJSON FeatureCollection
       emitted after a modify operation.
 
+        - modifiedWKT (string; optional): Read-only WKT geometry collection after modification.
+
+        - modifiedTopoJSON (dict; optional): Read-only TopoJSON topology after modification.
+
         - geometryValidation (dict; optional): Read-only topology validation from
             the last modification.
     """
@@ -61,6 +65,8 @@ class ModifyInteraction(Component):
         snapTolerance: typing.Optional[NumberType] = None,
         preserveTopology: typing.Optional[bool] = None,
         modifiedGeoJSON: typing.Optional[dict] = None,
+        modifiedWKT: typing.Optional[str] = None,
+        modifiedTopoJSON: typing.Optional[dict] = None,
         geometryValidation: typing.Optional[dict] = None,
         **kwargs,
     ):
@@ -72,6 +78,8 @@ class ModifyInteraction(Component):
             "snapTolerance",
             "preserveTopology",
             "modifiedGeoJSON",
+            "modifiedWKT",
+            "modifiedTopoJSON",
             "geometryValidation",
         ]
         self._valid_wildcard_attributes = []
@@ -83,6 +91,8 @@ class ModifyInteraction(Component):
             "snapTolerance",
             "preserveTopology",
             "modifiedGeoJSON",
+            "modifiedWKT",
+            "modifiedTopoJSON",
             "geometryValidation",
         ]
         self.available_wildcard_properties = []

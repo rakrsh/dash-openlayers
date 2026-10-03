@@ -393,6 +393,103 @@ def test_modify_interaction_emits_updated_geojson(dash_duo):
     assert dash_duo.get_logs() == []
 
 
+def test_draw_exports_wkt_and_topojson(dash_duo):
+    app = dash.Dash(__name__)
+    app.layout = dash.html.Div(
+        [
+            dol.Map(
+                id="map",
+                center=[0, 0],
+                zoom=3,
+                projection="EPSG:4326",
+                children=[
+                    dol.TileLayer(source="OSM"),
+                    dol.DrawInteraction(
+                        id="draw",
+                        geometryType="Point",
+                        snapToVertex=False,
+                        snapToEdge=False,
+                    ),
+                ],
+                style={"height": "400px", "width": "600px"},
+            ),
+            html.Pre(id="draw-formats"),
+        ]
+    )
+
+    @app.callback(
+        Output("draw-formats", "children"),
+        Input("draw", "drawnWKT"),
+        Input("draw", "drawnTopoJSON"),
+    )
+    def show_draw_formats(wkt, topojson):
+        return json.dumps({"wkt": wkt, "topojson": topojson}) if wkt else ""
+
+    dash_duo.start_server(app)
+    viewport = dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
+    dash_duo.wait_for_element("#map canvas", timeout=15)
+    viewport.click()
+
+    dash_duo.wait_for_contains_text("#draw-formats", '"type": "Topology"', timeout=10)
+    formats = json.loads(dash_duo.find_element("#draw-formats").text)
+    assert formats["wkt"].startswith("POINT(")
+    assert formats["topojson"]["type"] == "Topology"
+    assert dash_duo.get_logs() == []
+
+
+def test_wkt_vector_layer_exports_modified_formats(dash_duo):
+    app = dash.Dash(__name__)
+    app.layout = dash.html.Div(
+        [
+            dol.Map(
+                id="map",
+                center=[0, 0],
+                zoom=4,
+                projection="EPSG:4326",
+                children=[
+                    dol.VectorLayer(id="wkt-layer", wkt="POINT (0 0)"),
+                    dol.ModifyInteraction(
+                        id="modify",
+                        layerId="wkt-layer",
+                        snapToVertex=False,
+                        snapToEdge=False,
+                    ),
+                ],
+                style={"height": "400px", "width": "600px"},
+            ),
+            html.Pre(id="modified-formats"),
+        ]
+    )
+
+    @app.callback(
+        Output("modified-formats", "children"),
+        Input("modify", "modifiedGeoJSON"),
+        Input("modify", "modifiedWKT"),
+        Input("modify", "modifiedTopoJSON"),
+    )
+    def show_modified_formats(geojson, wkt, topojson):
+        return json.dumps({"geojson": geojson, "wkt": wkt, "topojson": topojson}) if wkt else ""
+
+    dash_duo.start_server(app)
+    viewport = dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
+    dash_duo.wait_for_element("#map canvas", timeout=15)
+    (
+        ActionChains(dash_duo.driver)
+        .move_to_element_with_offset(viewport, 0, 0)
+        .click_and_hold()
+        .move_by_offset(30, 0)
+        .release()
+        .perform()
+    )
+
+    dash_duo.wait_for_contains_text("#modified-formats", '"type": "Topology"', timeout=10)
+    formats = json.loads(dash_duo.find_element("#modified-formats").text)
+    assert formats["geojson"]["features"][0]["geometry"]["type"] == "Point"
+    assert formats["wkt"].startswith("POINT(")
+    assert formats["topojson"]["type"] == "Topology"
+    assert dash_duo.get_logs() == []
+
+
 def test_map_center_zoom_syncs_both_directions(dash_duo):
     target_center = [1_000_000, 2_000_000]
     target_zoom = 5
