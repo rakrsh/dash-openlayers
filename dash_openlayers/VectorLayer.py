@@ -30,6 +30,9 @@ class VectorLayer(Component):
 
     - geojson (dict; optional): GeoJSON Feature or FeatureCollection with coordinates in
       [longitude, latitude] order. Updates are rendered in the map projection.
+
+        - style (dict or list; optional): OpenLayers flat style object or rule array.
+            Supports icons, fills, strokes, feature filters, and resolution expressions.
     """
 
     _children_props: typing.List[str] = []
@@ -41,11 +44,12 @@ class VectorLayer(Component):
         self,
         id: typing.Optional[typing.Union[str, dict]] = None,
         geojson: typing.Optional[dict] = None,
+        style: typing.Optional[typing.Union[dict, typing.Sequence[dict]]] = None,
         **kwargs,
     ):
-        self._prop_names = ["id", "geojson"]
+        self._prop_names = ["id", "geojson", "style"]
         self._valid_wildcard_attributes = []
-        self.available_properties = ["id", "geojson"]
+        self.available_properties = ["id", "geojson", "style"]
         self.available_wildcard_properties = []
         _explicit_args = kwargs.pop("_explicit_args")
         _locals = locals()

@@ -68,6 +68,7 @@
 		"props": {
 			"id": { "type": { "name": "string" }, "required": false, "description": "Dash component ID; also used by ModifyInteraction to target this vector layer." },
 			"geojson": { "type": { "name": "object" }, "required": false, "description": "GeoJSON Feature or FeatureCollection with coordinates in [longitude, latitude] order; updates are rendered in the map projection.", "defaultValue": { "value": "null", "computed": false } },
+			"style": { "type": { "name": "union", "value": [{ "name": "object" }, { "name": "arrayOf", "value": { "name": "object" } }] }, "required": false, "description": "OpenLayers flat style object or rule array; supports icon, fill, stroke, feature filters, and resolution expressions.", "defaultValue": { "value": "null", "computed": false } },
 			"setProps": { "type": { "name": "func" }, "required": false, "description": "Dash-supplied callback used to write component state back to the layout." }
 		}
 	},
