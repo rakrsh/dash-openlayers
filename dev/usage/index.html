@@ -421,6 +421,24 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         
   
@@ -437,6 +455,36 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#wfs-and-wfs-t" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WFS and WFS-T
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -570,6 +618,25 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#wfs-and-wfs-t" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WFS and WFS-T
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -667,6 +734,42 @@ the parent <code>Map</code>'s <code>proj4Defs</code> prop before using that code
 projection. Some providers use nonstandard tile matrices that cannot be
 described by the <code>{z}/{x}/{y}</code> URL template; use a compatible XYZ MVT endpoint.
 See <code>tests/demos/vector_tile_demo.py</code> for a runnable styled example.</p>
+<p><code>WMTSLayer</code> reads a WMTS GetCapabilities document and derives the advertised
+tile grid, matrix set, style, and request URLs. Set <code>layer</code> to the advertised
+identifier; provide <code>matrixSet</code> or <code>projection</code> when the service offers more
+than one option. The capabilities endpoint must allow browser CORS access:</p>
+<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
+    <span class="nb">id</span><span class="o">=</span><span class="s2">"wmts-map"</span><span class="p">,</span>
+    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">zoom</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">WMTSLayer</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="s2">"basemap-wmts"</span><span class="p">,</span>
+            <span class="n">url</span><span class="o">=</span><span class="s2">"https://tiles.example.com/wmts?SERVICE=WMTS&amp;REQUEST=GetCapabilities"</span><span class="p">,</span>
+            <span class="n">layer</span><span class="o">=</span><span class="s2">"example:basemap"</span><span class="p">,</span>
+            <span class="n">matrixSet</span><span class="o">=</span><span class="s2">"EPSG:3857"</span><span class="p">,</span>
+            <span class="n">projection</span><span class="o">=</span><span class="s2">"EPSG:3857"</span><span class="p">,</span>
+            <span class="n">style</span><span class="o">=</span><span class="s2">"default"</span><span class="p">,</span>
+            <span class="nb">format</span><span class="o">=</span><span class="s2">"image/png"</span><span class="p">,</span>
+            <span class="n">requestEncoding</span><span class="o">=</span><span class="s2">"KVP"</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">],</span>
+    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>See <code>tests/demos/wmts_demo.py</code> for a complete example.</p>
+<h2 id="wfs-and-wfs-t">WFS and WFS-T</h2>
+<p>WFS features can be fetched as GeoJSON and passed to <code>VectorLayer</code>. Combine
+that layer with <code>ModifyInteraction</code> to edit features in the browser. The demo
+<code>tests/demos/wfs_demo.py</code> shows a WFS 2.0 <code>GetFeature</code> request, an edit action,
+and an explicit WFS-T <code>Transaction</code> callback that writes edited points back to
+a configured server. It only enables writes when <code>WFS_TRANSACTION_URL</code> is set;
+never point the example at a shared or read-only WFS endpoint.</p>
+<p>The demo expects the service URL in <code>WFS_URL</code>, feature type in
+<code>WFS_FEATURE_TYPE</code>, and, for transactional writes, <code>WFS_TRANSACTION_URL</code>,
+<code>WFS_FEATURE_NAMESPACE</code>, and <code>WFS_GEOMETRY_PROPERTY</code>. The sample transaction
+updates Point geometries in CRS84; adapt its geometry encoding and feature ID
+filter to the schema and WFS version supported by your server.</p>
 <p>Add a <code>ModifyInteraction</code> beside a <code>VectorLayer</code> to drag feature vertices.
 Pass the vector layer's Dash <code>id</code> as <code>layerId</code>; <code>modifiedGeoJSON</code> receives the
 updated FeatureCollection after each completed edit:</p>
