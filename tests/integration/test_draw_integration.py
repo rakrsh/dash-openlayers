@@ -66,3 +66,52 @@ def test_draw_interaction(dash_duo):
     assert all(-180 <= longitude <= 180 and -90 <= latitude <= 90 for longitude, latitude in ring)
     assert all(8 < longitude < 12 and 43 < latitude < 47 for longitude, latitude in ring)
     assert dash_duo.get_logs() == []
+
+
+def test_draw_line_string_emits_geojson(dash_duo):
+    app = dash.Dash(__name__)
+    app.layout = dash.html.Div(
+        [
+            dol.Map(
+                id="map",
+                center=[1_113_194.9, 5_621_521.5],
+                zoom=5,
+                children=[
+                    dol.TileLayer(source="OSM"),
+                    dol.DrawInteraction(id="draw-tool", geometryType="LineString"),
+                ],
+                style={"height": "300px"},
+            ),
+            html.Pre(id="geojson-output"),
+        ]
+    )
+
+    @app.callback(Output("geojson-output", "children"), Input("draw-tool", "drawnGeoJSON"))
+    def show_drawn_geojson(feature):
+        return json.dumps(feature) if feature else ""
+
+    dash_duo.start_server(app)
+    viewport = dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
+    dash_duo.wait_for_element("#map canvas", timeout=15)
+
+    (
+        ActionChains(dash_duo.driver)
+        .move_to_element_with_offset(viewport, -40, -20)
+        .click()
+        .move_to_element_with_offset(viewport, 0, 20)
+        .click()
+        .move_to_element_with_offset(viewport, 40, -20)
+        .double_click()
+        .perform()
+    )
+    dash_duo.wait_for_contains_text("#geojson-output", '"type": "Feature"', timeout=10)
+
+    feature = json.loads(dash_duo.find_element("#geojson-output").text)
+    assert feature["geometry"]["type"] == "LineString"
+    coordinates = feature["geometry"]["coordinates"]
+    assert len(coordinates) >= 2
+    assert all(
+        -180 <= longitude <= 180 and -90 <= latitude <= 90 for longitude, latitude in coordinates
+    )
+    assert all(8 < longitude < 12 and 43 < latitude < 47 for longitude, latitude in coordinates)
+    assert dash_duo.get_logs() == []
