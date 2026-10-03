@@ -5,10 +5,10 @@
   "main": "dash_openlayers/dash_openlayers.umd.js",
   "module": "dash_openlayers/dash_openlayers.esm.js",
   "scripts": {
-    "build": "rollup -c && uv run --no-default-groups python scripts/generate_components.py && uv run --no-default-groups python scripts/generate_api_docs.py",
+    "build": "rollup -c && uv run --no-default-groups --group build python scripts/generate_components.py && uv run --no-default-groups --group build python scripts/generate_api_docs.py",
     "build:js": "rollup -c",
-    "build:components": "uv run --no-default-groups python scripts/generate_components.py",
-    "docs:api": "uv run --no-default-groups python scripts/generate_api_docs.py",
+    "build:components": "uv run --no-default-groups --group build python scripts/generate_components.py",
+    "docs:api": "uv run --no-default-groups --group build python scripts/generate_api_docs.py",
     "lint": "eslint src",
     "format": "prettier --write src *.js *.json",
     "test": "jest --runInBand --coverage",

@@ -1,76 +1,73 @@
-/* Simple version switcher that fetches versions.json produced by mike and
-   injects a dropdown into the header. Tries repo-root and site-root paths. */
 (function () {
-  async function fetchVersions() {
-    const candidates = [
-      '/dash-openlayers/versions.json',
-      '/versions.json',
-      'versions.json'
-    ];
+  const script =
+    document.currentScript || document.querySelector('script[src*="version-switcher.js"]');
+  const assetSuffix = '/assets/javascripts/version-switcher.js';
 
-    for (const url of candidates) {
-      try {
-        const resp = await fetch(url, {cache: 'no-cache'});
-        if (!resp.ok) continue;
-        return await resp.json();
-      } catch (e) {
-        // ignore and try next
-      }
+  function getSiteRoot() {
+    if (!script) return null;
+
+    const scriptPath = new URL(script.src, window.location.href).pathname;
+    const assetIndex = scriptPath.lastIndexOf(assetSuffix);
+    if (assetIndex === -1) return null;
+
+    const versionRoot = scriptPath.slice(0, assetIndex);
+    const rootIndex = versionRoot.lastIndexOf('/');
+    return rootIndex > 0 ? versionRoot.slice(0, rootIndex) : '';
+  }
+
+  async function fetchVersions(siteRoot) {
+    try {
+      const response = await fetch(`${siteRoot}/versions.json`, { cache: 'no-cache' });
+      if (!response.ok) return [];
+      return normalizeVersions(await response.json());
+    } catch (error) {
+      return [];
     }
-    return null;
   }
 
   function normalizeVersions(data) {
-    // Accept multiple shapes (array, object, {versions: [...]}, {aliases: {...}})
-    if (!data) return [];
-    // If it's an array of primitives/strings
-    if (Array.isArray(data)) return data.map(String);
+    const entries = Array.isArray(data) ? data : data && data.versions;
+    if (!Array.isArray(entries)) return [];
 
-    // mike may output { versions: ["1.0.0", ...], aliases: {...} }
-    if (data.versions && Array.isArray(data.versions)) return data.versions.map(String);
+    return entries.flatMap((entry) => {
+      if (typeof entry === 'string') return [{ version: entry, title: entry, aliases: [] }];
+      if (!entry || typeof entry !== 'object') return [];
 
-    // Sometimes entries are objects like {name: '1.2.3', path: '...'} or {version:'1.2.3', url:'...'}
-    if (Array.isArray(data.entries)) {
-      return data.entries.map(e => (typeof e === 'object' ? (e.name || e.version || e.label || e.id || JSON.stringify(e)) : String(e)));
-    }
-
-    if (typeof data === 'object') {
-      // If object maps version->url or alias->version
-      const keys = Object.keys(data);
-      // If values are objects containing name/url, map accordingly to name strings
-      if (keys.length > 0 && typeof data[keys[0]] === 'object') {
-        return keys.map(k => {
-          const v = data[k];
-          return v && (v.name || v.version || v.label) ? (v.name || v.version || v.label) : k;
-        });
-      }
-      return keys;
-    }
-    return [];
+      const version = entry.version || entry.path || entry.id;
+      if (!version) return [];
+      return [
+        {
+          version,
+          title: entry.title || entry.name || version,
+          aliases: Array.isArray(entry.aliases) ? entry.aliases : [],
+        },
+      ];
+    });
   }
 
-  function buildDropdown(versions) {
-    if (!versions || versions.length === 0) return null;
+  function buildDropdown(versions, siteRoot) {
+    if (versions.length === 0) return null;
 
     const container = document.createElement('div');
-    container.style.cssText = 'position:relative; margin-left:1rem;';
+    container.style.cssText = 'position:relative; margin-left:1rem; z-index:10;';
 
     const select = document.createElement('select');
     select.setAttribute('aria-label', 'Documentation version');
     select.style.cssText = 'padding:4px 6px;';
 
-    const currentPath = window.location.pathname;
-    const origin = window.location.origin.replace(/\/$/, '');
+    const rootPrefix = `${siteRoot}/`;
+    const relativePath = window.location.pathname.startsWith(rootPrefix)
+      ? window.location.pathname.slice(rootPrefix.length)
+      : '';
+    const pathSegments = relativePath.split('/').filter(Boolean);
+    const currentVersion = pathSegments.shift();
+    const pagePath = pathSegments.length ? `${pathSegments.join('/')}/` : '';
 
-    versions.forEach(v => {
+    versions.forEach(({ version, title, aliases }) => {
       const opt = document.createElement('option');
-      // If v looks like JSON string from earlier fallback, try to parse or use as label
-      let label = '' + v;
-      let path = `${origin}/dash-openlayers/${encodeURIComponent(label)}/`;
-
-      // If version is an object-like stringified JSON, keep label but fallback path
-      opt.textContent = label;
-      opt.value = path;
+      opt.textContent = title;
+      opt.value = `${rootPrefix}${encodeURIComponent(version)}/${pagePath}${window.location.search}${window.location.hash}`;
+      opt.selected = version === currentVersion || aliases.includes(currentVersion);
       select.appendChild(opt);
     });
 
@@ -78,23 +75,21 @@
       const target = e.target.value;
       if (target) window.location.href = target;
     });
+    select.disabled = versions.length < 2;
 
     container.appendChild(select);
     return container;
   }
 
   async function init() {
-    const data = await fetchVersions();
-    const versions = normalizeVersions(data);
-    if (!versions || versions.length === 0) return;
+    const siteRoot = getSiteRoot();
+    if (siteRoot === null) return;
 
-    const dropdown = buildDropdown(versions);
+    const versions = await fetchVersions(siteRoot);
+    const dropdown = buildDropdown(versions, siteRoot);
     if (!dropdown) return;
 
-    // Insert into header if possible
     const header = document.querySelector('header') || document.body;
-    // Try to insert near top-right of header
-    header.style.position = header.style.position || '';
     header.appendChild(dropdown);
   }
 

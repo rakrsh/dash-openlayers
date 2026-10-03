@@ -37,6 +37,24 @@ jobs:
       - name: Run frontend tests with coverage
         run: npm test
 
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: ${{ vars.PYTHON_VERSION }}
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: ${{ vars.UV_VERSION }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build documentation
+        run: |
+          uv sync --group docs
+          uv run mkdocs build --strict
+
   build-matrix:
     strategy:
       fail-fast: false
@@ -66,7 +84,7 @@ jobs:
       # Tests are executed by a reusable workflow (see test-suite.yml)
 
   build:
-    needs: [build-matrix, frontend-tests]
+    needs: [build-matrix, frontend-tests, docs]
     runs-on: ubuntu-latest
     steps:
       - name: Confirm build matrix succeeded

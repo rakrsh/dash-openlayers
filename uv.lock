@@ -669,6 +669,7 @@ dependencies = [
 [package.dev-dependencies]
 build = [
     { name = "build" },
+    { name = "pyyaml" },
 ]
 dev = [
     { name = "build" },
@@ -678,6 +679,7 @@ dev = [
     { name = "pre-commit" },
     { name = "pytest" },
     { name = "pytest-cov" },
+    { name = "pyyaml" },
     { name = "ruff" },
     { name = "selenium" },
 ]
@@ -705,7 +707,10 @@ test = [
 requires-dist = [{ name = "dash", specifier = ">=2.18.2" }]
 
 [package.metadata.requires-dev]
-build = [{ name = "build", specifier = ">=1.2.0" }]
+build = [
+    { name = "build", specifier = ">=1.2.0" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
+]
 dev = [
     { name = "build", specifier = ">=1.2.0" },
     { name = "chromedriver-autoinstaller", specifier = ">=0.6.4" },
@@ -714,6 +719,7 @@ dev = [
     { name = "pre-commit", marker = "python_full_version >= '3.9'", specifier = ">=4.0.0" },
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "pytest-cov", specifier = ">=6.1.0" },
+    { name = "pyyaml", specifier = ">=6.0.2" },
     { name = "ruff", specifier = ">=0.8.0" },
     { name = "selenium", specifier = ">=4.14.0" },
 ]
