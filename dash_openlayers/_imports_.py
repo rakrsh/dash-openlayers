@@ -3,6 +3,7 @@ from .Map import Map
 from .ModifyInteraction import ModifyInteraction
 from .TileLayer import TileLayer
 from .VectorLayer import VectorLayer
+from .VectorTileLayer import VectorTileLayer
 
 __all__ = [
     "DrawInteraction",
@@ -10,4 +11,5 @@ __all__ = [
     "ModifyInteraction",
     "TileLayer",
     "VectorLayer",
+    "VectorTileLayer",
 ]

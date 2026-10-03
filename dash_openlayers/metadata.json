@@ -70,5 +70,19 @@
 			"geojson": { "type": { "name": "object" }, "required": false, "description": "GeoJSON Feature or FeatureCollection with coordinates in [longitude, latitude] order; updates are rendered in the map projection.", "defaultValue": { "value": "null", "computed": false } },
 			"setProps": { "type": { "name": "func" }, "required": false, "description": "Dash-supplied callback used to write component state back to the layout." }
 		}
+	},
+	"src/lib/components/VectorTileLayer.react.js": {
+		"description": "Render Mapbox Vector Tiles from an MVT endpoint with an OpenLayers flat style.",
+		"displayName": "VectorTileLayer",
+		"methods": [],
+		"props": {
+			"id": { "type": { "name": "string" }, "required": false, "description": "Component ID used to identify this layer in the Dash layout." },
+			"url": { "type": { "name": "string" }, "required": false, "description": "MVT URL template containing {z}, {x}, and {y} or {-y}; ignored when urls is provided.", "defaultValue": { "value": "null", "computed": false } },
+			"urls": { "type": { "name": "arrayOf", "value": { "name": "string" } }, "required": false, "description": "Alternative MVT URL templates for load balancing; takes precedence over url.", "defaultValue": { "value": "null", "computed": false } },
+			"projection": { "type": { "name": "string" }, "required": false, "description": "Projection of the vector tile grid; use the CRS served by the tile endpoint.", "defaultValue": { "value": "'EPSG:3857'", "computed": false } },
+			"attributions": { "type": { "name": "union", "value": [{ "name": "string" }, { "name": "arrayOf", "value": { "name": "string" } }] }, "required": false, "description": "Attribution text or a list of attribution strings for the tile provider.", "defaultValue": { "value": "null", "computed": false } },
+			"style": { "type": { "name": "object" }, "required": false, "description": "OpenLayers flat-style object used to style MVT features.", "defaultValue": { "value": "null", "computed": false } },
+			"setProps": { "type": { "name": "func" }, "required": false, "description": "Dash-supplied callback used to write component state back to the layout." }
+		}
 	}
 }

@@ -10,6 +10,7 @@ def test_components_exported():
     assert hasattr(mod, "ModifyInteraction")
     assert hasattr(mod, "TileLayer")
     assert hasattr(mod, "VectorLayer")
+    assert hasattr(mod, "VectorTileLayer")
     assert hasattr(mod, "__version__")
 
 
@@ -61,6 +62,23 @@ def test_component_props_serialize():
                 "geojson": {"type": "FeatureCollection", "features": []},
             },
             "VectorLayer",
+        ),
+        (
+            dol.VectorTileLayer(
+                id="vector-tiles",
+                url="https://tiles.example/{z}/{x}/{y}.pbf",
+                projection="EPSG:3857",
+                attributions="Tile provider",
+                style={"fill-color": "#6b9b83"},
+            ),
+            {
+                "id": "vector-tiles",
+                "url": "https://tiles.example/{z}/{x}/{y}.pbf",
+                "projection": "EPSG:3857",
+                "attributions": "Tile provider",
+                "style": {"fill-color": "#6b9b83"},
+            },
+            "VectorTileLayer",
         ),
         (
             dol.DrawInteraction(

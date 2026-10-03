@@ -3,6 +3,7 @@ import { cleanup, render, screen } from '@testing-library/react';
 import MapComponent from '../../src/lib/components/Map.react';
 import TileLayer from '../../src/lib/components/TileLayer.react';
 import VectorLayer from '../../src/lib/components/VectorLayer.react';
+import VectorTileLayer from '../../src/lib/components/VectorTileLayer.react';
 import DrawInteraction from '../../src/lib/components/DrawInteraction.react';
 import { OLContext, useMap } from '../../src/lib/context/OLContext';
 import Map from 'ol/Map';
@@ -17,6 +18,9 @@ import XYZ from 'ol/source/XYZ';
 import GeoJSON from 'ol/format/GeoJSON';
 import OpenLayersVectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
+import MVT from 'ol/format/MVT';
+import OpenLayersVectorTileLayer from 'ol/layer/VectorTile';
+import VectorTileSource from 'ol/source/VectorTile';
 
 jest.mock('ol/Map', () => ({
   __esModule: true,
@@ -119,6 +123,30 @@ jest.mock('ol/source/Vector', () => ({
   default: jest.fn().mockImplementation(function MockVectorSource() {
     this.clear = jest.fn();
     this.addFeatures = jest.fn();
+  }),
+}));
+
+jest.mock('ol/format/MVT', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockMVT(options) {
+    this.options = options;
+  }),
+}));
+
+jest.mock('ol/layer/VectorTile', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockVectorTileLayer(options) {
+    this.options = options;
+    this.set = jest.fn();
+    this.setStyle = jest.fn();
+  }),
+}));
+
+jest.mock('ol/source/VectorTile', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockVectorTileSource(options) {
+    this.options = options;
+    this.clear = jest.fn();
   }),
 }));
 
@@ -326,6 +354,77 @@ describe('VectorLayer', () => {
     );
     expect(source.clear).toHaveBeenCalledTimes(2);
     expect(source.addFeatures).not.toHaveBeenCalled();
+  });
+});
+
+describe('VectorTileLayer', () => {
+  it('adds an MVT layer with source projection, attribution, and style, then clears it on unmount', () => {
+    const map = makeMap();
+    const style = { 'fill-color': '#6b9b83', 'stroke-width': 1 };
+    const { rerender, unmount } = render(
+      <OLContext.Provider value={map}>
+        <VectorTileLayer
+          id="vector-tiles"
+          url="https://tiles.example/{z}/{x}/{y}.pbf"
+          projection="EPSG:27700"
+          attributions="Tile provider"
+          style={style}
+        />
+      </OLContext.Provider>,
+    );
+
+    const format = MVT.mock.instances[0];
+    const source = VectorTileSource.mock.instances[0];
+    const layer = OpenLayersVectorTileLayer.mock.instances[0];
+    expect(source.options).toEqual({
+      format,
+      projection: 'EPSG:27700',
+      attributions: 'Tile provider',
+      url: 'https://tiles.example/{z}/{x}/{y}.pbf',
+    });
+    expect(layer.options).toEqual({ source });
+    expect(layer.set).toHaveBeenCalledWith('dashId', 'vector-tiles');
+    expect(layer.setStyle).toHaveBeenCalledWith(style);
+    expect(map.addLayer).toHaveBeenCalledWith(layer);
+
+    const updatedStyle = { 'fill-color': '#d66f41' };
+    rerender(
+      <OLContext.Provider value={map}>
+        <VectorTileLayer
+          id="vector-tiles"
+          url="https://tiles.example/{z}/{x}/{y}.pbf"
+          projection="EPSG:27700"
+          attributions="Tile provider"
+          style={updatedStyle}
+        />
+      </OLContext.Provider>,
+    );
+    expect(layer.setStyle).toHaveBeenLastCalledWith(updatedStyle);
+    expect(VectorTileSource).toHaveBeenCalledTimes(1);
+
+    unmount();
+    expect(map.removeLayer).toHaveBeenCalledWith(layer);
+    expect(source.clear).toHaveBeenCalled();
+  });
+
+  it('supports URL arrays and skips layer creation without a URL', () => {
+    const map = makeMap();
+    const urls = ['https://a.example/{z}/{x}/{y}.pbf', 'https://b.example/{z}/{x}/{y}.pbf'];
+    const { rerender } = render(
+      <OLContext.Provider value={map}>
+        <VectorTileLayer urls={urls} />
+      </OLContext.Provider>,
+    );
+
+    expect(VectorTileSource.mock.instances[0].options.urls).toBe(urls);
+    expect(map.addLayer).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <OLContext.Provider value={map}>
+        <VectorTileLayer />
+      </OLContext.Provider>,
+    );
+    expect(map.addLayer).toHaveBeenCalledTimes(1);
   });
 });
 

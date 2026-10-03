@@ -16,6 +16,46 @@ dol.Map(
 )
 ```
 
+`VectorTileLayer` loads Mapbox Vector Tile (MVT/PBF) data from a URL template.
+Use `urls` instead of `url` to supply multiple templates for load balancing.
+The `style` prop is an OpenLayers flat-style object, not a Mapbox GL style
+document:
+
+```python
+vector_style = {
+    "fill-color": "rgba(31, 106, 94, 0.24)",
+    "stroke-color": "#1f6a5e",
+    "stroke-width": 1,
+    "circle-radius": 3,
+    "circle-fill-color": "#d66f41",
+}
+
+dol.Map(
+    id="vector-map",
+    center=[0, 0],
+    zoom=2,
+    children=[
+        dol.VectorTileLayer(
+            id="vector-tiles",
+            url="https://tiles.openfreemap.org/planet/{z}/{x}/{y}.pbf",
+            projection="EPSG:3857",
+            attributions="© OpenFreeMap, © OpenStreetMap contributors",
+            style=vector_style,
+        )
+    ],
+    style={"height": "500px"},
+)
+```
+
+The `projection` prop describes the tile source's projection and defaults to
+`EPSG:3857`. It must match the CRS and tile grid advertised by the MVT server.
+OpenLayers transforms source coordinates for the map view when the required
+projections are registered. For custom CRSs, register the definition through
+the parent `Map`'s `proj4Defs` prop before using that code as the map or source
+projection. Some providers use nonstandard tile matrices that cannot be
+described by the `{z}/{x}/{y}` URL template; use a compatible XYZ MVT endpoint.
+See `tests/demos/vector_tile_demo.py` for a runnable styled example.
+
 Add a `ModifyInteraction` beside a `VectorLayer` to drag feature vertices.
 Pass the vector layer's Dash `id` as `layerId`; `modifiedGeoJSON` receives the
 updated FeatureCollection after each completed edit:
