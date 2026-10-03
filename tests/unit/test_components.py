@@ -89,10 +89,24 @@ def test_component_props_serialize():
                     "type": "FeatureCollection",
                     "features": [],
                 },
+                style=[
+                    {
+                        "filter": ["<", ["resolution"], 2500],
+                        "style": {"stroke-color": "#1f6a5e"},
+                    },
+                    {"else": True, "style": {"circle-radius": 5}},
+                ],
             ),
             {
                 "id": "vectors",
                 "geojson": {"type": "FeatureCollection", "features": []},
+                "style": [
+                    {
+                        "filter": ["<", ["resolution"], 2500],
+                        "style": {"stroke-color": "#1f6a5e"},
+                    },
+                    {"else": True, "style": {"circle-radius": 5}},
+                ],
             },
             "VectorLayer",
         ),

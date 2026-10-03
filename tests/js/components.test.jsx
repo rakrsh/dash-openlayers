@@ -148,6 +148,7 @@ jest.mock('ol/layer/Vector', () => ({
   default: jest.fn().mockImplementation(function MockVectorLayer(options) {
     this.options = options;
     this.set = jest.fn();
+    this.setStyle = jest.fn();
   }),
 }));
 
@@ -410,6 +411,48 @@ describe('VectorLayer', () => {
     );
     expect(source.clear).toHaveBeenCalledTimes(2);
     expect(source.addFeatures).not.toHaveBeenCalled();
+  });
+
+  it('applies declarative style changes without recreating the vector source', () => {
+    const map = makeMap();
+    const geojson = { type: 'FeatureCollection', features: [] };
+    const initialStyle = [
+      {
+        filter: ['<', ['resolution'], 2500],
+        style: {
+          'icon-src': 'https://example.com/marker.png',
+          'stroke-color': '#1f6a5e',
+          'fill-color': 'rgba(31, 106, 94, 0.24)',
+        },
+      },
+      { else: true, style: { 'circle-radius': 5, 'circle-fill-color': '#d66f41' } },
+    ];
+    const { rerender } = render(
+      <OLContext.Provider value={map}>
+        <VectorLayer id="styled" geojson={geojson} style={initialStyle} />
+      </OLContext.Provider>,
+    );
+
+    const layer = OpenLayersVectorLayer.mock.instances[0];
+    const source = VectorSource.mock.instances[0];
+    expect(layer.setStyle).toHaveBeenCalledWith(initialStyle);
+
+    const updatedStyle = { 'stroke-color': '#b34a36', 'stroke-width': 3 };
+    rerender(
+      <OLContext.Provider value={map}>
+        <VectorLayer id="styled" geojson={geojson} style={updatedStyle} />
+      </OLContext.Provider>,
+    );
+    expect(layer.setStyle).toHaveBeenLastCalledWith(updatedStyle);
+    expect(OpenLayersVectorLayer).toHaveBeenCalledTimes(1);
+    expect(VectorSource).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <OLContext.Provider value={map}>
+        <VectorLayer id="styled" geojson={geojson} />
+      </OLContext.Provider>,
+    );
+    expect(layer.setStyle).toHaveBeenLastCalledWith(undefined);
   });
 });
 

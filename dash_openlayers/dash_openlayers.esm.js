@@ -65671,10 +65671,12 @@ TileWMSLayer.propTypes = {
 /** Render GeoJSON features in a canvas-backed OpenLayers vector layer. */
 var VectorLayerComponent = _ref => {
   var id = _ref.id,
-    geojson = _ref.geojson;
+    geojson = _ref.geojson,
+    style = _ref.style;
   var map = useMap();
   var sourceRef = useRef(null);
   var formatRef = useRef(null);
+  var layerRef = useRef(null);
   useEffect(() => {
     var source = new VectorSource();
     var layer = new VectorLayer({
@@ -65682,16 +65684,24 @@ var VectorLayerComponent = _ref => {
     });
     var format = new GeoJSON();
     layer.set('dashId', id);
+    layerRef.current = layer;
     sourceRef.current = source;
     formatRef.current = format;
     map.addLayer(layer);
     return () => {
       map.removeLayer(layer);
       source.clear();
+      layerRef.current = null;
       sourceRef.current = null;
       formatRef.current = null;
     };
   }, [id, map]);
+  useEffect(() => {
+    var layer = layerRef.current;
+    if (layer) {
+      layer.setStyle(style !== null && style !== void 0 ? style : undefined);
+    }
+  }, [id, style]);
   useEffect(() => {
     var source = sourceRef.current;
     var format = formatRef.current;
@@ -65707,13 +65717,16 @@ var VectorLayerComponent = _ref => {
   return null;
 };
 VectorLayerComponent.defaultProps = {
-  geojson: null
+  geojson: null,
+  style: null
 };
 VectorLayerComponent.propTypes = {
   /** Dash component ID; also used by ModifyInteraction to target this vector layer. */
   id: PropTypes.string,
   /** GeoJSON Feature or FeatureCollection with coordinates in [longitude, latitude] order; updates are rendered in the map projection. */
   geojson: PropTypes.object,
+  /** OpenLayers flat style object or rule array; supports icon, fill, stroke, feature filters, and resolution expressions. */
+  style: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
   /** Dash-supplied callback used to write component state back to the layout. */
   setProps: PropTypes.func
 };

@@ -178,6 +178,57 @@ dol.Map(
 )
 ```
 
+Pass a JSON-serializable OpenLayers flat style to `VectorLayer.style`. Flat
+styles use OpenLayers keys such as `icon-src`, `fill-color`, and `stroke-width`:
+
+```python
+dol.VectorLayer(
+    id="styled-features",
+    geojson=features,
+    style={
+        "icon-src": "https://openlayers.org/en/latest/examples/data/icon.png",
+        "icon-scale": 0.7,
+        "fill-color": "rgba(31, 106, 94, 0.24)",
+        "stroke-color": "#1f6a5e",
+        "stroke-width": 2,
+    },
+)
+```
+
+Use a rule array with a `resolution` expression to vary styles by map scale.
+An `else` rule applies only when no earlier filter matches:
+
+```python
+dol.VectorLayer(
+    id="scale-styled-features",
+    geojson=features,
+    style=[
+        {
+            "filter": ["<", ["resolution"], 2500],
+            "style": {
+                "icon-src": "https://openlayers.org/en/latest/examples/data/icon.png",
+                "icon-scale": 0.7,
+                "fill-color": "rgba(31, 106, 94, 0.24)",
+                "stroke-color": "#1f6a5e",
+                "stroke-width": 2,
+            },
+        },
+        {
+            "else": True,
+            "style": {
+                "circle-radius": 4,
+                "circle-fill-color": "#d66f41",
+                "circle-stroke-color": "#ffffff",
+                "circle-stroke-width": 1,
+                "fill-color": "rgba(214, 111, 65, 0.18)",
+                "stroke-color": "#b34a36",
+                "stroke-width": 1,
+            },
+        },
+    ],
+)
+```
+
 Example usage (from the repository `usage.py`) — draw polygons and capture GeoJSON:
 
 ```python
