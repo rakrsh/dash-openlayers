@@ -602,6 +602,35 @@ templates:</p>
     <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
 <span class="p">)</span>
 </code></pre></div>
+<p><code>TileWMS</code> requests tiled WMS images. <code>ImageWMS</code> requests one image for the map
+viewport. Both accept a WMS endpoint, request <code>params</code> (including <code>LAYERS</code>),
+and an optional <code>serverType</code> (<code>geoserver</code>, <code>mapserver</code>, <code>carmentaserver</code>, or
+<code>qgis</code>). Changing the <code>params</code> prop calls OpenLayers <code>updateParams</code>, causing the
+source to request the updated layer:</p>
+<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
+    <span class="nb">id</span><span class="o">=</span><span class="s2">"wms-map"</span><span class="p">,</span>
+    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">zoom</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">TileWMS</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="s2">"roads-wms"</span><span class="p">,</span>
+            <span class="n">url</span><span class="o">=</span><span class="s2">"https://maps.example.com/geoserver/wms"</span><span class="p">,</span>
+            <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">"LAYERS"</span><span class="p">:</span> <span class="s2">"workspace:roads"</span><span class="p">,</span> <span class="s2">"STYLES"</span><span class="p">:</span> <span class="s2">""</span><span class="p">},</span>
+            <span class="n">serverType</span><span class="o">=</span><span class="s2">"geoserver"</span><span class="p">,</span>
+        <span class="p">),</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">ImageWMS</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="s2">"boundaries-wms"</span><span class="p">,</span>
+            <span class="n">url</span><span class="o">=</span><span class="s2">"https://maps.example.com/geoserver/wms"</span><span class="p">,</span>
+            <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">"LAYERS"</span><span class="p">:</span> <span class="s2">"workspace:boundaries"</span><span class="p">,</span> <span class="s2">"STYLES"</span><span class="p">:</span> <span class="s2">""</span><span class="p">},</span>
+            <span class="n">serverType</span><span class="o">=</span><span class="s2">"geoserver"</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">],</span>
+    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>For dynamic layer switching, update the full <code>params</code> object from a Dash
+callback, for example <code>Output("roads-wms", "params")</code>. WMS servers must allow
+cross-origin requests from the Dash app's origin.</p>
 <p><code>VectorTileLayer</code> loads Mapbox Vector Tile (MVT/PBF) data from a URL template.
 Use <code>urls</code> instead of <code>url</code> to supply multiple templates for load balancing.
 The <code>style</code> prop is an OpenLayers flat-style object, not a Mapbox GL style
