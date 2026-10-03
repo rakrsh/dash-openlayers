@@ -3838,7 +3838,7 @@ function rotate$1(coordinate, angle) {
  * @param {number} scale Scale factor.
  * @return {Coordinate} Coordinate.
  */
-function scale$2(coordinate, scale) {
+function scale$3(coordinate, scale) {
   coordinate[0] *= scale;
   coordinate[1] *= scale;
   return coordinate;
@@ -4349,6 +4349,20 @@ function getTransform(source, destination) {
 function transform$1(coordinate, source, destination) {
   const transformFunc = getTransform(source, destination);
   return transformFunc(coordinate, undefined, coordinate.length);
+}
+
+/**
+ * @type {Projection|null}
+ */
+let userProjection = null;
+
+/**
+ * Get the projection for coordinates supplied from and returned by API methods.
+ * @return {Projection|null} The user projection (or null if not set).
+ * @api
+ */
+function getUserProjection() {
+  return userProjection;
 }
 
 /**
@@ -4944,7 +4958,7 @@ function linear(t) {
  * @private
  * @type {Transform}
  */
-new Array(6);
+const tmp_ = new Array(6);
 
 /**
  * Create an identity transform.
@@ -4952,6 +4966,67 @@ new Array(6);
  */
 function create() {
   return [1, 0, 0, 1, 0, 0];
+}
+
+/**
+ * Resets the given transform to an identity transform.
+ * @param {!Transform} transform Transform.
+ * @return {!Transform} Transform.
+ */
+function reset(transform) {
+  return set(transform, 1, 0, 0, 1, 0, 0);
+}
+
+/**
+ * Multiply the underlying matrices of two transforms and return the result in
+ * the first transform.
+ * @param {!Transform} transform1 Transform parameters of matrix 1.
+ * @param {!Transform} transform2 Transform parameters of matrix 2.
+ * @return {!Transform} transform1 multiplied with transform2.
+ */
+function multiply(transform1, transform2) {
+  const a1 = transform1[0];
+  const b1 = transform1[1];
+  const c1 = transform1[2];
+  const d1 = transform1[3];
+  const e1 = transform1[4];
+  const f1 = transform1[5];
+  const a2 = transform2[0];
+  const b2 = transform2[1];
+  const c2 = transform2[2];
+  const d2 = transform2[3];
+  const e2 = transform2[4];
+  const f2 = transform2[5];
+
+  transform1[0] = a1 * a2 + c1 * b2;
+  transform1[1] = b1 * a2 + d1 * b2;
+  transform1[2] = a1 * c2 + c1 * d2;
+  transform1[3] = b1 * c2 + d1 * d2;
+  transform1[4] = a1 * e2 + c1 * f2 + e1;
+  transform1[5] = b1 * e2 + d1 * f2 + f1;
+
+  return transform1;
+}
+
+/**
+ * Set the transform components a-f on a given transform.
+ * @param {!Transform} transform Transform.
+ * @param {number} a The a component of the transform.
+ * @param {number} b The b component of the transform.
+ * @param {number} c The c component of the transform.
+ * @param {number} d The d component of the transform.
+ * @param {number} e The e component of the transform.
+ * @param {number} f The f component of the transform.
+ * @return {!Transform} Matrix with transform applied.
+ */
+function set(transform, a, b, c, d, e, f) {
+  transform[0] = a;
+  transform[1] = b;
+  transform[2] = c;
+  transform[3] = d;
+  transform[4] = e;
+  transform[5] = f;
+  return transform;
 }
 
 /**
@@ -4985,6 +5060,28 @@ function apply(transform, coordinate) {
   coordinate[0] = transform[0] * x + transform[2] * y + transform[4];
   coordinate[1] = transform[1] * x + transform[3] * y + transform[5];
   return coordinate;
+}
+
+/**
+ * Applies scale to a given transform.
+ * @param {!Transform} transform Transform.
+ * @param {number} x Scale factor x.
+ * @param {number} y Scale factor y.
+ * @return {!Transform} The scaled transform.
+ */
+function scale$2(transform, x, y) {
+  return multiply(transform, set(tmp_, x, 0, 0, y, 0, 0));
+}
+
+/**
+ * Applies translation to the given transform.
+ * @param {!Transform} transform Transform.
+ * @param {number} dx Translation x.
+ * @param {number} dy Translation y.
+ * @return {!Transform} The translated transform.
+ */
+function translate$1(transform, dx, dy) {
+  return multiply(transform, set(tmp_, 1, 0, 0, 1, dx, dy));
 }
 
 /**
@@ -25620,7 +25717,7 @@ class DragPan extends PointerInteraction {
         ];
         const map = mapBrowserEvent.map;
         const view = map.getView();
-        scale$2(delta, view.getResolution());
+        scale$3(delta, view.getResolution());
         rotate$1(delta, view.getRotation());
         view.adjustCenterInternal(delta);
       }
@@ -45268,7 +45365,7 @@ class ZIndexContext {
 /**
  * @type {Array<HTMLCanvasElement>}
  */
-const canvasPool$1 = [];
+const canvasPool$2 = [];
 
 /**
  * @type {CanvasRenderingContext2D}
@@ -48799,7 +48896,7 @@ function createHitDetectionImageData(
   squaredTolerance,
   projection,
 ) {
-  const userExtent = extent;
+  const userExtent = projection ? toUserExtent(extent) : extent;
   const width = size[0] * HIT_DETECT_RESOLUTION;
   const height = size[1] * HIT_DETECT_RESOLUTION;
   const context = createCanvasContext2D(width, height);
@@ -48812,7 +48909,9 @@ function createHitDetectionImageData(
     null,
     rotation,
     squaredTolerance,
-    null,
+    projection
+      ? getTransformFromProjections(getUserProjection(), projection)
+      : null,
   );
   const featureCount = features.length;
   // Stretch hit detection index to use the whole available color range
@@ -49603,7 +49702,7 @@ class CanvasVectorLayerRenderer extends CanvasLayerRenderer {
       this.context = createCanvasContext2D(
         this.context.canvas.width,
         this.context.canvas.height,
-        canvasPool$1,
+        canvasPool$2,
       );
     }
   }
@@ -49618,7 +49717,7 @@ class CanvasVectorLayerRenderer extends CanvasLayerRenderer {
       this.targetContext_.drawImage(this.context.canvas, 0, 0);
       this.targetContext_.globalAlpha = alpha;
       releaseCanvas(this.context);
-      canvasPool$1.push(this.context.canvas);
+      canvasPool$2.push(this.context.canvas);
       this.context = this.targetContext_;
       this.targetContext_ = null;
     }
@@ -49804,7 +49903,9 @@ class CanvasVectorLayerRenderer extends CanvasLayerRenderer {
           extent,
           resolution,
           rotation,
-          getSquaredTolerance(resolution, this.renderedPixelRatio_));
+          getSquaredTolerance(resolution, this.renderedPixelRatio_),
+          null,
+        );
       }
       resolve(
         hitDetect(pixel, this.renderedFeatures_, this.hitDetectionImageData_),
@@ -58487,7 +58588,7 @@ let brokenDiagonalRendering_;
 /**
  * @type {Array<HTMLCanvasElement>}
  */
-const canvasPool = [];
+const canvasPool$1 = [];
 
 /**
  * This draws a small triangle into a canvas by setting the triangle as the clip region
@@ -58539,7 +58640,7 @@ function verifyBrokenDiagonalRendering(data, offset) {
  */
 function isBrokenDiagonalRendering() {
   if (brokenDiagonalRendering_ === undefined) {
-    const ctx = createCanvasContext2D(6, 6, canvasPool);
+    const ctx = createCanvasContext2D(6, 6, canvasPool$1);
     ctx.globalCompositeOperation = 'lighter';
     ctx.fillStyle = 'rgba(210, 0, 0, 0.75)';
     drawTestTriangle(ctx, 4, 5, 4, 0);
@@ -58550,7 +58651,7 @@ function isBrokenDiagonalRendering() {
       verifyBrokenDiagonalRendering(data, 4) ||
       verifyBrokenDiagonalRendering(data, 8);
     releaseCanvas(ctx);
-    canvasPool.push(ctx.canvas);
+    canvasPool$1.push(ctx.canvas);
   }
 
   return brokenDiagonalRendering_;
@@ -58695,7 +58796,7 @@ function render(
   const context = createCanvasContext2D(
     Math.round(pixelRatio * width),
     Math.round(pixelRatio * height),
-    canvasPool,
+    canvasPool$1,
   );
 
   if (!interpolate) {
@@ -58728,7 +58829,7 @@ function render(
     stitchContext = createCanvasContext2D(
       Math.round(getWidth(sourceDataExtent) * stitchScale),
       Math.round(getHeight(sourceDataExtent) * stitchScale),
-      canvasPool,
+      canvasPool$1,
     );
 
     if (!interpolate) {
@@ -58915,7 +59016,7 @@ function render(
 
   if (stitchContext) {
     releaseCanvas(stitchContext);
-    canvasPool.push(stitchContext.canvas);
+    canvasPool$1.push(stitchContext.canvas);
   }
 
   if (renderEdges) {
@@ -59330,7 +59431,7 @@ class ReprojTile extends Tile {
   release() {
     if (this.canvas_) {
       releaseCanvas(this.canvas_.getContext('2d'));
-      canvasPool.push(this.canvas_);
+      canvasPool$1.push(this.canvas_);
       this.canvas_ = null;
     }
     super.release();
@@ -60572,6 +60673,19 @@ function getKeyZXY(z, x, y) {
  */
 function getKey(tileCoord) {
   return getKeyZXY(tileCoord[0], tileCoord[1], tileCoord[2]);
+}
+
+/**
+ * Get the tile cache key for a tile key obtained through `tile.getKey()`.
+ * @param {string} tileKey The tile key.
+ * @return {string} The cache key.
+ */
+function getCacheKeyForTileKey(tileKey) {
+  const [z, x, y] = tileKey
+    .substring(tileKey.lastIndexOf('/') + 1, tileKey.length)
+    .split(',')
+    .map(Number);
+  return getKeyZXY(z, x, y);
 }
 
 /**
@@ -62964,4 +63078,3157 @@ VectorLayerComponent.propTypes = {
   setProps: PropTypes.func
 };
 
-export { DrawInteraction, MapComponent as Map, ModifyInteraction, OLContext, TileLayer, VectorLayerComponent as VectorLayer };
+function getDefaultExportFromCjs (x) {
+	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
+}
+
+var ieee754 = {};
+
+/*! ieee754. BSD-3-Clause License. Feross Aboukhadijeh <https://feross.org/opensource> */
+
+var hasRequiredIeee754;
+
+function requireIeee754 () {
+	if (hasRequiredIeee754) return ieee754;
+	hasRequiredIeee754 = 1;
+	ieee754.read = function (buffer, offset, isLE, mLen, nBytes) {
+	  var e, m;
+	  var eLen = (nBytes * 8) - mLen - 1;
+	  var eMax = (1 << eLen) - 1;
+	  var eBias = eMax >> 1;
+	  var nBits = -7;
+	  var i = isLE ? (nBytes - 1) : 0;
+	  var d = isLE ? -1 : 1;
+	  var s = buffer[offset + i];
+
+	  i += d;
+
+	  e = s & ((1 << (-nBits)) - 1);
+	  s >>= (-nBits);
+	  nBits += eLen;
+	  for (; nBits > 0; e = (e * 256) + buffer[offset + i], i += d, nBits -= 8) {}
+
+	  m = e & ((1 << (-nBits)) - 1);
+	  e >>= (-nBits);
+	  nBits += mLen;
+	  for (; nBits > 0; m = (m * 256) + buffer[offset + i], i += d, nBits -= 8) {}
+
+	  if (e === 0) {
+	    e = 1 - eBias;
+	  } else if (e === eMax) {
+	    return m ? NaN : ((s ? -1 : 1) * Infinity)
+	  } else {
+	    m = m + Math.pow(2, mLen);
+	    e = e - eBias;
+	  }
+	  return (s ? -1 : 1) * m * Math.pow(2, e - mLen)
+	};
+
+	ieee754.write = function (buffer, value, offset, isLE, mLen, nBytes) {
+	  var e, m, c;
+	  var eLen = (nBytes * 8) - mLen - 1;
+	  var eMax = (1 << eLen) - 1;
+	  var eBias = eMax >> 1;
+	  var rt = (mLen === 23 ? Math.pow(2, -24) - Math.pow(2, -77) : 0);
+	  var i = isLE ? 0 : (nBytes - 1);
+	  var d = isLE ? 1 : -1;
+	  var s = value < 0 || (value === 0 && 1 / value < 0) ? 1 : 0;
+
+	  value = Math.abs(value);
+
+	  if (isNaN(value) || value === Infinity) {
+	    m = isNaN(value) ? 1 : 0;
+	    e = eMax;
+	  } else {
+	    e = Math.floor(Math.log(value) / Math.LN2);
+	    if (value * (c = Math.pow(2, -e)) < 1) {
+	      e--;
+	      c *= 2;
+	    }
+	    if (e + eBias >= 1) {
+	      value += rt / c;
+	    } else {
+	      value += rt * Math.pow(2, 1 - eBias);
+	    }
+	    if (value * c >= 2) {
+	      e++;
+	      c /= 2;
+	    }
+
+	    if (e + eBias >= eMax) {
+	      m = 0;
+	      e = eMax;
+	    } else if (e + eBias >= 1) {
+	      m = ((value * c) - 1) * Math.pow(2, mLen);
+	      e = e + eBias;
+	    } else {
+	      m = value * Math.pow(2, eBias - 1) * Math.pow(2, mLen);
+	      e = 0;
+	    }
+	  }
+
+	  for (; mLen >= 8; buffer[offset + i] = m & 0xff, i += d, m /= 256, mLen -= 8) {}
+
+	  e = (e << mLen) | m;
+	  eLen += mLen;
+	  for (; eLen > 0; buffer[offset + i] = e & 0xff, i += d, e /= 256, eLen -= 8) {}
+
+	  buffer[offset + i - d] |= s * 128;
+	};
+	return ieee754;
+}
+
+var pbf;
+var hasRequiredPbf;
+
+function requirePbf () {
+	if (hasRequiredPbf) return pbf;
+	hasRequiredPbf = 1;
+
+	pbf = Pbf;
+
+	var ieee754 = requireIeee754();
+
+	function Pbf(buf) {
+	    this.buf = ArrayBuffer.isView && ArrayBuffer.isView(buf) ? buf : new Uint8Array(buf || 0);
+	    this.pos = 0;
+	    this.type = 0;
+	    this.length = this.buf.length;
+	}
+
+	Pbf.Varint  = 0; // varint: int32, int64, uint32, uint64, sint32, sint64, bool, enum
+	Pbf.Fixed64 = 1; // 64-bit: double, fixed64, sfixed64
+	Pbf.Bytes   = 2; // length-delimited: string, bytes, embedded messages, packed repeated fields
+	Pbf.Fixed32 = 5; // 32-bit: float, fixed32, sfixed32
+
+	var SHIFT_LEFT_32 = (1 << 16) * (1 << 16),
+	    SHIFT_RIGHT_32 = 1 / SHIFT_LEFT_32;
+
+	// Threshold chosen based on both benchmarking and knowledge about browser string
+	// data structures (which currently switch structure types at 12 bytes or more)
+	var TEXT_DECODER_MIN_LENGTH = 12;
+	var utf8TextDecoder = typeof TextDecoder === 'undefined' ? null : new TextDecoder('utf8');
+
+	Pbf.prototype = {
+
+	    destroy: function() {
+	        this.buf = null;
+	    },
+
+	    // === READING =================================================================
+
+	    readFields: function(readField, result, end) {
+	        end = end || this.length;
+
+	        while (this.pos < end) {
+	            var val = this.readVarint(),
+	                tag = val >> 3,
+	                startPos = this.pos;
+
+	            this.type = val & 0x7;
+	            readField(tag, result, this);
+
+	            if (this.pos === startPos) this.skip(val);
+	        }
+	        return result;
+	    },
+
+	    readMessage: function(readField, result) {
+	        return this.readFields(readField, result, this.readVarint() + this.pos);
+	    },
+
+	    readFixed32: function() {
+	        var val = readUInt32(this.buf, this.pos);
+	        this.pos += 4;
+	        return val;
+	    },
+
+	    readSFixed32: function() {
+	        var val = readInt32(this.buf, this.pos);
+	        this.pos += 4;
+	        return val;
+	    },
+
+	    // 64-bit int handling is based on github.com/dpw/node-buffer-more-ints (MIT-licensed)
+
+	    readFixed64: function() {
+	        var val = readUInt32(this.buf, this.pos) + readUInt32(this.buf, this.pos + 4) * SHIFT_LEFT_32;
+	        this.pos += 8;
+	        return val;
+	    },
+
+	    readSFixed64: function() {
+	        var val = readUInt32(this.buf, this.pos) + readInt32(this.buf, this.pos + 4) * SHIFT_LEFT_32;
+	        this.pos += 8;
+	        return val;
+	    },
+
+	    readFloat: function() {
+	        var val = ieee754.read(this.buf, this.pos, true, 23, 4);
+	        this.pos += 4;
+	        return val;
+	    },
+
+	    readDouble: function() {
+	        var val = ieee754.read(this.buf, this.pos, true, 52, 8);
+	        this.pos += 8;
+	        return val;
+	    },
+
+	    readVarint: function(isSigned) {
+	        var buf = this.buf,
+	            val, b;
+
+	        b = buf[this.pos++]; val  =  b & 0x7f;        if (b < 0x80) return val;
+	        b = buf[this.pos++]; val |= (b & 0x7f) << 7;  if (b < 0x80) return val;
+	        b = buf[this.pos++]; val |= (b & 0x7f) << 14; if (b < 0x80) return val;
+	        b = buf[this.pos++]; val |= (b & 0x7f) << 21; if (b < 0x80) return val;
+	        b = buf[this.pos];   val |= (b & 0x0f) << 28;
+
+	        return readVarintRemainder(val, isSigned, this);
+	    },
+
+	    readVarint64: function() { // for compatibility with v2.0.1
+	        return this.readVarint(true);
+	    },
+
+	    readSVarint: function() {
+	        var num = this.readVarint();
+	        return num % 2 === 1 ? (num + 1) / -2 : num / 2; // zigzag encoding
+	    },
+
+	    readBoolean: function() {
+	        return Boolean(this.readVarint());
+	    },
+
+	    readString: function() {
+	        var end = this.readVarint() + this.pos;
+	        var pos = this.pos;
+	        this.pos = end;
+
+	        if (end - pos >= TEXT_DECODER_MIN_LENGTH && utf8TextDecoder) {
+	            // longer strings are fast with the built-in browser TextDecoder API
+	            return readUtf8TextDecoder(this.buf, pos, end);
+	        }
+	        // short strings are fast with our custom implementation
+	        return readUtf8(this.buf, pos, end);
+	    },
+
+	    readBytes: function() {
+	        var end = this.readVarint() + this.pos,
+	            buffer = this.buf.subarray(this.pos, end);
+	        this.pos = end;
+	        return buffer;
+	    },
+
+	    // verbose for performance reasons; doesn't affect gzipped size
+
+	    readPackedVarint: function(arr, isSigned) {
+	        if (this.type !== Pbf.Bytes) return arr.push(this.readVarint(isSigned));
+	        var end = readPackedEnd(this);
+	        arr = arr || [];
+	        while (this.pos < end) arr.push(this.readVarint(isSigned));
+	        return arr;
+	    },
+	    readPackedSVarint: function(arr) {
+	        if (this.type !== Pbf.Bytes) return arr.push(this.readSVarint());
+	        var end = readPackedEnd(this);
+	        arr = arr || [];
+	        while (this.pos < end) arr.push(this.readSVarint());
+	        return arr;
+	    },
+	    readPackedBoolean: function(arr) {
+	        if (this.type !== Pbf.Bytes) return arr.push(this.readBoolean());
+	        var end = readPackedEnd(this);
+	        arr = arr || [];
+	        while (this.pos < end) arr.push(this.readBoolean());
+	        return arr;
+	    },
+	    readPackedFloat: function(arr) {
+	        if (this.type !== Pbf.Bytes) return arr.push(this.readFloat());
+	        var end = readPackedEnd(this);
+	        arr = arr || [];
+	        while (this.pos < end) arr.push(this.readFloat());
+	        return arr;
+	    },
+	    readPackedDouble: function(arr) {
+	        if (this.type !== Pbf.Bytes) return arr.push(this.readDouble());
+	        var end = readPackedEnd(this);
+	        arr = arr || [];
+	        while (this.pos < end) arr.push(this.readDouble());
+	        return arr;
+	    },
+	    readPackedFixed32: function(arr) {
+	        if (this.type !== Pbf.Bytes) return arr.push(this.readFixed32());
+	        var end = readPackedEnd(this);
+	        arr = arr || [];
+	        while (this.pos < end) arr.push(this.readFixed32());
+	        return arr;
+	    },
+	    readPackedSFixed32: function(arr) {
+	        if (this.type !== Pbf.Bytes) return arr.push(this.readSFixed32());
+	        var end = readPackedEnd(this);
+	        arr = arr || [];
+	        while (this.pos < end) arr.push(this.readSFixed32());
+	        return arr;
+	    },
+	    readPackedFixed64: function(arr) {
+	        if (this.type !== Pbf.Bytes) return arr.push(this.readFixed64());
+	        var end = readPackedEnd(this);
+	        arr = arr || [];
+	        while (this.pos < end) arr.push(this.readFixed64());
+	        return arr;
+	    },
+	    readPackedSFixed64: function(arr) {
+	        if (this.type !== Pbf.Bytes) return arr.push(this.readSFixed64());
+	        var end = readPackedEnd(this);
+	        arr = arr || [];
+	        while (this.pos < end) arr.push(this.readSFixed64());
+	        return arr;
+	    },
+
+	    skip: function(val) {
+	        var type = val & 0x7;
+	        if (type === Pbf.Varint) while (this.buf[this.pos++] > 0x7f) {}
+	        else if (type === Pbf.Bytes) this.pos = this.readVarint() + this.pos;
+	        else if (type === Pbf.Fixed32) this.pos += 4;
+	        else if (type === Pbf.Fixed64) this.pos += 8;
+	        else throw new Error('Unimplemented type: ' + type);
+	    },
+
+	    // === WRITING =================================================================
+
+	    writeTag: function(tag, type) {
+	        this.writeVarint((tag << 3) | type);
+	    },
+
+	    realloc: function(min) {
+	        var length = this.length || 16;
+
+	        while (length < this.pos + min) length *= 2;
+
+	        if (length !== this.length) {
+	            var buf = new Uint8Array(length);
+	            buf.set(this.buf);
+	            this.buf = buf;
+	            this.length = length;
+	        }
+	    },
+
+	    finish: function() {
+	        this.length = this.pos;
+	        this.pos = 0;
+	        return this.buf.subarray(0, this.length);
+	    },
+
+	    writeFixed32: function(val) {
+	        this.realloc(4);
+	        writeInt32(this.buf, val, this.pos);
+	        this.pos += 4;
+	    },
+
+	    writeSFixed32: function(val) {
+	        this.realloc(4);
+	        writeInt32(this.buf, val, this.pos);
+	        this.pos += 4;
+	    },
+
+	    writeFixed64: function(val) {
+	        this.realloc(8);
+	        writeInt32(this.buf, val & -1, this.pos);
+	        writeInt32(this.buf, Math.floor(val * SHIFT_RIGHT_32), this.pos + 4);
+	        this.pos += 8;
+	    },
+
+	    writeSFixed64: function(val) {
+	        this.realloc(8);
+	        writeInt32(this.buf, val & -1, this.pos);
+	        writeInt32(this.buf, Math.floor(val * SHIFT_RIGHT_32), this.pos + 4);
+	        this.pos += 8;
+	    },
+
+	    writeVarint: function(val) {
+	        val = +val || 0;
+
+	        if (val > 0xfffffff || val < 0) {
+	            writeBigVarint(val, this);
+	            return;
+	        }
+
+	        this.realloc(4);
+
+	        this.buf[this.pos++] =           val & 0x7f  | (val > 0x7f ? 0x80 : 0); if (val <= 0x7f) return;
+	        this.buf[this.pos++] = ((val >>>= 7) & 0x7f) | (val > 0x7f ? 0x80 : 0); if (val <= 0x7f) return;
+	        this.buf[this.pos++] = ((val >>>= 7) & 0x7f) | (val > 0x7f ? 0x80 : 0); if (val <= 0x7f) return;
+	        this.buf[this.pos++] =   (val >>> 7) & 0x7f;
+	    },
+
+	    writeSVarint: function(val) {
+	        this.writeVarint(val < 0 ? -val * 2 - 1 : val * 2);
+	    },
+
+	    writeBoolean: function(val) {
+	        this.writeVarint(Boolean(val));
+	    },
+
+	    writeString: function(str) {
+	        str = String(str);
+	        this.realloc(str.length * 4);
+
+	        this.pos++; // reserve 1 byte for short string length
+
+	        var startPos = this.pos;
+	        // write the string directly to the buffer and see how much was written
+	        this.pos = writeUtf8(this.buf, str, this.pos);
+	        var len = this.pos - startPos;
+
+	        if (len >= 0x80) makeRoomForExtraLength(startPos, len, this);
+
+	        // finally, write the message length in the reserved place and restore the position
+	        this.pos = startPos - 1;
+	        this.writeVarint(len);
+	        this.pos += len;
+	    },
+
+	    writeFloat: function(val) {
+	        this.realloc(4);
+	        ieee754.write(this.buf, val, this.pos, true, 23, 4);
+	        this.pos += 4;
+	    },
+
+	    writeDouble: function(val) {
+	        this.realloc(8);
+	        ieee754.write(this.buf, val, this.pos, true, 52, 8);
+	        this.pos += 8;
+	    },
+
+	    writeBytes: function(buffer) {
+	        var len = buffer.length;
+	        this.writeVarint(len);
+	        this.realloc(len);
+	        for (var i = 0; i < len; i++) this.buf[this.pos++] = buffer[i];
+	    },
+
+	    writeRawMessage: function(fn, obj) {
+	        this.pos++; // reserve 1 byte for short message length
+
+	        // write the message directly to the buffer and see how much was written
+	        var startPos = this.pos;
+	        fn(obj, this);
+	        var len = this.pos - startPos;
+
+	        if (len >= 0x80) makeRoomForExtraLength(startPos, len, this);
+
+	        // finally, write the message length in the reserved place and restore the position
+	        this.pos = startPos - 1;
+	        this.writeVarint(len);
+	        this.pos += len;
+	    },
+
+	    writeMessage: function(tag, fn, obj) {
+	        this.writeTag(tag, Pbf.Bytes);
+	        this.writeRawMessage(fn, obj);
+	    },
+
+	    writePackedVarint:   function(tag, arr) { if (arr.length) this.writeMessage(tag, writePackedVarint, arr);   },
+	    writePackedSVarint:  function(tag, arr) { if (arr.length) this.writeMessage(tag, writePackedSVarint, arr);  },
+	    writePackedBoolean:  function(tag, arr) { if (arr.length) this.writeMessage(tag, writePackedBoolean, arr);  },
+	    writePackedFloat:    function(tag, arr) { if (arr.length) this.writeMessage(tag, writePackedFloat, arr);    },
+	    writePackedDouble:   function(tag, arr) { if (arr.length) this.writeMessage(tag, writePackedDouble, arr);   },
+	    writePackedFixed32:  function(tag, arr) { if (arr.length) this.writeMessage(tag, writePackedFixed32, arr);  },
+	    writePackedSFixed32: function(tag, arr) { if (arr.length) this.writeMessage(tag, writePackedSFixed32, arr); },
+	    writePackedFixed64:  function(tag, arr) { if (arr.length) this.writeMessage(tag, writePackedFixed64, arr);  },
+	    writePackedSFixed64: function(tag, arr) { if (arr.length) this.writeMessage(tag, writePackedSFixed64, arr); },
+
+	    writeBytesField: function(tag, buffer) {
+	        this.writeTag(tag, Pbf.Bytes);
+	        this.writeBytes(buffer);
+	    },
+	    writeFixed32Field: function(tag, val) {
+	        this.writeTag(tag, Pbf.Fixed32);
+	        this.writeFixed32(val);
+	    },
+	    writeSFixed32Field: function(tag, val) {
+	        this.writeTag(tag, Pbf.Fixed32);
+	        this.writeSFixed32(val);
+	    },
+	    writeFixed64Field: function(tag, val) {
+	        this.writeTag(tag, Pbf.Fixed64);
+	        this.writeFixed64(val);
+	    },
+	    writeSFixed64Field: function(tag, val) {
+	        this.writeTag(tag, Pbf.Fixed64);
+	        this.writeSFixed64(val);
+	    },
+	    writeVarintField: function(tag, val) {
+	        this.writeTag(tag, Pbf.Varint);
+	        this.writeVarint(val);
+	    },
+	    writeSVarintField: function(tag, val) {
+	        this.writeTag(tag, Pbf.Varint);
+	        this.writeSVarint(val);
+	    },
+	    writeStringField: function(tag, str) {
+	        this.writeTag(tag, Pbf.Bytes);
+	        this.writeString(str);
+	    },
+	    writeFloatField: function(tag, val) {
+	        this.writeTag(tag, Pbf.Fixed32);
+	        this.writeFloat(val);
+	    },
+	    writeDoubleField: function(tag, val) {
+	        this.writeTag(tag, Pbf.Fixed64);
+	        this.writeDouble(val);
+	    },
+	    writeBooleanField: function(tag, val) {
+	        this.writeVarintField(tag, Boolean(val));
+	    }
+	};
+
+	function readVarintRemainder(l, s, p) {
+	    var buf = p.buf,
+	        h, b;
+
+	    b = buf[p.pos++]; h  = (b & 0x70) >> 4;  if (b < 0x80) return toNum(l, h, s);
+	    b = buf[p.pos++]; h |= (b & 0x7f) << 3;  if (b < 0x80) return toNum(l, h, s);
+	    b = buf[p.pos++]; h |= (b & 0x7f) << 10; if (b < 0x80) return toNum(l, h, s);
+	    b = buf[p.pos++]; h |= (b & 0x7f) << 17; if (b < 0x80) return toNum(l, h, s);
+	    b = buf[p.pos++]; h |= (b & 0x7f) << 24; if (b < 0x80) return toNum(l, h, s);
+	    b = buf[p.pos++]; h |= (b & 0x01) << 31; if (b < 0x80) return toNum(l, h, s);
+
+	    throw new Error('Expected varint not more than 10 bytes');
+	}
+
+	function readPackedEnd(pbf) {
+	    return pbf.type === Pbf.Bytes ?
+	        pbf.readVarint() + pbf.pos : pbf.pos + 1;
+	}
+
+	function toNum(low, high, isSigned) {
+	    if (isSigned) {
+	        return high * 0x100000000 + (low >>> 0);
+	    }
+
+	    return ((high >>> 0) * 0x100000000) + (low >>> 0);
+	}
+
+	function writeBigVarint(val, pbf) {
+	    var low, high;
+
+	    if (val >= 0) {
+	        low  = (val % 0x100000000) | 0;
+	        high = (val / 0x100000000) | 0;
+	    } else {
+	        low  = ~(-val % 0x100000000);
+	        high = ~(-val / 0x100000000);
+
+	        if (low ^ 0xffffffff) {
+	            low = (low + 1) | 0;
+	        } else {
+	            low = 0;
+	            high = (high + 1) | 0;
+	        }
+	    }
+
+	    if (val >= 0x10000000000000000 || val < -18446744073709552e3) {
+	        throw new Error('Given varint doesn\'t fit into 10 bytes');
+	    }
+
+	    pbf.realloc(10);
+
+	    writeBigVarintLow(low, high, pbf);
+	    writeBigVarintHigh(high, pbf);
+	}
+
+	function writeBigVarintLow(low, high, pbf) {
+	    pbf.buf[pbf.pos++] = low & 0x7f | 0x80; low >>>= 7;
+	    pbf.buf[pbf.pos++] = low & 0x7f | 0x80; low >>>= 7;
+	    pbf.buf[pbf.pos++] = low & 0x7f | 0x80; low >>>= 7;
+	    pbf.buf[pbf.pos++] = low & 0x7f | 0x80; low >>>= 7;
+	    pbf.buf[pbf.pos]   = low & 0x7f;
+	}
+
+	function writeBigVarintHigh(high, pbf) {
+	    var lsb = (high & 0x07) << 4;
+
+	    pbf.buf[pbf.pos++] |= lsb         | ((high >>>= 3) ? 0x80 : 0); if (!high) return;
+	    pbf.buf[pbf.pos++]  = high & 0x7f | ((high >>>= 7) ? 0x80 : 0); if (!high) return;
+	    pbf.buf[pbf.pos++]  = high & 0x7f | ((high >>>= 7) ? 0x80 : 0); if (!high) return;
+	    pbf.buf[pbf.pos++]  = high & 0x7f | ((high >>>= 7) ? 0x80 : 0); if (!high) return;
+	    pbf.buf[pbf.pos++]  = high & 0x7f | ((high >>>= 7) ? 0x80 : 0); if (!high) return;
+	    pbf.buf[pbf.pos++]  = high & 0x7f;
+	}
+
+	function makeRoomForExtraLength(startPos, len, pbf) {
+	    var extraLen =
+	        len <= 0x3fff ? 1 :
+	        len <= 0x1fffff ? 2 :
+	        len <= 0xfffffff ? 3 : Math.floor(Math.log(len) / (Math.LN2 * 7));
+
+	    // if 1 byte isn't enough for encoding message length, shift the data to the right
+	    pbf.realloc(extraLen);
+	    for (var i = pbf.pos - 1; i >= startPos; i--) pbf.buf[i + extraLen] = pbf.buf[i];
+	}
+
+	function writePackedVarint(arr, pbf)   { for (var i = 0; i < arr.length; i++) pbf.writeVarint(arr[i]);   }
+	function writePackedSVarint(arr, pbf)  { for (var i = 0; i < arr.length; i++) pbf.writeSVarint(arr[i]);  }
+	function writePackedFloat(arr, pbf)    { for (var i = 0; i < arr.length; i++) pbf.writeFloat(arr[i]);    }
+	function writePackedDouble(arr, pbf)   { for (var i = 0; i < arr.length; i++) pbf.writeDouble(arr[i]);   }
+	function writePackedBoolean(arr, pbf)  { for (var i = 0; i < arr.length; i++) pbf.writeBoolean(arr[i]);  }
+	function writePackedFixed32(arr, pbf)  { for (var i = 0; i < arr.length; i++) pbf.writeFixed32(arr[i]);  }
+	function writePackedSFixed32(arr, pbf) { for (var i = 0; i < arr.length; i++) pbf.writeSFixed32(arr[i]); }
+	function writePackedFixed64(arr, pbf)  { for (var i = 0; i < arr.length; i++) pbf.writeFixed64(arr[i]);  }
+	function writePackedSFixed64(arr, pbf) { for (var i = 0; i < arr.length; i++) pbf.writeSFixed64(arr[i]); }
+
+	// Buffer code below from https://github.com/feross/buffer, MIT-licensed
+
+	function readUInt32(buf, pos) {
+	    return ((buf[pos]) |
+	        (buf[pos + 1] << 8) |
+	        (buf[pos + 2] << 16)) +
+	        (buf[pos + 3] * 0x1000000);
+	}
+
+	function writeInt32(buf, val, pos) {
+	    buf[pos] = val;
+	    buf[pos + 1] = (val >>> 8);
+	    buf[pos + 2] = (val >>> 16);
+	    buf[pos + 3] = (val >>> 24);
+	}
+
+	function readInt32(buf, pos) {
+	    return ((buf[pos]) |
+	        (buf[pos + 1] << 8) |
+	        (buf[pos + 2] << 16)) +
+	        (buf[pos + 3] << 24);
+	}
+
+	function readUtf8(buf, pos, end) {
+	    var str = '';
+	    var i = pos;
+
+	    while (i < end) {
+	        var b0 = buf[i];
+	        var c = null; // codepoint
+	        var bytesPerSequence =
+	            b0 > 0xEF ? 4 :
+	            b0 > 0xDF ? 3 :
+	            b0 > 0xBF ? 2 : 1;
+
+	        if (i + bytesPerSequence > end) break;
+
+	        var b1, b2, b3;
+
+	        if (bytesPerSequence === 1) {
+	            if (b0 < 0x80) {
+	                c = b0;
+	            }
+	        } else if (bytesPerSequence === 2) {
+	            b1 = buf[i + 1];
+	            if ((b1 & 0xC0) === 0x80) {
+	                c = (b0 & 0x1F) << 0x6 | (b1 & 0x3F);
+	                if (c <= 0x7F) {
+	                    c = null;
+	                }
+	            }
+	        } else if (bytesPerSequence === 3) {
+	            b1 = buf[i + 1];
+	            b2 = buf[i + 2];
+	            if ((b1 & 0xC0) === 0x80 && (b2 & 0xC0) === 0x80) {
+	                c = (b0 & 0xF) << 0xC | (b1 & 0x3F) << 0x6 | (b2 & 0x3F);
+	                if (c <= 0x7FF || (c >= 0xD800 && c <= 0xDFFF)) {
+	                    c = null;
+	                }
+	            }
+	        } else if (bytesPerSequence === 4) {
+	            b1 = buf[i + 1];
+	            b2 = buf[i + 2];
+	            b3 = buf[i + 3];
+	            if ((b1 & 0xC0) === 0x80 && (b2 & 0xC0) === 0x80 && (b3 & 0xC0) === 0x80) {
+	                c = (b0 & 0xF) << 0x12 | (b1 & 0x3F) << 0xC | (b2 & 0x3F) << 0x6 | (b3 & 0x3F);
+	                if (c <= 0xFFFF || c >= 0x110000) {
+	                    c = null;
+	                }
+	            }
+	        }
+
+	        if (c === null) {
+	            c = 0xFFFD;
+	            bytesPerSequence = 1;
+
+	        } else if (c > 0xFFFF) {
+	            c -= 0x10000;
+	            str += String.fromCharCode(c >>> 10 & 0x3FF | 0xD800);
+	            c = 0xDC00 | c & 0x3FF;
+	        }
+
+	        str += String.fromCharCode(c);
+	        i += bytesPerSequence;
+	    }
+
+	    return str;
+	}
+
+	function readUtf8TextDecoder(buf, pos, end) {
+	    return utf8TextDecoder.decode(buf.subarray(pos, end));
+	}
+
+	function writeUtf8(buf, str, pos) {
+	    for (var i = 0, c, lead; i < str.length; i++) {
+	        c = str.charCodeAt(i); // code point
+
+	        if (c > 0xD7FF && c < 0xE000) {
+	            if (lead) {
+	                if (c < 0xDC00) {
+	                    buf[pos++] = 0xEF;
+	                    buf[pos++] = 0xBF;
+	                    buf[pos++] = 0xBD;
+	                    lead = c;
+	                    continue;
+	                } else {
+	                    c = lead - 0xD800 << 10 | c - 0xDC00 | 0x10000;
+	                    lead = null;
+	                }
+	            } else {
+	                if (c > 0xDBFF || (i + 1 === str.length)) {
+	                    buf[pos++] = 0xEF;
+	                    buf[pos++] = 0xBF;
+	                    buf[pos++] = 0xBD;
+	                } else {
+	                    lead = c;
+	                }
+	                continue;
+	            }
+	        } else if (lead) {
+	            buf[pos++] = 0xEF;
+	            buf[pos++] = 0xBF;
+	            buf[pos++] = 0xBD;
+	            lead = null;
+	        }
+
+	        if (c < 0x80) {
+	            buf[pos++] = c;
+	        } else {
+	            if (c < 0x800) {
+	                buf[pos++] = c >> 0x6 | 0xC0;
+	            } else {
+	                if (c < 0x10000) {
+	                    buf[pos++] = c >> 0xC | 0xE0;
+	                } else {
+	                    buf[pos++] = c >> 0x12 | 0xF0;
+	                    buf[pos++] = c >> 0xC & 0x3F | 0x80;
+	                }
+	                buf[pos++] = c >> 0x6 & 0x3F | 0x80;
+	            }
+	            buf[pos++] = c & 0x3F | 0x80;
+	        }
+	    }
+	    return pos;
+	}
+	return pbf;
+}
+
+var pbfExports = requirePbf();
+var PBF = /*@__PURE__*/getDefaultExportFromCjs(pbfExports);
+
+/**
+ * @module ol/format/MVT
+ */
+//FIXME Implement projection handling
+
+
+/**
+ * @template {import("../Feature.js").FeatureClass} FeatureClassToFeature
+ * @typedef {Object} Options
+ * @property {FeatureClassToFeature} [featureClass] Class for features returned by
+ * {@link module:ol/format/MVT~MVT#readFeatures}. Set to {@link module:ol/Feature~Feature} to get full editing and geometry
+ * support at the cost of decreased rendering performance. The default is
+ * {@link module:ol/render/Feature~RenderFeature}, which is optimized for rendering and hit detection.
+ * @property {string} [geometryName='geometry'] Geometry name to use when creating features.
+ * @property {string} [layerName='layer'] Name of the feature attribute that holds the layer name.
+ * @property {Array<string>} [layers] Layers to read features from. If not provided, features will be read from all
+ * @property {string} [idProperty] Optional property that will be assigned as the feature id and removed from the properties.
+ * layers.
+ */
+
+/**
+ * @classdesc
+ * Feature format for reading data in the Mapbox MVT format.
+ *
+ * @template {import('../Feature.js').FeatureClass} [T=typeof import("../render/Feature.js").default]
+ * @extends {FeatureFormat<T>}
+ * @api
+ */
+class MVT extends FeatureFormat {
+  /**
+   * @param {Options<T>} [options] Options.
+   */
+  constructor(options) {
+    super();
+
+    options = options ? options : {};
+
+    /**
+     * @type {Projection}
+     */
+    this.dataProjection = new Projection$1({
+      code: '',
+      units: 'tile-pixels',
+    });
+
+    this.featureClass = options.featureClass
+      ? options.featureClass
+      : /** @type {T} */ (RenderFeature);
+
+    /**
+     * @private
+     * @type {string|undefined}
+     */
+    this.geometryName_ = options.geometryName;
+
+    /**
+     * @private
+     * @type {string}
+     */
+    this.layerName_ = options.layerName ? options.layerName : 'layer';
+
+    /**
+     * @private
+     * @type {Array<string>|null}
+     */
+    this.layers_ = options.layers ? options.layers : null;
+
+    /**
+     * @private
+     * @type {string}
+     */
+    this.idProperty_ = options.idProperty;
+
+    this.supportedMediaTypes = [
+      'application/vnd.mapbox-vector-tile',
+      'application/x-protobuf',
+    ];
+  }
+
+  /**
+   * Read the raw geometry from the pbf offset stored in a raw feature's geometry
+   * property.
+   * @param {PBF} pbf PBF.
+   * @param {Object} feature Raw feature.
+   * @param {Array<number>} flatCoordinates Array to store flat coordinates in.
+   * @param {Array<number>} ends Array to store ends in.
+   * @private
+   */
+  readRawGeometry_(pbf, feature, flatCoordinates, ends) {
+    pbf.pos = feature.geometry;
+
+    const end = pbf.readVarint() + pbf.pos;
+    let cmd = 1;
+    let length = 0;
+    let x = 0;
+    let y = 0;
+    let coordsLen = 0;
+    let currentEnd = 0;
+
+    while (pbf.pos < end) {
+      if (!length) {
+        const cmdLen = pbf.readVarint();
+        cmd = cmdLen & 0x7;
+        length = cmdLen >> 3;
+      }
+
+      length--;
+
+      if (cmd === 1 || cmd === 2) {
+        x += pbf.readSVarint();
+        y += pbf.readSVarint();
+
+        if (cmd === 1) {
+          // moveTo
+          if (coordsLen > currentEnd) {
+            ends.push(coordsLen);
+            currentEnd = coordsLen;
+          }
+        }
+
+        flatCoordinates.push(x, y);
+        coordsLen += 2;
+      } else if (cmd === 7) {
+        if (coordsLen > currentEnd) {
+          // close polygon
+          flatCoordinates.push(
+            flatCoordinates[currentEnd],
+            flatCoordinates[currentEnd + 1],
+          );
+          coordsLen += 2;
+        }
+      } else {
+        throw new Error('Invalid command found in the PBF');
+      }
+    }
+
+    if (coordsLen > currentEnd) {
+      ends.push(coordsLen);
+      currentEnd = coordsLen;
+    }
+  }
+
+  /**
+   * @private
+   * @param {PBF} pbf PBF
+   * @param {Object} rawFeature Raw Mapbox feature.
+   * @param {import("./Feature.js").ReadOptions} options Read options.
+   * @return {import("../Feature.js").FeatureLike|null} Feature.
+   */
+  createFeature_(pbf, rawFeature, options) {
+    const type = rawFeature.type;
+    if (type === 0) {
+      return null;
+    }
+
+    let feature;
+    const values = rawFeature.properties;
+
+    let id;
+    if (!this.idProperty_) {
+      id = rawFeature.id;
+    } else {
+      id = values[this.idProperty_];
+      delete values[this.idProperty_];
+    }
+
+    values[this.layerName_] = rawFeature.layer.name;
+
+    const flatCoordinates = /** @type {Array<number>} */ ([]);
+    const ends = /** @type {Array<number>} */ ([]);
+    this.readRawGeometry_(pbf, rawFeature, flatCoordinates, ends);
+
+    const geometryType = getGeometryType(type, ends.length);
+
+    if (this.featureClass === RenderFeature) {
+      feature = new /** @type {typeof RenderFeature} */ (this.featureClass)(
+        geometryType,
+        flatCoordinates,
+        ends,
+        2,
+        values,
+        id,
+      );
+      feature.transform(options.dataProjection);
+    } else {
+      let geom;
+      if (geometryType == 'Polygon') {
+        const endss = inflateEnds(flatCoordinates, ends);
+        geom =
+          endss.length > 1
+            ? new MultiPolygon(flatCoordinates, 'XY', endss)
+            : new Polygon(flatCoordinates, 'XY', ends);
+      } else {
+        geom =
+          geometryType === 'Point'
+            ? new Point$1(flatCoordinates, 'XY')
+            : geometryType === 'LineString'
+              ? new LineString(flatCoordinates, 'XY')
+              : geometryType === 'MultiPoint'
+                ? new MultiPoint(flatCoordinates, 'XY')
+                : geometryType === 'MultiLineString'
+                  ? new MultiLineString(flatCoordinates, 'XY', ends)
+                  : null;
+      }
+      const ctor = /** @type {typeof import("../Feature.js").default} */ (
+        this.featureClass
+      );
+      feature = new ctor();
+      if (this.geometryName_) {
+        feature.setGeometryName(this.geometryName_);
+      }
+      const geometry = transformGeometryWithOptions(geom, false, options);
+      feature.setGeometry(geometry);
+      if (id !== undefined) {
+        feature.setId(id);
+      }
+      feature.setProperties(values, true);
+    }
+
+    return feature;
+  }
+
+  /**
+   * @return {import("./Feature.js").Type} Format.
+   */
+  getType() {
+    return 'arraybuffer';
+  }
+
+  /**
+   * Read all features.
+   *
+   * @param {ArrayBuffer} source Source.
+   * @param {import("./Feature.js").ReadOptions} [options] Read options.
+   * @return {Array<import('./Feature.js').FeatureClassToFeature<T>>} Features.
+   * @api
+   */
+  readFeatures(source, options) {
+    const layers = this.layers_;
+    options = this.adaptOptions(options);
+    const dataProjection = get$2(options.dataProjection);
+    dataProjection.setWorldExtent(options.extent);
+    options.dataProjection = dataProjection;
+
+    const pbf = new PBF(/** @type {ArrayBuffer} */ (source));
+    const pbfLayers = pbf.readFields(layersPBFReader, {});
+    const features = [];
+    for (const name in pbfLayers) {
+      if (layers && !layers.includes(name)) {
+        continue;
+      }
+      const pbfLayer = pbfLayers[name];
+
+      const extent = pbfLayer ? [0, 0, pbfLayer.extent, pbfLayer.extent] : null;
+      dataProjection.setExtent(extent);
+
+      for (let i = 0, ii = pbfLayer.length; i < ii; ++i) {
+        const rawFeature = readRawFeature(pbf, pbfLayer, i);
+        const feature = this.createFeature_(pbf, rawFeature, options);
+        if (feature !== null) {
+          features.push(feature);
+        }
+      }
+    }
+
+    return /** @type {Array<import('./Feature.js').FeatureClassToFeature<T>>} */ (
+      features
+    );
+  }
+
+  /**
+   * Read the projection from the source.
+   *
+   * @param {Document|Element|Object|string} source Source.
+   * @return {import("../proj/Projection.js").default} Projection.
+   * @api
+   */
+  readProjection(source) {
+    return this.dataProjection;
+  }
+
+  /**
+   * Sets the layers that features will be read from.
+   * @param {Array<string>} layers Layers.
+   * @api
+   */
+  setLayers(layers) {
+    this.layers_ = layers;
+  }
+}
+
+/**
+ * Reader callback for parsing layers.
+ * @param {number} tag The tag.
+ * @param {Object} layers The layers object.
+ * @param {PBF} pbf The PBF.
+ */
+function layersPBFReader(tag, layers, pbf) {
+  if (tag === 3) {
+    const layer = {
+      keys: [],
+      values: [],
+      features: [],
+    };
+    const end = pbf.readVarint() + pbf.pos;
+    pbf.readFields(layerPBFReader, layer, end);
+    layer.length = layer.features.length;
+    if (layer.length) {
+      layers[layer.name] = layer;
+    }
+  }
+}
+
+/**
+ * Reader callback for parsing layer.
+ * @param {number} tag The tag.
+ * @param {Object} layer The layer object.
+ * @param {PBF} pbf The PBF.
+ */
+function layerPBFReader(tag, layer, pbf) {
+  if (tag === 15) {
+    layer.version = pbf.readVarint();
+  } else if (tag === 1) {
+    layer.name = pbf.readString();
+  } else if (tag === 5) {
+    layer.extent = pbf.readVarint();
+  } else if (tag === 2) {
+    layer.features.push(pbf.pos);
+  } else if (tag === 3) {
+    layer.keys.push(pbf.readString());
+  } else if (tag === 4) {
+    let value = null;
+    const end = pbf.readVarint() + pbf.pos;
+    while (pbf.pos < end) {
+      tag = pbf.readVarint() >> 3;
+      value =
+        tag === 1
+          ? pbf.readString()
+          : tag === 2
+            ? pbf.readFloat()
+            : tag === 3
+              ? pbf.readDouble()
+              : tag === 4
+                ? pbf.readVarint64()
+                : tag === 5
+                  ? pbf.readVarint()
+                  : tag === 6
+                    ? pbf.readSVarint()
+                    : tag === 7
+                      ? pbf.readBoolean()
+                      : null;
+    }
+    layer.values.push(value);
+  }
+}
+
+/**
+ * Reader callback for parsing feature.
+ * @param {number} tag The tag.
+ * @param {Object} feature The feature object.
+ * @param {PBF} pbf The PBF.
+ */
+function featurePBFReader(tag, feature, pbf) {
+  if (tag == 1) {
+    feature.id = pbf.readVarint();
+  } else if (tag == 2) {
+    const end = pbf.readVarint() + pbf.pos;
+    while (pbf.pos < end) {
+      const key = feature.layer.keys[pbf.readVarint()];
+      const value = feature.layer.values[pbf.readVarint()];
+      feature.properties[key] = value;
+    }
+  } else if (tag == 3) {
+    feature.type = pbf.readVarint();
+  } else if (tag == 4) {
+    feature.geometry = pbf.pos;
+  }
+}
+
+/**
+ * Read a raw feature from the pbf offset stored at index `i` in the raw layer.
+ * @param {PBF} pbf PBF.
+ * @param {Object} layer Raw layer.
+ * @param {number} i Index of the feature in the raw layer's `features` array.
+ * @return {Object} Raw feature.
+ */
+function readRawFeature(pbf, layer, i) {
+  pbf.pos = layer.features[i];
+  const end = pbf.readVarint() + pbf.pos;
+
+  const feature = {
+    layer: layer,
+    type: 0,
+    properties: {},
+  };
+  pbf.readFields(featurePBFReader, feature, end);
+  return feature;
+}
+
+/**
+ * @param {number} type The raw feature's geometry type
+ * @param {number} numEnds Number of ends of the flat coordinates of the
+ * geometry.
+ * @return {import("../render/Feature.js").Type} The geometry type.
+ */
+function getGeometryType(type, numEnds) {
+  /** @type {import("../render/Feature.js").Type} */
+  let geometryType;
+  if (type === 1) {
+    geometryType = numEnds === 1 ? 'Point' : 'MultiPoint';
+  } else if (type === 2) {
+    geometryType = numEnds === 1 ? 'LineString' : 'MultiLineString';
+  } else if (type === 3) {
+    geometryType = 'Polygon';
+    // MultiPolygon not relevant for rendering - winding order determines
+    // outer rings of polygons.
+  }
+  return geometryType;
+}
+
+/**
+ * @module ol/renderer/canvas/VectorTileLayer
+ */
+
+/**
+ * @type {!Object<string, Array<import("../../render/canvas.js").BuilderType>>}
+ */
+const IMAGE_REPLAYS = {
+  'image': ['Polygon', 'Circle', 'LineString', 'Image', 'Text'],
+  'hybrid': ['Polygon', 'LineString'],
+  'vector': [],
+};
+
+/**
+ * @type {!Object<string, Array<import("../../render/canvas.js").BuilderType>>}
+ */
+const VECTOR_REPLAYS = {
+  'hybrid': ['Image', 'Text', 'Default'],
+  'vector': ['Polygon', 'Circle', 'LineString', 'Image', 'Text', 'Default'],
+};
+
+/**
+ * @classdesc
+ * Canvas renderer for vector tile layers.
+ * @api
+ * @extends {CanvasTileLayerRenderer<import("../../layer/VectorTile.js").default>}
+ */
+class CanvasVectorTileLayerRenderer extends CanvasTileLayerRenderer {
+  /**
+   * @param {import("../../layer/VectorTile.js").default} layer VectorTile layer.
+   */
+  constructor(layer) {
+    super(layer);
+
+    /** @private */
+    this.boundHandleStyleImageChange_ = this.handleStyleImageChange_.bind(this);
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.renderedLayerRevision_;
+
+    /**
+     * @private
+     * @type {import("../../transform").Transform}
+     */
+    this.renderedPixelToCoordinateTransform_ = null;
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.renderedRotation_;
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.renderedOpacity_ = 1;
+
+    /**
+     * @private
+     * @type {import("../../transform.js").Transform}
+     */
+    this.tmpTransform_ = create();
+
+    /**
+     * @private
+     * @type {Array<ZIndexContext>}
+     */
+    this.tileClipContexts_ = null;
+  }
+
+  /**
+   * @param {import("../../VectorRenderTile.js").default} tile Tile.
+   * @param {number} pixelRatio Pixel ratio.
+   * @param {import("../../proj/Projection").default} projection Projection.
+   * @return {boolean|undefined} Tile needs to be rendered.
+   */
+  prepareTile(tile, pixelRatio, projection) {
+    let render;
+    const state = tile.getState();
+    if (state === TileState.LOADED || state === TileState.ERROR) {
+      this.updateExecutorGroup_(tile, pixelRatio, projection);
+      if (this.tileImageNeedsRender_(tile)) {
+        render = true;
+      }
+    }
+    return render;
+  }
+
+  /**
+   * @param {number} z Tile coordinate z.
+   * @param {number} x Tile coordinate x.
+   * @param {number} y Tile coordinate y.
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   * @return {!import("../../Tile.js").default} Tile.
+   */
+  getTile(z, x, y, frameState) {
+    const pixelRatio = frameState.pixelRatio;
+    const viewState = frameState.viewState;
+    const resolution = viewState.resolution;
+    const projection = viewState.projection;
+    const layer = this.getLayer();
+    const tile = layer.getSource().getTile(z, x, y, pixelRatio, projection);
+    const viewHints = frameState.viewHints;
+    const hifi = !(
+      viewHints[ViewHint.ANIMATING] || viewHints[ViewHint.INTERACTING]
+    );
+    if (hifi || !tile.wantedResolution) {
+      tile.wantedResolution = resolution;
+    }
+    const render = this.prepareTile(tile, pixelRatio, projection);
+    if (
+      render &&
+      (hifi || Date.now() - frameState.time < 8) &&
+      layer.getRenderMode() !== 'vector'
+    ) {
+      this.renderTileImage_(tile, frameState);
+    }
+    return super.getTile(z, x, y, frameState);
+  }
+
+  /**
+   * @param {import("../../VectorRenderTile.js").default} tile Tile.
+   * @return {boolean} Tile is drawable.
+   */
+  isDrawableTile(tile) {
+    const layer = this.getLayer();
+    return (
+      super.isDrawableTile(tile) &&
+      (layer.getRenderMode() === 'vector'
+        ? getUid(layer) in tile.executorGroups
+        : tile.hasContext(layer))
+    );
+  }
+
+  /**
+   * @inheritDoc
+   */
+  getTileImage(tile) {
+    return tile.getImage(this.getLayer());
+  }
+
+  /**
+   * Determine whether render should be called.
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   * @return {boolean} Layer is ready to be rendered.
+   */
+  prepareFrame(frameState) {
+    const layerRevision = this.getLayer().getRevision();
+    if (this.renderedLayerRevision_ !== layerRevision) {
+      this.renderedLayerRevision_ = layerRevision;
+      this.renderedTiles.length = 0;
+    }
+    return super.prepareFrame(frameState);
+  }
+
+  /**
+   * @param {import("../../VectorRenderTile.js").default} tile Tile.
+   * @param {number} pixelRatio Pixel ratio.
+   * @param {import("../../proj/Projection.js").default} projection Projection.
+   * @private
+   */
+  updateExecutorGroup_(tile, pixelRatio, projection) {
+    const layer = /** @type {import("../../layer/VectorTile.js").default} */ (
+      this.getLayer()
+    );
+    const revision = layer.getRevision();
+    const renderOrder = layer.getRenderOrder() || null;
+
+    const resolution = tile.wantedResolution;
+    const builderState = tile.getReplayState(layer);
+    if (
+      !builderState.dirty &&
+      builderState.renderedResolution === resolution &&
+      builderState.renderedRevision == revision &&
+      builderState.renderedRenderOrder == renderOrder
+    ) {
+      return;
+    }
+
+    const source = layer.getSource();
+    const declutter = !!layer.getDeclutter();
+    const sourceTileGrid = source.getTileGrid();
+    const tileGrid = source.getTileGridForProjection(projection);
+    const tileExtent = tileGrid.getTileCoordExtent(tile.wrappedTileCoord);
+
+    const sourceTiles = source.getSourceTiles(pixelRatio, projection, tile);
+    const layerUid = getUid(layer);
+    delete tile.hitDetectionImageData[layerUid];
+    tile.executorGroups[layerUid] = [];
+    builderState.dirty = false;
+    for (let t = 0, tt = sourceTiles.length; t < tt; ++t) {
+      const sourceTile = sourceTiles[t];
+      if (sourceTile.getState() != TileState.LOADED) {
+        continue;
+      }
+      const sourceTileCoord = sourceTile.tileCoord;
+      const sourceTileExtent =
+        sourceTileGrid.getTileCoordExtent(sourceTileCoord);
+      const sharedExtent = getIntersection(tileExtent, sourceTileExtent);
+      const builderExtent = buffer(
+        sharedExtent,
+        layer.getRenderBuffer() * resolution,
+        this.tmpExtent,
+      );
+      const bufferedExtent = equals$1(sourceTileExtent, sharedExtent)
+        ? null
+        : builderExtent;
+      const builderGroup = new BuilderGroup(
+        0,
+        sharedExtent,
+        resolution,
+        pixelRatio,
+      );
+      const squaredTolerance = getSquaredTolerance(
+        resolution,
+        pixelRatio,
+      );
+
+      /**
+       * @param {import("../../Feature.js").FeatureLike} feature Feature.
+       * @param {number} [index] Render order index.
+       * @this {CanvasVectorTileLayerRenderer}
+       */
+      const render = function (feature, index) {
+        let styles;
+        const styleFunction =
+          feature.getStyleFunction() || layer.getStyleFunction();
+        if (styleFunction) {
+          styles = styleFunction(feature, resolution);
+        }
+        if (styles) {
+          const dirty = this.renderFeature(
+            feature,
+            squaredTolerance,
+            styles,
+            builderGroup,
+            declutter,
+            index,
+          );
+          builderState.dirty = builderState.dirty || dirty;
+        }
+      };
+
+      const features = sourceTile.getFeatures();
+      if (renderOrder && renderOrder !== builderState.renderedRenderOrder) {
+        features.sort(renderOrder);
+      }
+      for (let i = 0, ii = features.length; i < ii; ++i) {
+        const feature = features[i];
+        if (
+          !bufferedExtent ||
+          intersects$1(bufferedExtent, feature.getGeometry().getExtent())
+        ) {
+          render.call(this, feature, i);
+        }
+      }
+      const executorGroupInstructions = builderGroup.finish();
+      // no need to clip when the render tile is covered by a single source tile
+      const replayExtent =
+        layer.getRenderMode() !== 'vector' &&
+        declutter &&
+        sourceTiles.length === 1
+          ? null
+          : sharedExtent;
+      const renderingReplayGroup = new ExecutorGroup(
+        replayExtent,
+        resolution,
+        pixelRatio,
+        source.getOverlaps(),
+        executorGroupInstructions,
+        layer.getRenderBuffer(),
+        true,
+      );
+      tile.executorGroups[layerUid].push(renderingReplayGroup);
+    }
+    builderState.renderedRevision = revision;
+    builderState.renderedRenderOrder = renderOrder;
+    builderState.renderedResolution = resolution;
+  }
+
+  /**
+   * @param {import("../../coordinate.js").Coordinate} coordinate Coordinate.
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   * @param {number} hitTolerance Hit tolerance in pixels.
+   * @param {import("../vector.js").FeatureCallback<T>} callback Feature callback.
+   * @param {Array<import("../Map.js").HitMatch<T>>} matches The hit detected matches with tolerance.
+   * @return {T|undefined} Callback result.
+   * @template T
+   */
+  forEachFeatureAtCoordinate(
+    coordinate,
+    frameState,
+    hitTolerance,
+    callback,
+    matches,
+  ) {
+    const resolution = frameState.viewState.resolution;
+    const rotation = frameState.viewState.rotation;
+    hitTolerance = hitTolerance == undefined ? 0 : hitTolerance;
+    const layer = this.getLayer();
+    const source = layer.getSource();
+    const tileGrid = source.getTileGridForProjection(
+      frameState.viewState.projection,
+    );
+
+    const hitExtent = boundingExtent([coordinate]);
+    buffer(hitExtent, resolution * hitTolerance, hitExtent);
+
+    /** @type {!Object<string, import("../Map.js").HitMatch<T>|true>} */
+    const features = {};
+
+    /**
+     * @param {import("../../Feature.js").FeatureLike} feature Feature.
+     * @param {import("../../geom/SimpleGeometry.js").default} geometry Geometry.
+     * @param {number} distanceSq The squared distance to the click position.
+     * @return {T|undefined} Callback result.
+     */
+    const featureCallback = function (feature, geometry, distanceSq) {
+      let key = feature.getId();
+      if (key === undefined) {
+        key = getUid(feature);
+      }
+      const match = features[key];
+      if (!match) {
+        if (distanceSq === 0) {
+          features[key] = true;
+          return callback(feature, layer, geometry);
+        }
+        matches.push(
+          (features[key] = {
+            feature: feature,
+            layer: layer,
+            geometry: geometry,
+            distanceSq: distanceSq,
+            callback: callback,
+          }),
+        );
+      } else if (match !== true && distanceSq < match.distanceSq) {
+        if (distanceSq === 0) {
+          features[key] = true;
+          matches.splice(matches.lastIndexOf(match), 1);
+          return callback(feature, layer, geometry);
+        }
+        match.geometry = geometry;
+        match.distanceSq = distanceSq;
+      }
+      return undefined;
+    };
+
+    const renderedTiles =
+      /** @type {Array<import("../../VectorRenderTile.js").default>} */ (
+        this.renderedTiles
+      );
+
+    let found;
+    for (let i = 0, ii = renderedTiles.length; !found && i < ii; ++i) {
+      const tile = renderedTiles[i];
+      const tileExtent = tileGrid.getTileCoordExtent(tile.wrappedTileCoord);
+      if (!intersects$1(tileExtent, hitExtent)) {
+        continue;
+      }
+
+      const layerUid = getUid(layer);
+      const executorGroups = [tile.executorGroups[layerUid]];
+      const declutter = layer.getDeclutter();
+      executorGroups.some((executorGroups) => {
+        const declutteredFeatures = declutter
+          ? frameState.declutter[declutter].all().map((item) => item.value)
+          : null;
+        for (let t = 0, tt = executorGroups.length; t < tt; ++t) {
+          const executorGroup = executorGroups[t];
+          found = executorGroup.forEachFeatureAtCoordinate(
+            coordinate,
+            resolution,
+            rotation,
+            hitTolerance,
+            featureCallback,
+            declutteredFeatures,
+          );
+          if (found) {
+            return true;
+          }
+        }
+      });
+    }
+    return found;
+  }
+
+  /**
+   * Asynchronous layer level hit detection.
+   * @param {import("../../pixel.js").Pixel} pixel Pixel.
+   * @return {Promise<Array<import("../../Feature.js").FeatureLike>>} Promise that resolves with an array of features.
+   */
+  getFeatures(pixel) {
+    return new Promise((resolve, reject) => {
+      const layer = this.getLayer();
+      const layerUid = getUid(layer);
+      const source = layer.getSource();
+      const projection = this.renderedProjection;
+      const projectionExtent = projection.getExtent();
+      const resolution = this.renderedResolution;
+      const tileGrid = source.getTileGridForProjection(projection);
+      const coordinate = apply(
+        this.renderedPixelToCoordinateTransform_,
+        pixel.slice(),
+      );
+      const tileCoord = tileGrid.getTileCoordForCoordAndResolution(
+        coordinate,
+        resolution,
+      );
+      /** @type {import("../../VectorRenderTile.js").default|undefined} */
+      let tile;
+      for (let i = 0, ii = this.renderedTiles.length; i < ii; ++i) {
+        if (
+          tileCoord.toString() === this.renderedTiles[i].tileCoord.toString()
+        ) {
+          tile = /** @type {import("../../VectorRenderTile.js").default} */ (
+            this.renderedTiles[i]
+          );
+          if (tile.getState() === TileState.LOADED) {
+            const extent = tileGrid.getTileCoordExtent(tile.tileCoord);
+            if (
+              source.getWrapX() &&
+              projection.canWrapX() &&
+              !containsExtent(projectionExtent, extent)
+            ) {
+              wrapX$1(coordinate, projection);
+            }
+            break;
+          }
+          tile = undefined;
+        }
+      }
+      if (!tile || tile.loadingSourceTiles > 0) {
+        resolve([]);
+        return;
+      }
+      const extent = tileGrid.getTileCoordExtent(tile.wrappedTileCoord);
+      const corner = getTopLeft(extent);
+      const tilePixel = [
+        (coordinate[0] - corner[0]) / resolution,
+        (corner[1] - coordinate[1]) / resolution,
+      ];
+      /** @type {Array<import("../../Feature.js").FeatureLike>} */
+      const features = tile.getSourceTiles().reduce(function (
+        accumulator,
+        sourceTile,
+      ) {
+        return accumulator.concat(sourceTile.getFeatures());
+      }, []);
+      /** @type {ImageData|undefined} */
+      let hitDetectionImageData = tile.hitDetectionImageData[layerUid];
+      if (!hitDetectionImageData) {
+        const tileSize = toSize(
+          tileGrid.getTileSize(
+            tileGrid.getZForResolution(resolution, source.zDirection),
+          ),
+        );
+        const rotation = this.renderedRotation_;
+        const transforms = [
+          this.getRenderTransform(
+            tileGrid.getTileCoordCenter(tile.wrappedTileCoord),
+            resolution,
+            0,
+            HIT_DETECT_RESOLUTION,
+            tileSize[0] * HIT_DETECT_RESOLUTION,
+            tileSize[1] * HIT_DETECT_RESOLUTION,
+            0,
+          ),
+        ];
+        hitDetectionImageData = createHitDetectionImageData(
+          tileSize,
+          transforms,
+          features,
+          layer.getStyleFunction(),
+          tileGrid.getTileCoordExtent(tile.wrappedTileCoord),
+          tile.getReplayState(layer).renderedResolution,
+          rotation,
+        );
+        tile.hitDetectionImageData[layerUid] = hitDetectionImageData;
+      }
+      resolve(hitDetect(tilePixel, features, hitDetectionImageData));
+    });
+  }
+
+  /**
+   * Perform action necessary to get the layer rendered after new fonts have loaded
+   */
+  handleFontsChanged() {
+    const layer = this.getLayer();
+    if (layer.getVisible() && this.renderedLayerRevision_ !== undefined) {
+      layer.changed();
+    }
+  }
+
+  /**
+   * Handle changes in image style state.
+   * @param {import("../../events/Event.js").default} event Image style change event.
+   * @private
+   */
+  handleStyleImageChange_(event) {
+    this.renderIfReadyAndVisible();
+  }
+
+  /**
+   * Render declutter items for this layer
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   * @param {import("../../layer/Layer.js").State} layerState Layer state.
+   */
+  renderDeclutter(frameState, layerState) {
+    const context = this.context;
+    const alpha = context.globalAlpha;
+    context.globalAlpha = layerState.opacity;
+    const viewHints = frameState.viewHints;
+    const hifi = !(
+      viewHints[ViewHint.ANIMATING] || viewHints[ViewHint.INTERACTING]
+    );
+    const tiles =
+      /** @type {Array<import("../../VectorRenderTile.js").default>} */ (
+        this.renderedTiles
+      );
+    for (let i = 0, ii = tiles.length; i < ii; ++i) {
+      const tile = tiles[i];
+      const executorGroups = tile.executorGroups[getUid(this.getLayer())];
+      const declutter = this.getLayer().getDeclutter();
+      if (executorGroups) {
+        for (let j = executorGroups.length - 1; j >= 0; --j) {
+          executorGroups[j].execute(
+            this.context,
+            [this.context.canvas.width, this.context.canvas.height],
+            this.getTileRenderTransform(tile, frameState),
+            frameState.viewState.rotation,
+            hifi,
+            DECLUTTER,
+            declutter ? frameState.declutter[declutter] : undefined,
+          );
+        }
+      }
+    }
+    context.globalAlpha = alpha;
+  }
+
+  /**
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   */
+  renderDeferredInternal(frameState) {
+    const tiles =
+      /** @type {Array<import("../../VectorRenderTile.js").default>} */ (
+        this.renderedTiles
+      );
+    const executorGroups = tiles.reduce((acc, tile, index) => {
+      tile.executorGroups[getUid(this.getLayer())].forEach((executorGroup) =>
+        acc.push({
+          executorGroup,
+          index,
+        }),
+      );
+      return acc;
+    }, []);
+
+    const executorGroupZIndexContexts = executorGroups.map(({executorGroup}) =>
+      executorGroup.getDeferredZIndexContexts(),
+    );
+    const usedZIndices = {};
+    for (let i = 0, ii = executorGroups.length; i < ii; ++i) {
+      const executorGroupZindexContext =
+        executorGroups[i].executorGroup.getDeferredZIndexContexts();
+      for (const key in executorGroupZindexContext) {
+        usedZIndices[key] = true;
+      }
+    }
+    const zIndexKeys = Object.keys(usedZIndices).sort(ascending);
+    zIndexKeys.map(Number).forEach((zIndex) => {
+      executorGroupZIndexContexts.forEach((zIndexContexts, i) => {
+        if (!zIndexContexts[zIndex]) {
+          return;
+        }
+        zIndexContexts[zIndex].forEach((zIndexContext) => {
+          const {executorGroup, index} = executorGroups[i];
+          const context = executorGroup.getRenderedContext();
+          const alpha = context.globalAlpha;
+          context.globalAlpha = this.renderedOpacity_;
+          const tileClipContext = this.tileClipContexts_[index];
+          if (tileClipContext) {
+            tileClipContext.draw(context);
+          }
+          zIndexContext.draw(context);
+          if (tileClipContext) {
+            context.restore();
+          }
+          context.globalAlpha = alpha;
+          zIndexContext.clear();
+        });
+        zIndexContexts[zIndex].length = 0;
+      });
+    });
+  }
+
+  getTileRenderTransform(tile, frameState) {
+    const pixelRatio = frameState.pixelRatio;
+    const viewState = frameState.viewState;
+    const center = viewState.center;
+    const resolution = viewState.resolution;
+    const rotation = viewState.rotation;
+    const size = frameState.size;
+    const width = Math.round(size[0] * pixelRatio);
+    const height = Math.round(size[1] * pixelRatio);
+
+    const source = this.getLayer().getSource();
+    const tileGrid = source.getTileGridForProjection(
+      frameState.viewState.projection,
+    );
+    const tileCoord = tile.tileCoord;
+    const tileExtent = tileGrid.getTileCoordExtent(tile.wrappedTileCoord);
+    const worldOffset =
+      tileGrid.getTileCoordExtent(tileCoord, this.tmpExtent)[0] - tileExtent[0];
+    const transform = multiply(
+      scale$2(this.inversePixelTransform.slice(), 1 / pixelRatio, 1 / pixelRatio),
+      this.getRenderTransform(
+        center,
+        resolution,
+        rotation,
+        pixelRatio,
+        width,
+        height,
+        worldOffset,
+      ),
+    );
+    return transform;
+  }
+
+  /**
+   * Render the vectors for this layer.
+   * @param {CanvasRenderingContext2D} context Target context.
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   */
+  postRender(context, frameState) {
+    const viewHints = frameState.viewHints;
+    const hifi = !(
+      viewHints[ViewHint.ANIMATING] || viewHints[ViewHint.INTERACTING]
+    );
+
+    this.renderedPixelToCoordinateTransform_ =
+      frameState.pixelToCoordinateTransform.slice();
+    this.renderedRotation_ = frameState.viewState.rotation;
+    this.renderedOpacity_ =
+      frameState.layerStatesArray[frameState.layerIndex].opacity;
+
+    const layer = /** @type {import("../../layer/VectorTile.js").default} */ (
+      this.getLayer()
+    );
+    const renderMode = layer.getRenderMode();
+    const alpha = context.globalAlpha;
+    context.globalAlpha = this.renderedOpacity_;
+    const declutter = layer.getDeclutter();
+    const replayTypes = declutter
+      ? VECTOR_REPLAYS[renderMode].filter((type) => !DECLUTTER.includes(type))
+      : VECTOR_REPLAYS[renderMode];
+    const viewState = frameState.viewState;
+    const rotation = viewState.rotation;
+    const tileSource = layer.getSource();
+    const tileGrid = tileSource.getTileGridForProjection(viewState.projection);
+    const z = tileGrid.getZForResolution(
+      viewState.resolution,
+      tileSource.zDirection,
+    );
+
+    const tiles = this.renderedTiles;
+    const clips = [];
+    const clipZs = [];
+    const tileClipContexts = [];
+    let ready = true;
+    for (let i = tiles.length - 1; i >= 0; --i) {
+      const tile = /** @type {import("../../VectorRenderTile.js").default} */ (
+        tiles[i]
+      );
+      ready = ready && !tile.getReplayState(layer).dirty;
+      const executorGroups = tile.executorGroups[getUid(layer)].filter(
+        (group) => group.hasExecutors(replayTypes),
+      );
+      if (executorGroups.length === 0) {
+        continue;
+      }
+      const transform = this.getTileRenderTransform(tile, frameState);
+      const currentZ = tile.tileCoord[0];
+      let contextSaved = false;
+      // Clip mask for regions in this tile that already filled by a higher z tile
+      const currentClip = executorGroups[0].getClipCoords(transform);
+      let clipContext = context;
+      let tileClipContext;
+      if (currentClip) {
+        tileClipContext = new ZIndexContext();
+        clipContext = tileClipContext.getContext();
+        for (let j = 0, jj = clips.length; j < jj; ++j) {
+          if (z !== currentZ && currentZ < clipZs[j]) {
+            const clip = clips[j];
+            if (
+              intersects$1(
+                [
+                  currentClip[0],
+                  currentClip[3],
+                  currentClip[4],
+                  currentClip[7],
+                ],
+                [clip[0], clip[3], clip[4], clip[7]],
+              )
+            ) {
+              if (!contextSaved) {
+                clipContext.save();
+                contextSaved = true;
+              }
+              clipContext.beginPath();
+              // counter-clockwise (outer ring) for current tile
+              clipContext.moveTo(currentClip[0], currentClip[1]);
+              clipContext.lineTo(currentClip[2], currentClip[3]);
+              clipContext.lineTo(currentClip[4], currentClip[5]);
+              clipContext.lineTo(currentClip[6], currentClip[7]);
+              // clockwise (inner ring) for higher z tile
+              clipContext.moveTo(clip[6], clip[7]);
+              clipContext.lineTo(clip[4], clip[5]);
+              clipContext.lineTo(clip[2], clip[3]);
+              clipContext.lineTo(clip[0], clip[1]);
+              clipContext.clip();
+            }
+          }
+        }
+        clips.push(currentClip);
+        clipZs.push(currentZ);
+      }
+      for (let t = 0, tt = executorGroups.length; t < tt; ++t) {
+        const executorGroup = executorGroups[t];
+        executorGroup.execute(
+          context,
+          [context.canvas.width, context.canvas.height],
+          transform,
+          rotation,
+          hifi,
+          replayTypes,
+          frameState.declutter?.[declutter],
+        );
+      }
+      if (contextSaved) {
+        if (clipContext === context) {
+          clipContext.restore();
+        } else {
+          tileClipContexts[i] = tileClipContext;
+        }
+      }
+    }
+    context.globalAlpha = alpha;
+    this.ready = ready;
+    this.tileClipContexts_ = tileClipContexts;
+    if (!frameState.declutter) {
+      this.renderDeferredInternal(frameState);
+    }
+
+    super.postRender(context, frameState);
+  }
+
+  /**
+   * @param {import("../../Feature.js").FeatureLike} feature Feature.
+   * @param {number} squaredTolerance Squared tolerance.
+   * @param {import("../../style/Style.js").default|Array<import("../../style/Style.js").default>} styles The style or array of styles.
+   * @param {import("../../render/canvas/BuilderGroup.js").default} builderGroup Replay group.
+   * @param {boolean} [declutter] Enable decluttering.
+   * @param {number} [index] Render order index.
+   * @return {boolean} `true` if an image is loading.
+   */
+  renderFeature(
+    feature,
+    squaredTolerance,
+    styles,
+    builderGroup,
+    declutter,
+    index,
+  ) {
+    if (!styles) {
+      return false;
+    }
+    let loading = false;
+    if (Array.isArray(styles)) {
+      for (let i = 0, ii = styles.length; i < ii; ++i) {
+        loading =
+          renderFeature(
+            builderGroup,
+            feature,
+            styles[i],
+            squaredTolerance,
+            this.boundHandleStyleImageChange_,
+            undefined,
+            declutter,
+            index,
+          ) || loading;
+      }
+    } else {
+      loading = renderFeature(
+        builderGroup,
+        feature,
+        styles,
+        squaredTolerance,
+        this.boundHandleStyleImageChange_,
+        undefined,
+        declutter,
+        index,
+      );
+    }
+    return loading;
+  }
+
+  /**
+   * @param {import("../../VectorRenderTile.js").default} tile Tile.
+   * @return {boolean} A new tile image was rendered.
+   * @private
+   */
+  tileImageNeedsRender_(tile) {
+    const layer = /** @type {import("../../layer/VectorTile.js").default} */ (
+      this.getLayer()
+    );
+    if (layer.getRenderMode() === 'vector') {
+      return false;
+    }
+    const replayState = tile.getReplayState(layer);
+    const revision = layer.getRevision();
+    const resolution = tile.wantedResolution;
+    return (
+      replayState.renderedTileResolution !== resolution ||
+      replayState.renderedTileRevision !== revision
+    );
+  }
+
+  /**
+   * @param {import("../../VectorRenderTile.js").default} tile Tile.
+   * @param {import("../../Map").FrameState} frameState Frame state.
+   * @private
+   */
+  renderTileImage_(tile, frameState) {
+    const layer = /** @type {import("../../layer/VectorTile.js").default} */ (
+      this.getLayer()
+    );
+    const replayState = tile.getReplayState(layer);
+    const revision = layer.getRevision();
+    const executorGroups = tile.executorGroups[getUid(layer)];
+    replayState.renderedTileRevision = revision;
+
+    const tileCoord = tile.wrappedTileCoord;
+    const z = tileCoord[0];
+    const source = layer.getSource();
+    let pixelRatio = frameState.pixelRatio;
+    const viewState = frameState.viewState;
+    const projection = viewState.projection;
+    const tileGrid = source.getTileGridForProjection(projection);
+    const tileResolution = tileGrid.getResolution(tile.tileCoord[0]);
+    const renderPixelRatio =
+      (frameState.pixelRatio / tile.wantedResolution) * tileResolution;
+    const resolution = tileGrid.getResolution(z);
+    const context = tile.getContext(layer);
+
+    // Increase tile size when overzooming for low pixel ratio, to avoid blurry tiles
+    pixelRatio = Math.round(
+      Math.max(pixelRatio, renderPixelRatio / pixelRatio),
+    );
+    const size = source.getTilePixelSize(z, pixelRatio, projection);
+    context.canvas.width = size[0];
+    context.canvas.height = size[1];
+    const renderScale = pixelRatio / renderPixelRatio;
+    if (renderScale !== 1) {
+      const canvasTransform = reset(this.tmpTransform_);
+      scale$2(canvasTransform, renderScale, renderScale);
+      context.setTransform.apply(context, canvasTransform);
+    }
+    const tileExtent = tileGrid.getTileCoordExtent(tileCoord, this.tmpExtent);
+    const pixelScale = renderPixelRatio / resolution;
+    const transform = reset(this.tmpTransform_);
+    scale$2(transform, pixelScale, -pixelScale);
+    translate$1(transform, -tileExtent[0], -tileExtent[3]);
+    for (let i = 0, ii = executorGroups.length; i < ii; ++i) {
+      const executorGroup = executorGroups[i];
+      executorGroup.execute(
+        context,
+        [
+          context.canvas.width * renderScale,
+          context.canvas.height * renderScale,
+        ],
+        transform,
+        0,
+        true,
+        IMAGE_REPLAYS[layer.getRenderMode()],
+        null,
+      );
+    }
+    replayState.renderedTileResolution = tile.wantedResolution;
+  }
+}
+
+/**
+ * @module ol/layer/VectorTile
+ */
+
+/***
+ * @template Return
+ * @typedef {import("../Observable").OnSignature<import("../Observable").EventTypes, import("../events/Event.js").default, Return> &
+ *   import("../Observable").OnSignature<import("./Base").BaseLayerObjectEventTypes|
+ *     import("./Layer.js").LayerEventType|'change:preload'|'change:useInterimTilesOnError', import("../Object").ObjectEvent, Return> &
+ *   import("../Observable").OnSignature<import("../render/EventType").LayerRenderEventTypes, import("../render/Event").default, Return> &
+ *   import("../Observable").CombinedOnSignature<import("../Observable").EventTypes|import("./Base").BaseLayerObjectEventTypes|
+ *     import("./Layer.js").LayerEventType|'change:preload'|'change:useInterimTilesOnError'|import("../render/EventType").LayerRenderEventTypes, Return>} VectorTileLayerOnSignature
+ */
+
+/**
+ * @typedef {'hybrid' | 'vector'} VectorTileRenderType
+ */
+
+/**
+ * @template {import('../Feature').FeatureLike} FeatureType
+ * @typedef {Object} Options
+ * @property {string} [className='ol-layer'] A CSS class name to set to the layer element.
+ * @property {number} [opacity=1] Opacity (0, 1).
+ * @property {boolean} [visible=true] Visibility.
+ * @property {import("../extent.js").Extent} [extent] The bounding extent for layer rendering.  The layer will not be
+ * rendered outside of this extent.
+ * @property {number} [zIndex] The z-index for layer rendering.  At rendering time, the layers
+ * will be ordered, first by Z-index and then by position. When `undefined`, a `zIndex` of 0 is assumed
+ * for layers that are added to the map's `layers` collection, or `Infinity` when the layer's `setMap()`
+ * method was used.
+ * @property {number} [minResolution] The minimum resolution (inclusive) at which this layer will be
+ * visible.
+ * @property {number} [maxResolution] The maximum resolution (exclusive) below which this layer will
+ * be visible.
+ * @property {number} [minZoom] The minimum view zoom level (exclusive) above which this layer will be
+ * visible.
+ * @property {number} [maxZoom] The maximum view zoom level (inclusive) at which this layer will
+ * be visible.
+ * @property {import("../render.js").OrderFunction} [renderOrder] Render order. Function to be used when sorting
+ * features before rendering. By default features are drawn in the order that they are created. Use
+ * `null` to avoid the sort, but get an undefined draw order.
+ * @property {number} [renderBuffer=100] The buffer in pixels around the tile extent used by the
+ * renderer when getting features from the vector tile for the rendering or hit-detection.
+ * Recommended value: Vector tiles are usually generated with a buffer, so this value should match
+ * the largest possible buffer of the used tiles. It should be at least the size of the largest
+ * point symbol or line width.
+ * @property {VectorTileRenderType} [renderMode='hybrid'] Render mode for vector tiles:
+ *  * `'hybrid'`: Polygon and line elements are rendered as images, so pixels are scaled during zoom
+ *    animations. Point symbols and texts are accurately rendered as vectors and can stay upright on
+ *    rotated views, but get lifted above all polygon and line elements.
+ *  * `'vector'`: Everything is rendered as vectors and the original render order is maintained. Use
+ *    this mode for improved performance and visual epxerience on vector tile layers with not too many
+ *    rendered features (e.g. for highlighting a subset of features of another layer with the same
+ *    source).
+ * @property {import("../source/VectorTile.js").default<FeatureType>} [source] Source.
+ * @property {import("../Map.js").default} [map] Sets the layer as overlay on a map. The map will not manage
+ * this layer in its layers collection, and the layer will be rendered on top. This is useful for
+ * temporary layers. The standard way to add a layer to a map and have it managed by the map is to
+ * use [map.addLayer()]{@link import("../Map.js").default#addLayer}.
+ * @property {boolean|string|number} [declutter=false] Declutter images and text. Any truthy value will enable
+ * decluttering. Within a layer, a feature rendered before another has higher priority. All layers with the
+ * same `declutter` value will be decluttered together. The priority is determined by the drawing order of the
+ * layers with the same `declutter` value. Higher in the layer stack means higher priority. To declutter distinct
+ * layers or groups of layers separately, use different truthy values for `declutter`.
+ * @property {import("../style/Style.js").StyleLike|null} [style] Layer style. When set to `null`, only
+ * features that have their own style will be rendered. See {@link module:ol/style/Style~Style} for the default style
+ * which will be used if this is not set.
+ * @property {import("./Base.js").BackgroundColor} [background] Background color for the layer. If not specified, no
+ * background will be rendered.
+ * @property {boolean} [updateWhileAnimating=false] When set to `true`, feature batches will be
+ * recreated during animations. This means that no vectors will be shown clipped, but the setting
+ * will have a performance impact for large amounts of vector data. When set to `false`, batches
+ * will be recreated when no animation is active.
+ * @property {boolean} [updateWhileInteracting=false] When set to `true`, feature batches will be
+ * recreated during interactions. See also `updateWhileAnimating`.
+ * @property {number} [preload=0] Preload. Load low-resolution tiles up to `preload` levels. `0`
+ * means no preloading.
+ * @property {boolean} [useInterimTilesOnError=true] Use interim tiles on error.
+ * @property {Object<string, *>} [properties] Arbitrary observable properties. Can be accessed with `#get()` and `#set()`.
+ */
+
+/**
+ * @classdesc
+ * Layer for vector tile data that is rendered client-side.
+ * Note that any property set in the options is set as a {@link module:ol/Object~BaseObject}
+ * property on the layer object; for example, setting `title: 'My Title'` in the
+ * options means that `title` is observable, and has get/set accessors.
+ *
+ * @template {import('../Feature').FeatureLike} FeatureType
+ * @extends {BaseVectorLayer<import("../source/VectorTile.js").default<FeatureType>, CanvasVectorTileLayerRenderer>}
+ * @api
+ */
+let VectorTileLayer$1 = class VectorTileLayer extends BaseVectorLayer {
+  /**
+   * @param {Options<FeatureType>} [options] Options.
+   */
+  constructor(options) {
+    options = options ? options : {};
+
+    const baseOptions = /** @type {Options<FeatureType>} */ (
+      Object.assign({}, options)
+    );
+    delete baseOptions.preload;
+    delete baseOptions.useInterimTilesOnError;
+
+    super(baseOptions);
+
+    /***
+     * @type {VectorTileLayerOnSignature<import("../events").EventsKey>}
+     */
+    this.on;
+
+    /***
+     * @type {VectorTileLayerOnSignature<import("../events").EventsKey>}
+     */
+    this.once;
+
+    /***
+     * @type {VectorTileLayerOnSignature<void>}
+     */
+    this.un;
+
+    const renderMode = options.renderMode || 'hybrid';
+    assert(
+      renderMode == 'hybrid' || renderMode == 'vector',
+      "`renderMode` must be `'hybrid'` or `'vector'`",
+    );
+
+    /**
+     * @private
+     * @type {VectorTileRenderType}
+     */
+    this.renderMode_ = renderMode;
+
+    this.setPreload(options.preload ? options.preload : 0);
+    this.setUseInterimTilesOnError(
+      options.useInterimTilesOnError !== undefined
+        ? options.useInterimTilesOnError
+        : true,
+    );
+
+    /**
+     * @return {import("./Base.js").BackgroundColor} Background color.
+     * @function
+     * @api
+     */
+    this.getBackground;
+
+    /**
+     * @param {import("./Base.js").BackgroundColor} background Background color.
+     * @function
+     * @api
+     */
+    this.setBackground;
+  }
+
+  createRenderer() {
+    return new CanvasVectorTileLayerRenderer(this);
+  }
+
+  /**
+   * Get the topmost feature that intersects the given pixel on the viewport. Returns a promise
+   * that resolves with an array of features. The array will either contain the topmost feature
+   * when a hit was detected, or it will be empty.
+   *
+   * The hit detection algorithm used for this method is optimized for performance, but is less
+   * accurate than the one used in [map.getFeaturesAtPixel()]{@link import("../Map.js").default#getFeaturesAtPixel}.
+   * Text is not considered, and icons are only represented by their bounding box instead of the exact
+   * image.
+   *
+   * @param {import("../pixel.js").Pixel} pixel Pixel.
+   * @return {Promise<Array<import("../Feature").FeatureLike>>} Promise that resolves with an array of features.
+   * @api
+   */
+  getFeatures(pixel) {
+    return super.getFeatures(pixel);
+  }
+
+  /**
+   * @return {VectorTileRenderType} The render mode.
+   */
+  getRenderMode() {
+    return this.renderMode_;
+  }
+
+  /**
+   * Return the level as number to which we will preload tiles up to.
+   * @return {number} The level to preload tiles up to.
+   * @observable
+   * @api
+   */
+  getPreload() {
+    return /** @type {number} */ (this.get(TileProperty.PRELOAD));
+  }
+
+  /**
+   * Whether we use interim tiles on error.
+   * @return {boolean} Use interim tiles on error.
+   * @observable
+   * @api
+   */
+  getUseInterimTilesOnError() {
+    return /** @type {boolean} */ (
+      this.get(TileProperty.USE_INTERIM_TILES_ON_ERROR)
+    );
+  }
+
+  /**
+   * Set the level as number to which we will preload tiles up to.
+   * @param {number} preload The level to preload tiles up to.
+   * @observable
+   * @api
+   */
+  setPreload(preload) {
+    this.set(TileProperty.PRELOAD, preload);
+  }
+
+  /**
+   * Set whether we use interim tiles on error.
+   * @param {boolean} useInterimTilesOnError Use interim tiles on error.
+   * @observable
+   * @api
+   */
+  setUseInterimTilesOnError(useInterimTilesOnError) {
+    this.set(TileProperty.USE_INTERIM_TILES_ON_ERROR, useInterimTilesOnError);
+  }
+};
+
+/**
+ * @module ol/VectorTile
+ */
+
+let VectorTile$1 = class VectorTile extends Tile {
+  /**
+   * @param {import("./tilecoord.js").TileCoord} tileCoord Tile coordinate.
+   * @param {import("./TileState.js").default} state State.
+   * @param {string} src Data source url.
+   * @param {import("./format/Feature.js").default<typeof import("./Feature.js").default|typeof import("./render/Feature.js").default>} format Feature format.
+   * @param {import("./Tile.js").LoadFunction} tileLoadFunction Tile load function.
+   * @param {import("./Tile.js").Options} [options] Tile options.
+   */
+  constructor(tileCoord, state, src, format, tileLoadFunction, options) {
+    super(tileCoord, state, options);
+
+    /**
+     * Extent of this tile; set by the source.
+     * @type {import("./extent.js").Extent}
+     */
+    this.extent = null;
+
+    /**
+     * @private
+     * @type {import("./format/Feature.js").default<typeof import("./Feature.js").default|typeof import("./render/Feature.js").default>}
+     */
+    this.format_ = format;
+
+    /**
+     * @private
+     * @type {Array<import("./Feature.js").FeatureLike>}
+     */
+    this.features_ = null;
+
+    /**
+     * @private
+     * @type {import("./featureloader.js").FeatureLoader}
+     */
+    this.loader_;
+
+    /**
+     * Feature projection of this tile; set by the source.
+     * @type {import("./proj/Projection.js").default}
+     */
+    this.projection = null;
+
+    /**
+     * Resolution of this tile; set by the source.
+     * @type {number}
+     */
+    this.resolution;
+
+    /**
+     * @private
+     * @type {import("./Tile.js").LoadFunction}
+     */
+    this.tileLoadFunction_ = tileLoadFunction;
+
+    /**
+     * @private
+     * @type {string}
+     */
+    this.url_ = src;
+
+    this.key = src;
+  }
+
+  /**
+   * Get the feature format assigned for reading this tile's features.
+   * @return {import("./format/Feature.js").default<typeof import("./Feature.js").default|typeof import("./render/Feature.js").default>} Feature format.
+   * @api
+   */
+  getFormat() {
+    return this.format_;
+  }
+
+  /**
+   * Get the features for this tile. Geometries will be in the view projection.
+   * @return {Array<import("./Feature.js").FeatureLike>} Features.
+   * @api
+   */
+  getFeatures() {
+    return this.features_;
+  }
+
+  /**
+   * Load not yet loaded URI.
+   */
+  load() {
+    if (this.state == TileState.IDLE) {
+      this.setState(TileState.LOADING);
+      this.tileLoadFunction_(this, this.url_);
+      if (this.loader_) {
+        this.loader_(this.extent, this.resolution, this.projection);
+      }
+    }
+  }
+
+  /**
+   * Handler for successful tile load.
+   * @param {Array<import("./Feature.js").default>} features The loaded features.
+   * @param {import("./proj/Projection.js").default} dataProjection Data projection.
+   */
+  onLoad(features, dataProjection) {
+    this.setFeatures(features);
+  }
+
+  /**
+   * Handler for tile load errors.
+   */
+  onError() {
+    this.setState(TileState.ERROR);
+  }
+
+  /**
+   * Function for use in an {@link module:ol/source/VectorTile~VectorTile}'s `tileLoadFunction`.
+   * Sets the features for the tile.
+   * @param {Array<import("./Feature.js").FeatureLike>} features Features.
+   * @api
+   */
+  setFeatures(features) {
+    this.features_ = features;
+    this.setState(TileState.LOADED);
+  }
+
+  /**
+   * Set the feature loader for reading this tile's features.
+   * @param {import("./featureloader.js").FeatureLoader} loader Feature loader.
+   * @api
+   */
+  setLoader(loader) {
+    this.loader_ = loader;
+  }
+};
+
+/**
+ * @module ol/VectorRenderTile
+ */
+
+/**
+ * @typedef {Object} ReplayState
+ * @property {boolean} dirty Dirty.
+ * @property {null|import("./render.js").OrderFunction} renderedRenderOrder RenderedRenderOrder.
+ * @property {number} renderedTileRevision RenderedTileRevision.
+ * @property {number} renderedResolution RenderedResolution.
+ * @property {number} renderedRevision RenderedRevision.
+ * @property {number} renderedTileResolution RenderedTileResolution.
+ * @property {number} renderedTileZ RenderedTileZ.
+ */
+
+/**
+ * @type {Array<HTMLCanvasElement>}
+ */
+const canvasPool = [];
+
+class VectorRenderTile extends Tile {
+  /**
+   * @param {import("./tilecoord.js").TileCoord} tileCoord Tile coordinate.
+   * @param {import("./TileState.js").default} state State.
+   * @param {import("./tilecoord.js").TileCoord} urlTileCoord Wrapped tile coordinate for source urls.
+   * @param {function(VectorRenderTile):Array<import("./VectorTile").default>} getSourceTiles Function
+   * to get source tiles for this tile.
+   */
+  constructor(tileCoord, state, urlTileCoord, getSourceTiles) {
+    super(tileCoord, state, {transition: 0});
+
+    /**
+     * @private
+     * @type {!Object<string, CanvasRenderingContext2D>}
+     */
+    this.context_ = {};
+
+    /**
+     * Executor groups by layer uid. Entries are read/written by the renderer.
+     * @type {Object<string, Array<import("./render/canvas/ExecutorGroup.js").default>>}
+     */
+    this.executorGroups = {};
+
+    /**
+     * Number of loading source tiles. Read/written by the source.
+     * @type {number}
+     */
+    this.loadingSourceTiles = 0;
+
+    /**
+     * @type {Object<number, ImageData>}
+     */
+    this.hitDetectionImageData = {};
+
+    /**
+     * @private
+     * @type {!Object<string, ReplayState>}
+     */
+    this.replayState_ = {};
+
+    /**
+     * @type {Array<import("./VectorTile.js").default>}
+     */
+    this.sourceTiles = [];
+
+    /**
+     * @type {Object<string, boolean>}
+     */
+    this.errorTileKeys = {};
+
+    /**
+     * @type {number}
+     */
+    this.wantedResolution;
+
+    /**
+     * @type {!function():Array<import("./VectorTile.js").default>}
+     */
+    this.getSourceTiles = getSourceTiles.bind(undefined, this);
+
+    /**
+     * @type {import("./tilecoord.js").TileCoord}
+     */
+    this.wrappedTileCoord = urlTileCoord;
+  }
+
+  /**
+   * @param {import("./layer/Layer.js").default} layer Layer.
+   * @return {CanvasRenderingContext2D} The rendering context.
+   */
+  getContext(layer) {
+    const key = getUid(layer);
+    if (!(key in this.context_)) {
+      this.context_[key] = createCanvasContext2D(1, 1, canvasPool);
+    }
+    return this.context_[key];
+  }
+
+  /**
+   * @param {import("./layer/Layer.js").default} layer Layer.
+   * @return {boolean} Tile has a rendering context for the given layer.
+   */
+  hasContext(layer) {
+    return getUid(layer) in this.context_;
+  }
+
+  /**
+   * Get the Canvas for this tile.
+   * @param {import("./layer/Layer.js").default} layer Layer.
+   * @return {HTMLCanvasElement} Canvas.
+   */
+  getImage(layer) {
+    return this.hasContext(layer) ? this.getContext(layer).canvas : null;
+  }
+
+  /**
+   * @param {import("./layer/Layer.js").default} layer Layer.
+   * @return {ReplayState} The replay state.
+   */
+  getReplayState(layer) {
+    const key = getUid(layer);
+    if (!(key in this.replayState_)) {
+      this.replayState_[key] = {
+        dirty: false,
+        renderedRenderOrder: null,
+        renderedResolution: NaN,
+        renderedRevision: -1,
+        renderedTileResolution: NaN,
+        renderedTileRevision: -1,
+        renderedTileZ: -1,
+      };
+    }
+    return this.replayState_[key];
+  }
+
+  /**
+   * Load the tile.
+   */
+  load() {
+    this.getSourceTiles();
+  }
+
+  /**
+   * Remove from the cache due to expiry
+   */
+  release() {
+    for (const key in this.context_) {
+      const context = this.context_[key];
+      releaseCanvas(context);
+      canvasPool.push(context.canvas);
+      delete this.context_[key];
+    }
+    super.release();
+  }
+}
+
+/**
+ * @module ol/source/VectorTile
+ */
+
+
+/**
+ * @template {import("../Feature.js").FeatureLike} FeatureType
+ * @typedef {Object} Options
+ * @property {import("./Source.js").AttributionLike} [attributions] Attributions.
+ * @property {boolean} [attributionsCollapsible=true] Attributions are collapsible.
+ * @property {number} [cacheSize] Initial tile cache size. Will auto-grow to hold at least twice the number of tiles in the viewport.
+ * @property {import("../extent.js").Extent} [extent] Extent.
+ * @property {import("../format/Feature.js").default<import("../format/Feature.js").FeatureToFeatureClass<FeatureType>>} [format] Feature format for tiles. Used and required by the default.
+ * @property {boolean} [overlaps=true] This source may have overlapping geometries. Setting this
+ * to `false` (e.g. for sources with polygons that represent administrative
+ * boundaries or TopoJSON sources) allows the renderer to optimise fill and
+ * stroke operations.
+ * @property {import("../proj.js").ProjectionLike} [projection='EPSG:3857'] Projection of the tile grid.
+ * @property {import("./Source.js").State} [state] Source state.
+ * @property {typeof import("../VectorTile.js").default} [tileClass] Class used to instantiate image tiles.
+ * Default is {@link module:ol/VectorTile~VectorTile}.
+ * @property {number} [maxZoom=22] Optional max zoom level. Not used if `tileGrid` is provided.
+ * @property {number} [minZoom] Optional min zoom level. Not used if `tileGrid` is provided.
+ * @property {number|import("../size.js").Size} [tileSize=512] Optional tile size. Not used if `tileGrid` is provided.
+ * @property {number} [maxResolution] Optional tile grid resolution at level zero. Not used if `tileGrid` is provided.
+ * @property {import("../tilegrid/TileGrid.js").default} [tileGrid] Tile grid.
+ * @property {import("../Tile.js").LoadFunction} [tileLoadFunction]
+ * Optional function to load a tile given a URL. Could look like this for pbf tiles:
+ * ```js
+ * function(tile, url) {
+ *   tile.setLoader(function(extent, resolution, projection) {
+ *     fetch(url).then(function(response) {
+ *       response.arrayBuffer().then(function(data) {
+ *         const format = tile.getFormat() // ol/format/MVT configured as source format
+ *         const features = format.readFeatures(data, {
+ *           extent: extent,
+ *           featureProjection: projection
+ *         });
+ *         tile.setFeatures(features);
+ *       });
+ *     });
+ *   });
+ * }
+ * ```
+ * If you do not need extent, resolution and projection to get the features for a tile (e.g.
+ * for GeoJSON tiles), your `tileLoadFunction` does not need a `setLoader()` call. Only make sure
+ * to call `setFeatures()` on the tile:
+ * ```js
+ * const format = new GeoJSON({featureProjection: map.getView().getProjection()});
+ * async function tileLoadFunction(tile, url) {
+ *   const response = await fetch(url);
+ *   const data = await response.json();
+ *   tile.setFeatures(format.readFeatures(data));
+ * }
+ * ```
+ * @property {import("../Tile.js").UrlFunction} [tileUrlFunction] Optional function to get tile URL given a tile coordinate and the projection.
+ * @property {string} [url] URL template. Must include `{x}`, `{y}` or `{-y}`, and `{z}` placeholders.
+ * A `{?-?}` template pattern, for example `subdomain{a-f}.domain.com`, may be
+ * used instead of defining each one separately in the `urls` option.
+ * @property {number} [transition] A duration for tile opacity
+ * transitions in milliseconds. A duration of 0 disables the opacity transition.
+ * @property {Array<string>} [urls] An array of URL templates.
+ * @property {boolean} [wrapX=true] Whether to wrap the world horizontally.
+ * When set to `false`, only one world
+ * will be rendered. When set to `true`, tiles will be wrapped horizontally to
+ * render multiple worlds.
+ * @property {number|import("../array.js").NearestDirectionFunction} [zDirection=1]
+ * Choose whether to use tiles with a higher or lower zoom level when between integer
+ * zoom levels. See {@link module:ol/tilegrid/TileGrid~TileGrid#getZForResolution}.
+ */
+
+/**
+ * @classdesc
+ * Class for layer sources providing vector data divided into a tile grid, to be
+ * used with {@link module:ol/layer/VectorTile~VectorTileLayer}. Although this source receives tiles
+ * with vector features from the server, it is not meant for feature editing.
+ * Features are optimized for rendering, their geometries are clipped at or near
+ * tile boundaries and simplified for a view resolution. See
+ * {@link module:ol/source/Vector~VectorSource} for vector sources that are suitable for feature
+ * editing.
+ *
+ * @fires import("./Tile.js").TileSourceEvent
+ * @api
+ * @template {import("../Feature.js").FeatureLike} [FeatureType=import("../render/Feature.js").default]
+ */
+class VectorTile extends UrlTile {
+  /**
+   * @param {!Options<FeatureType>} options Vector tile options.
+   */
+  constructor(options) {
+    const projection = options.projection || 'EPSG:3857';
+
+    const extent = options.extent || extentFromProjection(projection);
+
+    const tileGrid =
+      options.tileGrid ||
+      createXYZ({
+        extent: extent,
+        maxResolution: options.maxResolution,
+        maxZoom: options.maxZoom !== undefined ? options.maxZoom : 22,
+        minZoom: options.minZoom,
+        tileSize: options.tileSize || 512,
+      });
+
+    super({
+      attributions: options.attributions,
+      attributionsCollapsible: options.attributionsCollapsible,
+      cacheSize: options.cacheSize,
+      interpolate: true,
+      opaque: false,
+      projection: projection,
+      state: options.state,
+      tileGrid: tileGrid,
+      tileLoadFunction: options.tileLoadFunction
+        ? options.tileLoadFunction
+        : defaultLoadFunction,
+      tileUrlFunction: options.tileUrlFunction,
+      url: options.url,
+      urls: options.urls,
+      wrapX: options.wrapX === undefined ? true : options.wrapX,
+      transition: options.transition,
+      zDirection: options.zDirection === undefined ? 1 : options.zDirection,
+    });
+
+    /**
+     * @private
+     * @type {import("../format/Feature.js").default<import("../format/Feature.js").FeatureToFeatureClass<FeatureType>>|null}
+     */
+    this.format_ = options.format ? options.format : null;
+
+    /**
+     * @private
+     * @type {TileCache}
+     */
+    this.sourceTileCache = new TileCache(this.tileCache.highWaterMark);
+
+    /**
+     * @private
+     * @type {boolean}
+     */
+    this.overlaps_ = options.overlaps == undefined ? true : options.overlaps;
+
+    /**
+     * @protected
+     * @type {typeof import("../VectorTile.js").default}
+     */
+    this.tileClass = options.tileClass ? options.tileClass : VectorTile$1;
+
+    /**
+     * @private
+     * @type {Object<string, import("../tilegrid/TileGrid.js").default>}
+     */
+    this.tileGrids_ = {};
+  }
+
+  /**
+   * Get features whose bounding box intersects the provided extent. Only features for cached
+   * tiles for the last rendered zoom level are available in the source. So this method is only
+   * suitable for requesting tiles for extents that are currently rendered.
+   *
+   * Features are returned in random tile order and as they are included in the tiles. This means
+   * they can be clipped, duplicated across tiles, and simplified to the render resolution.
+   *
+   * @param {import("../extent.js").Extent} extent Extent.
+   * @return {Array<FeatureType>} Features.
+   * @api
+   */
+  getFeaturesInExtent(extent) {
+    const features = [];
+    const tileCache = this.tileCache;
+    if (tileCache.getCount() === 0) {
+      return features;
+    }
+    const z = fromKey(tileCache.peekFirstKey())[0];
+    const tileGrid = this.tileGrid;
+    tileCache.forEach(function (tile) {
+      if (tile.tileCoord[0] !== z || tile.getState() !== TileState.LOADED) {
+        return;
+      }
+      const sourceTiles = tile.getSourceTiles();
+      for (let i = 0, ii = sourceTiles.length; i < ii; ++i) {
+        const sourceTile = sourceTiles[i];
+        const tileCoord = sourceTile.tileCoord;
+        if (intersects$1(extent, tileGrid.getTileCoordExtent(tileCoord))) {
+          const tileFeatures = sourceTile.getFeatures();
+          if (tileFeatures) {
+            for (let j = 0, jj = tileFeatures.length; j < jj; ++j) {
+              const candidate = tileFeatures[j];
+              const geometry = candidate.getGeometry();
+              if (intersects$1(extent, geometry.getExtent())) {
+                features.push(candidate);
+              }
+            }
+          }
+        }
+      }
+    });
+    return features;
+  }
+
+  /**
+   * @return {boolean} The source can have overlapping geometries.
+   */
+  getOverlaps() {
+    return this.overlaps_;
+  }
+
+  /**
+   * clear {@link module:ol/TileCache~TileCache} and delete all source tiles
+   * @api
+   */
+  clear() {
+    this.tileCache.clear();
+    this.sourceTileCache.clear();
+  }
+
+  /**
+   * @param {import("../proj/Projection.js").default} projection Projection.
+   * @param {!Object<string, boolean>} usedTiles Used tiles.
+   */
+  expireCache(projection, usedTiles) {
+    const tileCache = this.getTileCacheForProjection(projection);
+    const usedSourceTiles = Object.keys(usedTiles).reduce((acc, key) => {
+      const cacheKey = getCacheKeyForTileKey(key);
+      const tile = tileCache.peek(cacheKey);
+      if (tile) {
+        const sourceTiles = tile.sourceTiles;
+        for (let i = 0, ii = sourceTiles.length; i < ii; ++i) {
+          acc[sourceTiles[i].getKey()] = true;
+        }
+      }
+      return acc;
+    }, {});
+    super.expireCache(projection, usedTiles);
+    this.sourceTileCache.expireCache(usedSourceTiles);
+  }
+
+  /**
+   * @param {number} pixelRatio Pixel ratio.
+   * @param {import("../proj/Projection").default} projection Projection.
+   * @param {VectorRenderTile} tile Vector image tile.
+   * @return {Array<import("../VectorTile").default>} Tile keys.
+   */
+  getSourceTiles(pixelRatio, projection, tile) {
+    if (tile.getState() === TileState.IDLE) {
+      tile.setState(TileState.LOADING);
+      const urlTileCoord = tile.wrappedTileCoord;
+      const tileGrid = this.getTileGridForProjection(projection);
+      const extent = tileGrid.getTileCoordExtent(urlTileCoord);
+      const z = urlTileCoord[0];
+      const resolution = tileGrid.getResolution(z);
+      // make extent 1 pixel smaller so we don't load tiles for < 0.5 pixel render space
+      buffer(extent, -resolution, extent);
+      const sourceTileGrid = this.tileGrid;
+      const sourceExtent = sourceTileGrid.getExtent();
+      if (sourceExtent) {
+        getIntersection(extent, sourceExtent, extent);
+      }
+      const sourceZ = sourceTileGrid.getZForResolution(
+        resolution,
+        this.zDirection,
+      );
+
+      sourceTileGrid.forEachTileCoord(extent, sourceZ, (sourceTileCoord) => {
+        const tileUrl = this.tileUrlFunction(
+          sourceTileCoord,
+          pixelRatio,
+          projection,
+        );
+        const sourceTile = this.sourceTileCache.containsKey(tileUrl)
+          ? this.sourceTileCache.get(tileUrl)
+          : new this.tileClass(
+              sourceTileCoord,
+              tileUrl ? TileState.IDLE : TileState.EMPTY,
+              tileUrl,
+              this.format_,
+              this.tileLoadFunction,
+            );
+        tile.sourceTiles.push(sourceTile);
+        const sourceTileState = sourceTile.getState();
+        if (sourceTileState < TileState.LOADED) {
+          const listenChange = (event) => {
+            this.handleTileChange(event);
+            const state = sourceTile.getState();
+            if (state === TileState.LOADED || state === TileState.ERROR) {
+              const sourceTileKey = sourceTile.getKey();
+              if (sourceTileKey in tile.errorTileKeys) {
+                if (sourceTile.getState() === TileState.LOADED) {
+                  delete tile.errorTileKeys[sourceTileKey];
+                }
+              } else {
+                tile.loadingSourceTiles--;
+              }
+              if (state === TileState.ERROR) {
+                tile.errorTileKeys[sourceTileKey] = true;
+              } else {
+                sourceTile.removeEventListener(EventType.CHANGE, listenChange);
+              }
+              if (tile.loadingSourceTiles === 0) {
+                tile.setState(
+                  isEmpty$1(tile.errorTileKeys)
+                    ? TileState.LOADED
+                    : TileState.ERROR,
+                );
+              }
+            }
+          };
+          sourceTile.addEventListener(EventType.CHANGE, listenChange);
+          tile.loadingSourceTiles++;
+        }
+        if (sourceTileState === TileState.IDLE) {
+          sourceTile.extent =
+            sourceTileGrid.getTileCoordExtent(sourceTileCoord);
+          sourceTile.projection = projection;
+          sourceTile.resolution = sourceTileGrid.getResolution(
+            sourceTileCoord[0],
+          );
+          this.sourceTileCache.set(tileUrl, sourceTile);
+          sourceTile.load();
+        }
+      });
+      if (!tile.loadingSourceTiles) {
+        tile.setState(
+          tile.sourceTiles.some(
+            (sourceTile) => sourceTile.getState() === TileState.ERROR,
+          )
+            ? TileState.ERROR
+            : TileState.LOADED,
+        );
+      }
+    }
+
+    return tile.sourceTiles;
+  }
+
+  /**
+   * @param {number} z Tile coordinate z.
+   * @param {number} x Tile coordinate x.
+   * @param {number} y Tile coordinate y.
+   * @param {number} pixelRatio Pixel ratio.
+   * @param {import("../proj/Projection.js").default} projection Projection.
+   * @return {!VectorRenderTile} Tile.
+   */
+  getTile(z, x, y, pixelRatio, projection) {
+    const coordKey = getKeyZXY(z, x, y);
+    const key = this.getKey();
+    let tile;
+    if (this.tileCache.containsKey(coordKey)) {
+      tile = this.tileCache.get(coordKey);
+      if (tile.key === key) {
+        return tile;
+      }
+    }
+    const tileCoord = [z, x, y];
+    let urlTileCoord = this.getTileCoordForTileUrlFunction(
+      tileCoord,
+      projection,
+    );
+    const sourceExtent = this.getTileGrid().getExtent();
+    const tileGrid = this.getTileGridForProjection(projection);
+    if (urlTileCoord && sourceExtent) {
+      const tileExtent = tileGrid.getTileCoordExtent(urlTileCoord);
+      // make extent 1 pixel smaller so we don't load tiles for < 0.5 pixel render space
+      buffer(tileExtent, -tileGrid.getResolution(z), tileExtent);
+      if (!intersects$1(sourceExtent, tileExtent)) {
+        urlTileCoord = null;
+      }
+    }
+    let empty = true;
+    if (urlTileCoord !== null) {
+      const sourceTileGrid = this.tileGrid;
+      const resolution = tileGrid.getResolution(z);
+      const sourceZ = sourceTileGrid.getZForResolution(resolution, 1);
+      // make extent 1 pixel smaller so we don't load tiles for < 0.5 pixel render space
+      const extent = tileGrid.getTileCoordExtent(urlTileCoord);
+      buffer(extent, -resolution, extent);
+      sourceTileGrid.forEachTileCoord(extent, sourceZ, (sourceTileCoord) => {
+        empty =
+          empty &&
+          !this.tileUrlFunction(sourceTileCoord, pixelRatio, projection);
+      });
+    }
+    const newTile = new VectorRenderTile(
+      tileCoord,
+      empty ? TileState.EMPTY : TileState.IDLE,
+      urlTileCoord,
+      this.getSourceTiles.bind(this, pixelRatio, projection),
+    );
+
+    newTile.key = key;
+    if (tile) {
+      newTile.interimTile = tile;
+      newTile.refreshInterimChain();
+      this.tileCache.replace(coordKey, newTile);
+    } else {
+      this.tileCache.set(coordKey, newTile);
+    }
+    return newTile;
+  }
+
+  /**
+   * @param {import("../proj/Projection.js").default} projection Projection.
+   * @return {!import("../tilegrid/TileGrid.js").default} Tile grid.
+   */
+  getTileGridForProjection(projection) {
+    const code = projection.getCode();
+    let tileGrid = this.tileGrids_[code];
+    if (!tileGrid) {
+      // A tile grid that matches the tile size of the source tile grid is more
+      // likely to have 1:1 relationships between source tiles and rendered tiles.
+      const sourceTileGrid = this.tileGrid;
+      const resolutions = sourceTileGrid.getResolutions().slice();
+      const origins = resolutions.map(function (resolution, z) {
+        return sourceTileGrid.getOrigin(z);
+      });
+      const tileSizes = resolutions.map(function (resolution, z) {
+        return sourceTileGrid.getTileSize(z);
+      });
+      const length = DEFAULT_MAX_ZOOM + 1;
+      for (let z = resolutions.length; z < length; ++z) {
+        resolutions.push(resolutions[z - 1] / 2);
+        origins.push(origins[z - 1]);
+        tileSizes.push(tileSizes[z - 1]);
+      }
+      tileGrid = new TileGrid({
+        extent: sourceTileGrid.getExtent(),
+        origins: origins,
+        resolutions: resolutions,
+        tileSizes: tileSizes,
+      });
+      this.tileGrids_[code] = tileGrid;
+    }
+    return tileGrid;
+  }
+
+  /**
+   * Get the tile pixel ratio for this source.
+   * @param {number} pixelRatio Pixel ratio.
+   * @return {number} Tile pixel ratio.
+   */
+  getTilePixelRatio(pixelRatio) {
+    return pixelRatio;
+  }
+
+  /**
+   * @param {number} z Z.
+   * @param {number} pixelRatio Pixel ratio.
+   * @param {import("../proj/Projection.js").default} projection Projection.
+   * @return {import("../size.js").Size} Tile size.
+   */
+  getTilePixelSize(z, pixelRatio, projection) {
+    const tileGrid = this.getTileGridForProjection(projection);
+    const tileSize = toSize(tileGrid.getTileSize(z), this.tmpSize);
+    return [
+      Math.round(tileSize[0] * pixelRatio),
+      Math.round(tileSize[1] * pixelRatio),
+    ];
+  }
+
+  /**
+   * Increases the cache size if needed
+   * @param {number} tileCount Minimum number of tiles needed.
+   * @param {import("../proj/Projection.js").default} projection Projection.
+   */
+  updateCacheSize(tileCount, projection) {
+    super.updateCacheSize(tileCount * 2, projection);
+    this.sourceTileCache.highWaterMark =
+      this.getTileCacheForProjection(projection).highWaterMark;
+  }
+}
+
+/**
+ * Sets the loader for a tile.
+ * @param {import("../VectorTile.js").default} tile Vector tile.
+ * @param {string} url URL.
+ */
+function defaultLoadFunction(tile, url) {
+  tile.setLoader(
+    /**
+     * @param {import("../extent.js").Extent} extent Extent.
+     * @param {number} resolution Resolution.
+     * @param {import("../proj/Projection.js").default} projection Projection.
+     */
+    function (extent, resolution, projection) {
+      loadFeaturesXhr(
+        url,
+        tile.getFormat(),
+        extent,
+        resolution,
+        projection,
+        tile.onLoad.bind(tile),
+        tile.onError.bind(tile),
+      );
+    },
+  );
+}
+
+/** Render Mapbox Vector Tiles from an MVT endpoint with an OpenLayers flat style. */
+var VectorTileLayer = _ref => {
+  var id = _ref.id,
+    url = _ref.url,
+    urls = _ref.urls,
+    projection = _ref.projection,
+    attributions = _ref.attributions,
+    style = _ref.style;
+  var map = useMap();
+  var layerRef = useRef(null);
+  useEffect(() => {
+    if (!map || !url && (!urls || urls.length === 0)) return undefined;
+    var sourceOptions = {
+      format: new MVT(),
+      projection,
+      attributions
+    };
+    if (urls && urls.length > 0) {
+      sourceOptions.urls = urls;
+    } else {
+      sourceOptions.url = url;
+    }
+    var source = new VectorTile(sourceOptions);
+    var layer = new VectorTileLayer$1({
+      source
+    });
+    layer.set('dashId', id);
+    layerRef.current = layer;
+    map.addLayer(layer);
+    return () => {
+      map.removeLayer(layer);
+      source.clear();
+      layerRef.current = null;
+    };
+  }, [attributions, id, map, projection, url, urls]);
+  useEffect(() => {
+    if (layerRef.current) {
+      layerRef.current.setStyle(style !== null && style !== void 0 ? style : undefined);
+    }
+  }, [style]);
+  return null;
+};
+VectorTileLayer.defaultProps = {
+  url: null,
+  urls: null,
+  projection: 'EPSG:3857',
+  attributions: null,
+  style: null
+};
+VectorTileLayer.propTypes = {
+  /** Component ID used to identify this layer in the Dash layout. */
+  id: PropTypes.string,
+  /** MVT URL template containing {z}, {x}, and {y} or {-y}; ignored when urls is provided. */
+  url: PropTypes.string,
+  /** Alternative MVT URL templates for load balancing; takes precedence over url. */
+  urls: PropTypes.arrayOf(PropTypes.string),
+  /** Projection of the vector tile grid; use the CRS served by the tile endpoint. */
+  projection: PropTypes.string,
+  /** Attribution text or a list of attribution strings for the tile provider. */
+  attributions: PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)]),
+  /** OpenLayers flat-style object used to style MVT features. */
+  style: PropTypes.object,
+  /** Dash-supplied callback used to write component state back to the layout. */
+  setProps: PropTypes.func
+};
+
+export { DrawInteraction, MapComponent as Map, ModifyInteraction, OLContext, TileLayer, VectorLayerComponent as VectorLayer, VectorTileLayer };
