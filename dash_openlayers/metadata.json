@@ -283,6 +283,27 @@
         "description": "OpenLayers flat style object or rule array; supports icon, fill, stroke, feature filters, and resolution expressions.",
         "defaultValue": { "value": "null", "computed": false }
       },
+      "clusterDistance": {
+        "type": { "name": "number" },
+        "required": false,
+        "description": "Point clustering distance in screen pixels; set to 0 to disable clustering.",
+        "defaultValue": { "value": "0", "computed": false }
+      },
+      "clusterMinDistance": {
+        "type": { "name": "number" },
+        "required": false,
+        "description": "Minimum distance in screen pixels between clusters; capped at clusterDistance.",
+        "defaultValue": { "value": "0", "computed": false }
+      },
+      "declutter": {
+        "type": {
+          "name": "union",
+          "value": [{ "name": "bool" }, { "name": "string" }]
+        },
+        "required": false,
+        "description": "Enable label decluttering or set a shared group name for decluttering across layers.",
+        "defaultValue": { "value": "false", "computed": false }
+      },
       "setProps": {
         "type": { "name": "func" },
         "required": false,

@@ -25,6 +25,7 @@ import OSM from 'ol/source/OSM';
 import XYZ from 'ol/source/XYZ';
 import GeoJSON from 'ol/format/GeoJSON';
 import WKT from 'ol/format/WKT';
+import Cluster from 'ol/source/Cluster';
 import OpenLayersVectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import MVT from 'ol/format/MVT';
@@ -35,6 +36,16 @@ import WMTS, { optionsFromCapabilities } from 'ol/source/WMTS';
 import ImageLayer from 'ol/layer/Image';
 import TileWMSSource from 'ol/source/TileWMS';
 import ImageWMSSource from 'ol/source/ImageWMS';
+
+jest.mock('ol/source/Cluster', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockCluster(options) {
+    this.options = options;
+    this.setSource = jest.fn();
+    this.setDistance = jest.fn();
+    this.setMinDistance = jest.fn();
+  }),
+}));
 
 jest.mock('ol/Map', () => ({
   __esModule: true,
@@ -195,8 +206,52 @@ jest.mock('ol/layer/Vector', () => ({
   __esModule: true,
   default: jest.fn().mockImplementation(function MockVectorLayer(options) {
     this.options = options;
-    this.set = jest.fn();
-    this.setStyle = jest.fn();
+    this.properties = {};
+    this.set = jest.fn((key, value) => {
+      this.properties[key] = value;
+    });
+    this.get = jest.fn((key) => this.properties[key]);
+    this.setSource = jest.fn();
+    this.styleFunction = jest.fn(() => [{ name: 'base-style' }]);
+    this.getStyleFunction = jest.fn(() => this.styleFunction);
+    this.setStyle = jest.fn((style) => {
+      if (typeof style === 'function') this.styleFunction = style;
+    });
+  }),
+}));
+
+jest.mock('ol/style/Circle', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockCircleStyle(options) {
+    this.options = options;
+  }),
+}));
+
+jest.mock('ol/style/Fill', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockFill(options) {
+    this.options = options;
+  }),
+}));
+
+jest.mock('ol/style/Stroke', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockStroke(options) {
+    this.options = options;
+  }),
+}));
+
+jest.mock('ol/style/Style', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockStyle(options) {
+    this.options = options;
+  }),
+}));
+
+jest.mock('ol/style/Text', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockText(options) {
+    this.options = options;
   }),
 }));
 
@@ -252,6 +307,8 @@ jest.mock('ol/source/WMTS', () => ({
   optionsFromCapabilities: jest.fn(),
 }));
 
+const originalFetch = global.fetch;
+
 afterEach(() => {
   cleanup();
   jest.clearAllMocks();
@@ -261,8 +318,6 @@ afterEach(() => {
     global.fetch = originalFetch;
   }
 });
-
-const originalFetch = global.fetch;
 
 describe('feature format helpers', () => {
   it('imports WKT and exports feature and collection formats', () => {
@@ -387,8 +442,10 @@ describe('ModifyInteraction history', () => {
     };
     source.getFeatures.mockReturnValue([feature]);
     const layer = {
-      get: jest.fn(() => 'editable'),
-      getSource: jest.fn(() => source),
+      get: jest.fn((key) =>
+        key === 'dashId' ? 'editable' : key === 'dashVectorSource' ? source : undefined,
+      ),
+      getSource: jest.fn(() => ({ getSource: jest.fn(() => source) })),
     };
     map.getLayers.mockReturnValue({ getArray: () => [layer] });
     const setProps = jest.fn();
@@ -400,11 +457,13 @@ describe('ModifyInteraction history', () => {
     );
 
     const modify = Modify.mock.instances[0];
+    expect(modify.options.source).toBe(source);
     expect(Snap.mock.instances[0].options).toMatchObject({
       vertex: true,
       edge: true,
       pixelTolerance: 10,
     });
+    expect(Snap.mock.instances[0].options.features.items).toContain(feature);
     const event = { features: { getArray: () => [feature] } };
     modify.listeners.modifystart(event);
     currentGeometry = makeTestGeometry('after');
@@ -456,7 +515,7 @@ describe('ModifyInteraction history', () => {
     };
     source.getFeatures.mockReturnValue([feature]);
     const layer = {
-      get: jest.fn(() => 'editable'),
+      get: jest.fn((key) => (key === 'dashId' ? 'editable' : undefined)),
       getSource: jest.fn(() => source),
     };
     map.getLayers.mockReturnValue({ getArray: () => [layer] });
@@ -672,6 +731,68 @@ describe('VectorLayer', () => {
     );
     expect(source.clear).toHaveBeenCalledTimes(2);
     expect(source.addFeatures).not.toHaveBeenCalled();
+  });
+
+  it('clusters point data, styles counts, and updates cluster distance without replacing the source', () => {
+    const map = makeMap();
+    const geojson = { type: 'FeatureCollection', features: [] };
+    const style = { 'circle-radius': 5, 'circle-fill-color': '#1d6a7a' };
+    const { rerender, unmount } = render(
+      <OLContext.Provider value={map}>
+        <VectorLayer
+          id="clustered"
+          geojson={geojson}
+          style={style}
+          clusterDistance={40}
+          clusterMinDistance={12}
+          declutter="labels"
+        />
+      </OLContext.Provider>,
+    );
+
+    const source = VectorSource.mock.instances.at(-1);
+    const cluster = Cluster.mock.instances.at(-1);
+    const layer = OpenLayersVectorLayer.mock.instances.at(-1);
+    expect(cluster.options).toEqual({ source, distance: 40, minDistance: 12 });
+    expect(layer.options).toEqual({ source, declutter: 'labels' });
+    expect(layer.get('dashVectorSource')).toBe(source);
+    expect(layer.setSource).toHaveBeenCalledWith(cluster);
+
+    const clusterStyle = layer.setStyle.mock.calls.at(-1)[0];
+    const members = [{ id: 'one' }, { id: 'two' }, { id: 'three' }];
+    const badge = clusterStyle({ get: () => members }, 1);
+    expect(badge.options.text.options.text).toBe('3');
+    expect(clusterStyle({ get: () => [members[0]] }, 2)).toEqual([{ name: 'base-style' }]);
+
+    rerender(
+      <OLContext.Provider value={map}>
+        <VectorLayer
+          id="clustered"
+          geojson={geojson}
+          style={style}
+          clusterDistance={64}
+          clusterMinDistance={6}
+          declutter="labels"
+        />
+      </OLContext.Provider>,
+    );
+    expect(Cluster).toHaveBeenCalledTimes(2);
+    expect(Cluster.mock.instances.at(-1).options).toEqual({
+      source,
+      distance: 64,
+      minDistance: 6,
+    });
+    expect(cluster.setSource).toHaveBeenCalledWith(null);
+    expect(VectorSource).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <OLContext.Provider value={map}>
+        <VectorLayer id="clustered" geojson={geojson} style={style} declutter="labels" />
+      </OLContext.Provider>,
+    );
+    expect(layer.setSource).toHaveBeenLastCalledWith(source);
+    expect(Cluster.mock.instances.at(-1).setSource).toHaveBeenCalledWith(null);
+    unmount();
   });
 
   it('applies declarative style changes without recreating the vector source', () => {

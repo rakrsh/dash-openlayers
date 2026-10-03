@@ -42,6 +42,38 @@ dol.Map(
 The control's `position` can be `top-left`, `top-right`, `bottom-left`, or
 `bottom-right`.
 
+## Point Clustering and Decluttering
+
+Set `clusterDistance` on a `VectorLayer` to cluster nearby Point features;
+the distance is measured in screen pixels, and `0` (the default) disables
+clustering. `clusterMinDistance` sets a minimum pixel gap between cluster
+symbols and is capped at `clusterDistance`. Multi-point clusters render with
+a count badge, while individual points retain the layer's configured style.
+When clustering is enabled, use Point geometries in that layer.
+
+Set `declutter=True` to prevent overlapping labels and symbols on a vector
+layer. A string such as `declutter="map-labels"` groups layers that should
+declutter together; layers with different group names are handled separately.
+Decluttering is opt-in and does not change existing layer rendering by default.
+
+```python
+dol.VectorLayer(
+    id="city-sites",
+    geojson=city_site_points,
+    clusterDistance=40,
+    clusterMinDistance=12,
+    declutter="place-labels",
+    style={
+        "circle-radius": 5,
+        "circle-fill-color": "#d66f41",
+        "text-value": ["get", "name"],
+        "text-offset-y": -12,
+    },
+)
+```
+
+See `tests/demos/layer_control.py` for a runnable example with nearby points.
+
 `TileWMS` requests tiled WMS images. `ImageWMS` requests one image for the map
 viewport. Both accept a WMS endpoint, request `params` (including `LAYERS`),
 and an optional `serverType` (`geoserver`, `mapserver`, `carmentaserver`, or

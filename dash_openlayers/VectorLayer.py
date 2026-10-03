@@ -36,6 +36,12 @@ class VectorLayer(Component):
 
         - style (dict or list; optional): OpenLayers flat style object or rule array.
             Supports icons, fills, strokes, feature filters, and resolution expressions.
+
+        - clusterDistance (number; optional): Point cluster distance in screen pixels; 0 disables.
+
+        - clusterMinDistance (number; optional): Minimum pixel distance between clusters.
+
+        - declutter (boolean or string; optional): Enable label decluttering or share a group.
     """
 
     _children_props: typing.List[str] = []
@@ -49,11 +55,22 @@ class VectorLayer(Component):
         geojson: typing.Optional[dict] = None,
         wkt: typing.Optional[str] = None,
         style: typing.Optional[typing.Union[dict, typing.Sequence[dict]]] = None,
+        clusterDistance: typing.Optional[NumberType] = None,
+        clusterMinDistance: typing.Optional[NumberType] = None,
+        declutter: typing.Optional[typing.Union[bool, str]] = None,
         **kwargs,
     ):
-        self._prop_names = ["id", "geojson", "wkt", "style"]
+        self._prop_names = [
+            "id",
+            "geojson",
+            "wkt",
+            "style",
+            "clusterDistance",
+            "clusterMinDistance",
+            "declutter",
+        ]
         self._valid_wildcard_attributes = []
-        self.available_properties = ["id", "geojson", "wkt", "style"]
+        self.available_properties = self._prop_names
         self.available_wildcard_properties = []
         _explicit_args = kwargs.pop("_explicit_args")
         _locals = locals()
