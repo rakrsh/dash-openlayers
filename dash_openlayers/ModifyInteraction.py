@@ -31,8 +31,20 @@ class ModifyInteraction(Component):
     - layerId (string; optional): Dash ID of the VectorLayer to modify; defaults
       to the first vector layer on the map.
 
+        - snapToVertex (boolean; default True): Snap edits to vector vertices.
+
+        - snapToEdge (boolean; default True): Snap edits to vector edges.
+
+        - snapTolerance (number; default 10): Maximum snap distance in screen pixels.
+
+        - preserveTopology (boolean; default True): Revert polygon edits that
+            introduce invalid topology.
+
     - modifiedGeoJSON (dict; optional): Read-only GeoJSON FeatureCollection
       emitted after a modify operation.
+
+        - geometryValidation (dict; optional): Read-only topology validation from
+            the last modification.
     """
 
     _children_props: typing.List[str] = []
@@ -44,12 +56,35 @@ class ModifyInteraction(Component):
         self,
         id: typing.Optional[typing.Union[str, dict]] = None,
         layerId: typing.Optional[str] = None,
+        snapToVertex: typing.Optional[bool] = None,
+        snapToEdge: typing.Optional[bool] = None,
+        snapTolerance: typing.Optional[NumberType] = None,
+        preserveTopology: typing.Optional[bool] = None,
         modifiedGeoJSON: typing.Optional[dict] = None,
+        geometryValidation: typing.Optional[dict] = None,
         **kwargs,
     ):
-        self._prop_names = ["id", "layerId", "modifiedGeoJSON"]
+        self._prop_names = [
+            "id",
+            "layerId",
+            "snapToVertex",
+            "snapToEdge",
+            "snapTolerance",
+            "preserveTopology",
+            "modifiedGeoJSON",
+            "geometryValidation",
+        ]
         self._valid_wildcard_attributes = []
-        self.available_properties = ["id", "layerId", "modifiedGeoJSON"]
+        self.available_properties = [
+            "id",
+            "layerId",
+            "snapToVertex",
+            "snapToEdge",
+            "snapTolerance",
+            "preserveTopology",
+            "modifiedGeoJSON",
+            "geometryValidation",
+        ]
         self.available_wildcard_properties = []
         _explicit_args = kwargs.pop("_explicit_args")
         _locals = locals()

@@ -6,9 +6,18 @@ import VectorSource from 'ol/source/Vector';
 import { unByKey } from 'ol/Observable';
 import { useMap } from '../context/OLContext';
 import { getEditHistory } from '../utils/editHistory';
+import { getTopologyErrors } from '../utils/geometryValidation';
+import { addSnapInteraction } from '../utils/snap';
 
 /** Allow editing vertices in a VectorLayer and report the updated features. */
-const ModifyInteraction = ({ layerId, setProps }) => {
+const ModifyInteraction = ({
+  layerId,
+  snapToVertex = true,
+  snapToEdge = true,
+  snapTolerance = 10,
+  preserveTopology = true,
+  setProps,
+}) => {
   const map = useMap();
   const setPropsRef = useRef(setProps);
 
@@ -45,6 +54,12 @@ const ModifyInteraction = ({ layerId, setProps }) => {
       beforeGeometries = event.features.getArray().map((feature) => ({
         feature,
         geometry: feature.getGeometry().clone(),
+        topologyErrors: getTopologyErrors(
+          format.writeFeatureObject(feature, {
+            featureProjection: map.getView().getProjection(),
+            dataProjection: 'EPSG:4326',
+          }),
+        ),
       }));
     });
 
@@ -55,8 +70,33 @@ const ModifyInteraction = ({ layerId, setProps }) => {
         geometry: feature.getGeometry().clone(),
       }));
       const previousGeometries = beforeGeometries;
+      const topologyErrors = preserveTopology
+        ? afterGeometries.flatMap(({ feature }) => {
+            const previous = previousGeometries?.find((entry) => entry.feature === feature);
+            if (!previous || previous.topologyErrors.length > 0) return [];
+            return getTopologyErrors(
+              format.writeFeatureObject(feature, {
+                featureProjection: map.getView().getProjection(),
+                dataProjection: 'EPSG:4326',
+              }),
+            );
+          })
+        : [];
 
-      if (previousGeometries) {
+      if (previousGeometries && topologyErrors.length > 0) {
+        previousGeometries.forEach(({ feature, geometry }) =>
+          feature.setGeometry(geometry.clone()),
+        );
+        if (setPropsRef.current) {
+          setPropsRef.current({
+            geometryValidation: {
+              valid: false,
+              errors: topologyErrors,
+              suggestions: ['The edit was reverted because it would invalidate polygon topology.'],
+            },
+          });
+        }
+      } else if (previousGeometries) {
         history.record(
           {
             undo: () => {
@@ -74,6 +114,9 @@ const ModifyInteraction = ({ layerId, setProps }) => {
           },
           source,
         );
+        if (preserveTopology && setPropsRef.current) {
+          setPropsRef.current({ geometryValidation: { valid: true, errors: [], suggestions: [] } });
+        }
       }
       beforeGeometries = null;
 
@@ -85,13 +128,22 @@ const ModifyInteraction = ({ layerId, setProps }) => {
       unByKey(endListenerKey);
       map.removeInteraction(modify);
     };
-  }, [layerId, map]);
+  }, [layerId, map, preserveTopology]);
+
+  useEffect(
+    () => addSnapInteraction(map, { snapToVertex, snapToEdge, snapTolerance }),
+    [map, layerId, snapToVertex, snapToEdge, snapTolerance],
+  );
 
   return null;
 };
 
 ModifyInteraction.defaultProps = {
   layerId: null,
+  snapToVertex: true,
+  snapToEdge: true,
+  snapTolerance: 10,
+  preserveTopology: true,
 };
 
 ModifyInteraction.propTypes = {
@@ -99,8 +151,22 @@ ModifyInteraction.propTypes = {
   id: PropTypes.string,
   /** Dash ID of the VectorLayer to modify; defaults to the first vector layer on the map. */
   layerId: PropTypes.string,
+  /** Whether editing snaps to vector vertices. */
+  snapToVertex: PropTypes.bool,
+  /** Whether editing snaps to vector edges. */
+  snapToEdge: PropTypes.bool,
+  /** Maximum snap distance in screen pixels. */
+  snapTolerance: PropTypes.number,
+  /** Revert polygon edits that introduce invalid topology. */
+  preserveTopology: PropTypes.bool,
   /** Read-only: GeoJSON FeatureCollection of the target layer after a modify operation. */
   modifiedGeoJSON: PropTypes.object,
+  /** Read-only: topology validation result from the last modification. */
+  geometryValidation: PropTypes.shape({
+    valid: PropTypes.bool,
+    errors: PropTypes.arrayOf(PropTypes.object),
+    suggestions: PropTypes.arrayOf(PropTypes.string),
+  }),
   /** Dash-supplied callback used to write component state back to the layout. */
   setProps: PropTypes.func,
 };

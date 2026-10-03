@@ -1,136 +1,446 @@
 {
-	"src/lib/components/DrawInteraction.react.js": {
-		"description": "",
-		"displayName": "DrawInteraction",
-		"methods": [],
-		"props": {
-			"id": { "type": { "name": "string" }, "required": false, "description": "" },
-			"geometryType": {
-				"type": {
-					"name": "enum",
-					"value": [
-						{ "value": "'Point'", "computed": false },
-						{ "value": "'LineString'", "computed": false },
-						{ "value": "'Polygon'", "computed": false },
-						{ "value": "'Circle'", "computed": false }
-					]
-				},
-				"required": false,
-				"description": "",
-				"defaultValue": { "value": "'Polygon'", "computed": false }
-			},
-			"drawnGeoJSON": { "type": { "name": "object" }, "required": false, "description": "Read-only GeoJSON Feature emitted only when geometry validation succeeds." },
-			"geometryValidation": { "type": { "name": "object" }, "required": false, "description": "Read-only validity, topology errors, and repair suggestions from the last draw." },
-			"setProps": { "type": { "name": "func" }, "required": false, "description": "" }
-		}
-	},
-	"src/lib/components/Map.react.js": {
-		"description": "",
-		"displayName": "MapComponent",
-		"methods": [],
-		"props": {
-			"id": { "type": { "name": "string" }, "required": false, "description": "" },
-			"children": { "type": { "name": "node" }, "required": false, "description": "" },
-			"center": { "type": { "name": "arrayOf", "value": { "name": "number" } }, "required": false, "description": "", "defaultValue": { "value": "[0, 0]", "computed": false } },
-			"zoom": { "type": { "name": "number" }, "required": false, "description": "", "defaultValue": { "value": "2", "computed": false } },
-			"projection": { "type": { "name": "string" }, "required": false, "description": "", "defaultValue": { "value": "'EPSG:3857'", "computed": false } },
-			"proj4Defs": { "type": { "name": "arrayOf", "value": { "name": "shape", "value": { "code": { "name": "string", "required": true }, "def": { "name": "string", "required": true } } } }, "required": false, "description": "", "defaultValue": { "value": "[]", "computed": false } },
-			"style": { "type": { "name": "object" }, "required": false, "description": "" },
-			"clickData": { "type": { "name": "object" }, "required": false, "description": "" },
-			"undo": { "type": { "name": "number" }, "required": false, "description": "Increment to undo the latest Draw or Modify operation.", "defaultValue": { "value": "0", "computed": false } },
-			"redo": { "type": { "name": "number" }, "required": false, "description": "Increment to redo the latest undone operation.", "defaultValue": { "value": "0", "computed": false } },
-			"canUndo": { "type": { "name": "boolean" }, "required": false, "description": "Read-only; whether an operation is available to undo." },
-			"canRedo": { "type": { "name": "boolean" }, "required": false, "description": "Read-only; whether an operation is available to redo." },
-			"setProps": { "type": { "name": "func" }, "required": false, "description": "" }
-		}
-	},
-	"src/lib/components/ModifyInteraction.react.js": {
-		"description": "Allow editing vertices in a VectorLayer and report the updated features.",
-		"displayName": "ModifyInteraction",
-		"methods": [],
-		"props": {
-			"id": { "type": { "name": "string" }, "required": false, "description": "The ID used to identify this component in Dash callbacks." },
-			"layerId": { "type": { "name": "string" }, "required": false, "description": "Dash ID of the VectorLayer to modify; defaults to the first vector layer on the map.", "defaultValue": { "value": "null", "computed": false } },
-			"modifiedGeoJSON": { "type": { "name": "object" }, "required": false, "description": "Read-only: GeoJSON FeatureCollection of the target layer after a modify operation." },
-			"setProps": { "type": { "name": "func" }, "required": false, "description": "Dash-supplied callback used to write component state back to the layout." }
-		}
-	},
-	"src/lib/components/TileLayer.react.js": {
-		"description": "",
-		"displayName": "TileLayer",
-		"methods": [],
-		"props": {
-			"id": { "type": { "name": "string" }, "required": false, "description": "" },
-			"source": { "type": { "name": "string" }, "required": false, "description": "Built-in tile source identifier. Currently supports OSM.", "defaultValue": { "value": "null", "computed": false } },
-			"url": { "type": { "name": "string" }, "required": false, "description": "URL template for a custom XYZ tile source.", "defaultValue": { "value": "null", "computed": false } },
-			"setProps": { "type": { "name": "func" }, "required": false, "description": "" }
-		}
-	},
-	"src/lib/components/VectorLayer.react.js": {
-		"description": "Render GeoJSON features in a canvas-backed OpenLayers vector layer.",
-		"displayName": "VectorLayerComponent",
-		"methods": [],
-		"props": {
-			"id": { "type": { "name": "string" }, "required": false, "description": "Dash component ID; also used by ModifyInteraction to target this vector layer." },
-			"geojson": { "type": { "name": "object" }, "required": false, "description": "GeoJSON Feature or FeatureCollection with coordinates in [longitude, latitude] order; updates are rendered in the map projection.", "defaultValue": { "value": "null", "computed": false } },
-			"style": { "type": { "name": "union", "value": [{ "name": "object" }, { "name": "arrayOf", "value": { "name": "object" } }] }, "required": false, "description": "OpenLayers flat style object or rule array; supports icon, fill, stroke, feature filters, and resolution expressions.", "defaultValue": { "value": "null", "computed": false } },
-			"setProps": { "type": { "name": "func" }, "required": false, "description": "Dash-supplied callback used to write component state back to the layout." }
-		}
-	},
-	"src/lib/components/VectorTileLayer.react.js": {
-		"description": "Render Mapbox Vector Tiles from an MVT endpoint with an OpenLayers flat style.",
-		"displayName": "VectorTileLayer",
-		"methods": [],
-		"props": {
-			"id": { "type": { "name": "string" }, "required": false, "description": "Component ID used to identify this layer in the Dash layout." },
-			"url": { "type": { "name": "string" }, "required": false, "description": "MVT URL template containing {z}, {x}, and {y} or {-y}; ignored when urls is provided.", "defaultValue": { "value": "null", "computed": false } },
-			"urls": { "type": { "name": "arrayOf", "value": { "name": "string" } }, "required": false, "description": "Alternative MVT URL templates for load balancing; takes precedence over url.", "defaultValue": { "value": "null", "computed": false } },
-			"projection": { "type": { "name": "string" }, "required": false, "description": "Projection of the vector tile grid; use the CRS served by the tile endpoint.", "defaultValue": { "value": "'EPSG:3857'", "computed": false } },
-			"attributions": { "type": { "name": "union", "value": [{ "name": "string" }, { "name": "arrayOf", "value": { "name": "string" } }] }, "required": false, "description": "Attribution text or a list of attribution strings for the tile provider.", "defaultValue": { "value": "null", "computed": false } },
-			"style": { "type": { "name": "object" }, "required": false, "description": "OpenLayers flat-style object used to style MVT features.", "defaultValue": { "value": "null", "computed": false } },
-			"setProps": { "type": { "name": "func" }, "required": false, "description": "Dash-supplied callback used to write component state back to the layout." }
-		}
-	},
-	"src/lib/components/TileWMS.react.js": {
-		"description": "Render a tiled OGC Web Map Service layer.",
-		"displayName": "TileWMSLayer",
-		"methods": [],
-		"props": {
-			"id": { "type": { "name": "string" }, "required": false, "description": "Component ID used to identify this layer in the Dash layout." },
-			"url": { "type": { "name": "string" }, "required": false, "description": "OGC WMS endpoint URL.", "defaultValue": { "value": "null", "computed": false } },
-			"params": { "type": { "name": "object" }, "required": false, "description": "WMS request parameters, including LAYERS; changes refresh the source.", "defaultValue": { "value": "{}", "computed": false } },
-			"serverType": { "type": { "name": "enum", "value": [{ "value": "'carmentaserver'", "computed": false }, { "value": "'geoserver'", "computed": false }, { "value": "'mapserver'", "computed": false }, { "value": "'qgis'", "computed": false }] }, "required": false, "description": "WMS server type used for vendor-specific HiDPI request parameters.", "defaultValue": { "value": "null", "computed": false } },
-			"setProps": { "type": { "name": "func" }, "required": false, "description": "Dash-supplied callback used to write component state back to the layout." }
-		}
-	},
-	"src/lib/components/ImageWMS.react.js": {
-		"description": "Render a single-image OGC Web Map Service layer.",
-		"displayName": "ImageWMSLayer",
-		"methods": [],
-		"props": {
-			"id": { "type": { "name": "string" }, "required": false, "description": "Component ID used to identify this layer in the Dash layout." },
-			"url": { "type": { "name": "string" }, "required": false, "description": "OGC WMS endpoint URL.", "defaultValue": { "value": "null", "computed": false } },
-			"params": { "type": { "name": "object" }, "required": false, "description": "WMS request parameters, including LAYERS; changes refresh the source.", "defaultValue": { "value": "{}", "computed": false } },
-			"serverType": { "type": { "name": "enum", "value": [{ "value": "'carmentaserver'", "computed": false }, { "value": "'geoserver'", "computed": false }, { "value": "'mapserver'", "computed": false }, { "value": "'qgis'", "computed": false }] }, "required": false, "description": "WMS server type used for vendor-specific HiDPI request parameters.", "defaultValue": { "value": "null", "computed": false } },
-			"setProps": { "type": { "name": "func" }, "required": false, "description": "Dash-supplied callback used to write component state back to the layout." }
-		}
-	},
-	"src/lib/components/WMTSLayer.react.js": {
-		"description": "Render a WMTS layer using its service capabilities to configure the tile grid.",
-		"displayName": "WMTSLayer",
-		"methods": [],
-		"props": {
-			"id": { "type": { "name": "string" }, "required": false, "description": "Component ID used to identify this layer in the Dash layout." },
-			"url": { "type": { "name": "string" }, "required": false, "description": "URL of the WMTS GetCapabilities document; the server must allow browser CORS access.", "defaultValue": { "value": "null", "computed": false } },
-			"layer": { "type": { "name": "string" }, "required": false, "description": "Layer identifier advertised by the WMTS capabilities.", "defaultValue": { "value": "null", "computed": false } },
-			"matrixSet": { "type": { "name": "string" }, "required": false, "description": "Tile matrix set identifier; inferred when the capabilities advertise a single set.", "defaultValue": { "value": "null", "computed": false } },
-			"projection": { "type": { "name": "string" }, "required": false, "description": "Projection code to select a compatible matrix set, such as EPSG:3857.", "defaultValue": { "value": "null", "computed": false } },
-			"style": { "type": { "name": "string" }, "required": false, "description": "Advertised WMTS style identifier.", "defaultValue": { "value": "null", "computed": false } },
-			"format": { "type": { "name": "string" }, "required": false, "description": "Tile image format; defaults to the first advertised format.", "defaultValue": { "value": "null", "computed": false } },
-			"requestEncoding": { "type": { "name": "enum", "value": [{ "value": "'KVP'", "computed": false }, { "value": "'REST'", "computed": false }] }, "required": false, "description": "WMTS request encoding, either KVP or REST.", "defaultValue": { "value": "null", "computed": false } },
-			"dimensions": { "type": { "name": "object" }, "required": false, "description": "Values for advertised WMTS dimensions, such as TIME or ELEVATION.", "defaultValue": { "value": "null", "computed": false } },
-			"attributions": { "type": { "name": "union", "value": [{ "name": "string" }, { "name": "arrayOf", "value": { "name": "string" } }] }, "required": false, "description": "Attribution text or a list of attribution strings for the tile provider.", "defaultValue": { "value": "null", "computed": false } },
-			"setProps": { "type": { "name": "func" }, "required": false, "description": "Dash-supplied callback used to write component state back to the layout." }
-		}
-	}
+  "src/lib/components/DrawInteraction.react.js": {
+    "description": "",
+    "displayName": "DrawInteraction",
+    "methods": [],
+    "props": {
+      "id": { "type": { "name": "string" }, "required": false, "description": "" },
+      "geometryType": {
+        "type": {
+          "name": "enum",
+          "value": [
+            { "value": "'Point'", "computed": false },
+            { "value": "'LineString'", "computed": false },
+            { "value": "'Polygon'", "computed": false },
+            { "value": "'Circle'", "computed": false }
+          ]
+        },
+        "required": false,
+        "description": "",
+        "defaultValue": { "value": "'Polygon'", "computed": false }
+      },
+      "drawnGeoJSON": {
+        "type": { "name": "object" },
+        "required": false,
+        "description": "Read-only GeoJSON Feature emitted only when geometry validation succeeds."
+      },
+      "geometryValidation": {
+        "type": { "name": "object" },
+        "required": false,
+        "description": "Read-only validity, topology errors, and repair suggestions from the last draw."
+      },
+      "snapToVertex": {
+        "type": { "name": "boolean" },
+        "required": false,
+        "description": "Whether drawing snaps to existing vector vertices.",
+        "defaultValue": { "value": "true", "computed": false }
+      },
+      "snapToEdge": {
+        "type": { "name": "boolean" },
+        "required": false,
+        "description": "Whether drawing snaps to existing vector edges.",
+        "defaultValue": { "value": "true", "computed": false }
+      },
+      "snapTolerance": {
+        "type": { "name": "number" },
+        "required": false,
+        "description": "Maximum snap distance in screen pixels.",
+        "defaultValue": { "value": "10", "computed": false }
+      },
+      "setProps": { "type": { "name": "func" }, "required": false, "description": "" }
+    }
+  },
+  "src/lib/components/Map.react.js": {
+    "description": "",
+    "displayName": "MapComponent",
+    "methods": [],
+    "props": {
+      "id": { "type": { "name": "string" }, "required": false, "description": "" },
+      "children": { "type": { "name": "node" }, "required": false, "description": "" },
+      "center": {
+        "type": { "name": "arrayOf", "value": { "name": "number" } },
+        "required": false,
+        "description": "",
+        "defaultValue": { "value": "[0, 0]", "computed": false }
+      },
+      "zoom": {
+        "type": { "name": "number" },
+        "required": false,
+        "description": "",
+        "defaultValue": { "value": "2", "computed": false }
+      },
+      "projection": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "",
+        "defaultValue": { "value": "'EPSG:3857'", "computed": false }
+      },
+      "proj4Defs": {
+        "type": {
+          "name": "arrayOf",
+          "value": {
+            "name": "shape",
+            "value": {
+              "code": { "name": "string", "required": true },
+              "def": { "name": "string", "required": true }
+            }
+          }
+        },
+        "required": false,
+        "description": "",
+        "defaultValue": { "value": "[]", "computed": false }
+      },
+      "style": { "type": { "name": "object" }, "required": false, "description": "" },
+      "clickData": { "type": { "name": "object" }, "required": false, "description": "" },
+      "undo": {
+        "type": { "name": "number" },
+        "required": false,
+        "description": "Increment to undo the latest Draw or Modify operation.",
+        "defaultValue": { "value": "0", "computed": false }
+      },
+      "redo": {
+        "type": { "name": "number" },
+        "required": false,
+        "description": "Increment to redo the latest undone operation.",
+        "defaultValue": { "value": "0", "computed": false }
+      },
+      "canUndo": {
+        "type": { "name": "boolean" },
+        "required": false,
+        "description": "Read-only; whether an operation is available to undo."
+      },
+      "canRedo": {
+        "type": { "name": "boolean" },
+        "required": false,
+        "description": "Read-only; whether an operation is available to redo."
+      },
+      "setProps": { "type": { "name": "func" }, "required": false, "description": "" }
+    }
+  },
+  "src/lib/components/ModifyInteraction.react.js": {
+    "description": "Allow editing vertices in a VectorLayer and report the updated features.",
+    "displayName": "ModifyInteraction",
+    "methods": [],
+    "props": {
+      "id": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "The ID used to identify this component in Dash callbacks."
+      },
+      "layerId": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "Dash ID of the VectorLayer to modify; defaults to the first vector layer on the map.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "snapToVertex": {
+        "type": { "name": "boolean" },
+        "required": false,
+        "description": "Whether editing snaps to vector vertices.",
+        "defaultValue": { "value": "true", "computed": false }
+      },
+      "snapToEdge": {
+        "type": { "name": "boolean" },
+        "required": false,
+        "description": "Whether editing snaps to vector edges.",
+        "defaultValue": { "value": "true", "computed": false }
+      },
+      "snapTolerance": {
+        "type": { "name": "number" },
+        "required": false,
+        "description": "Maximum snap distance in screen pixels.",
+        "defaultValue": { "value": "10", "computed": false }
+      },
+      "preserveTopology": {
+        "type": { "name": "boolean" },
+        "required": false,
+        "description": "Revert polygon edits that introduce invalid topology.",
+        "defaultValue": { "value": "true", "computed": false }
+      },
+      "modifiedGeoJSON": {
+        "type": { "name": "object" },
+        "required": false,
+        "description": "Read-only: GeoJSON FeatureCollection of the target layer after a modify operation."
+      },
+      "geometryValidation": {
+        "type": { "name": "object" },
+        "required": false,
+        "description": "Read-only: topology validation result from the last modification."
+      },
+      "setProps": {
+        "type": { "name": "func" },
+        "required": false,
+        "description": "Dash-supplied callback used to write component state back to the layout."
+      }
+    }
+  },
+  "src/lib/components/TileLayer.react.js": {
+    "description": "",
+    "displayName": "TileLayer",
+    "methods": [],
+    "props": {
+      "id": { "type": { "name": "string" }, "required": false, "description": "" },
+      "source": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "Built-in tile source identifier. Currently supports OSM.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "url": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "URL template for a custom XYZ tile source.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "setProps": { "type": { "name": "func" }, "required": false, "description": "" }
+    }
+  },
+  "src/lib/components/VectorLayer.react.js": {
+    "description": "Render GeoJSON features in a canvas-backed OpenLayers vector layer.",
+    "displayName": "VectorLayerComponent",
+    "methods": [],
+    "props": {
+      "id": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "Dash component ID; also used by ModifyInteraction to target this vector layer."
+      },
+      "geojson": {
+        "type": { "name": "object" },
+        "required": false,
+        "description": "GeoJSON Feature or FeatureCollection with coordinates in [longitude, latitude] order; updates are rendered in the map projection.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "style": {
+        "type": {
+          "name": "union",
+          "value": [{ "name": "object" }, { "name": "arrayOf", "value": { "name": "object" } }]
+        },
+        "required": false,
+        "description": "OpenLayers flat style object or rule array; supports icon, fill, stroke, feature filters, and resolution expressions.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "setProps": {
+        "type": { "name": "func" },
+        "required": false,
+        "description": "Dash-supplied callback used to write component state back to the layout."
+      }
+    }
+  },
+  "src/lib/components/VectorTileLayer.react.js": {
+    "description": "Render Mapbox Vector Tiles from an MVT endpoint with an OpenLayers flat style.",
+    "displayName": "VectorTileLayer",
+    "methods": [],
+    "props": {
+      "id": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "Component ID used to identify this layer in the Dash layout."
+      },
+      "url": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "MVT URL template containing {z}, {x}, and {y} or {-y}; ignored when urls is provided.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "urls": {
+        "type": { "name": "arrayOf", "value": { "name": "string" } },
+        "required": false,
+        "description": "Alternative MVT URL templates for load balancing; takes precedence over url.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "projection": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "Projection of the vector tile grid; use the CRS served by the tile endpoint.",
+        "defaultValue": { "value": "'EPSG:3857'", "computed": false }
+      },
+      "attributions": {
+        "type": {
+          "name": "union",
+          "value": [{ "name": "string" }, { "name": "arrayOf", "value": { "name": "string" } }]
+        },
+        "required": false,
+        "description": "Attribution text or a list of attribution strings for the tile provider.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "style": {
+        "type": { "name": "object" },
+        "required": false,
+        "description": "OpenLayers flat-style object used to style MVT features.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "setProps": {
+        "type": { "name": "func" },
+        "required": false,
+        "description": "Dash-supplied callback used to write component state back to the layout."
+      }
+    }
+  },
+  "src/lib/components/TileWMS.react.js": {
+    "description": "Render a tiled OGC Web Map Service layer.",
+    "displayName": "TileWMSLayer",
+    "methods": [],
+    "props": {
+      "id": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "Component ID used to identify this layer in the Dash layout."
+      },
+      "url": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "OGC WMS endpoint URL.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "params": {
+        "type": { "name": "object" },
+        "required": false,
+        "description": "WMS request parameters, including LAYERS; changes refresh the source.",
+        "defaultValue": { "value": "{}", "computed": false }
+      },
+      "serverType": {
+        "type": {
+          "name": "enum",
+          "value": [
+            { "value": "'carmentaserver'", "computed": false },
+            { "value": "'geoserver'", "computed": false },
+            { "value": "'mapserver'", "computed": false },
+            { "value": "'qgis'", "computed": false }
+          ]
+        },
+        "required": false,
+        "description": "WMS server type used for vendor-specific HiDPI request parameters.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "setProps": {
+        "type": { "name": "func" },
+        "required": false,
+        "description": "Dash-supplied callback used to write component state back to the layout."
+      }
+    }
+  },
+  "src/lib/components/ImageWMS.react.js": {
+    "description": "Render a single-image OGC Web Map Service layer.",
+    "displayName": "ImageWMSLayer",
+    "methods": [],
+    "props": {
+      "id": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "Component ID used to identify this layer in the Dash layout."
+      },
+      "url": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "OGC WMS endpoint URL.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "params": {
+        "type": { "name": "object" },
+        "required": false,
+        "description": "WMS request parameters, including LAYERS; changes refresh the source.",
+        "defaultValue": { "value": "{}", "computed": false }
+      },
+      "serverType": {
+        "type": {
+          "name": "enum",
+          "value": [
+            { "value": "'carmentaserver'", "computed": false },
+            { "value": "'geoserver'", "computed": false },
+            { "value": "'mapserver'", "computed": false },
+            { "value": "'qgis'", "computed": false }
+          ]
+        },
+        "required": false,
+        "description": "WMS server type used for vendor-specific HiDPI request parameters.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "setProps": {
+        "type": { "name": "func" },
+        "required": false,
+        "description": "Dash-supplied callback used to write component state back to the layout."
+      }
+    }
+  },
+  "src/lib/components/WMTSLayer.react.js": {
+    "description": "Render a WMTS layer using its service capabilities to configure the tile grid.",
+    "displayName": "WMTSLayer",
+    "methods": [],
+    "props": {
+      "id": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "Component ID used to identify this layer in the Dash layout."
+      },
+      "url": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "URL of the WMTS GetCapabilities document; the server must allow browser CORS access.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "layer": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "Layer identifier advertised by the WMTS capabilities.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "matrixSet": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "Tile matrix set identifier; inferred when the capabilities advertise a single set.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "projection": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "Projection code to select a compatible matrix set, such as EPSG:3857.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "style": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "Advertised WMTS style identifier.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "format": {
+        "type": { "name": "string" },
+        "required": false,
+        "description": "Tile image format; defaults to the first advertised format.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "requestEncoding": {
+        "type": {
+          "name": "enum",
+          "value": [
+            { "value": "'KVP'", "computed": false },
+            { "value": "'REST'", "computed": false }
+          ]
+        },
+        "required": false,
+        "description": "WMTS request encoding, either KVP or REST.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "dimensions": {
+        "type": { "name": "object" },
+        "required": false,
+        "description": "Values for advertised WMTS dimensions, such as TIME or ELEVATION.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "attributions": {
+        "type": {
+          "name": "union",
+          "value": [{ "name": "string" }, { "name": "arrayOf", "value": { "name": "string" } }]
+        },
+        "required": false,
+        "description": "Attribution text or a list of attribution strings for the tile provider.",
+        "defaultValue": { "value": "null", "computed": false }
+      },
+      "setProps": {
+        "type": { "name": "func" },
+        "required": false,
+        "description": "Dash-supplied callback used to write component state back to the layout."
+      }
+    }
+  }
 }

@@ -1,8 +1,6 @@
 import React from 'react';
 import { useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import { booleanValid } from '@turf/boolean-valid';
-import { kinks } from '@turf/kinks';
 import Draw from 'ol/interaction/Draw';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
@@ -10,8 +8,17 @@ import GeoJSON from 'ol/format/GeoJSON';
 import { unByKey } from 'ol/Observable';
 import { useMap } from '../context/OLContext';
 import { getEditHistory } from '../utils/editHistory';
+import { getTopologyErrors } from '../utils/geometryValidation';
+import { addSnapInteraction } from '../utils/snap';
 
-const DrawInteraction = ({ id, geometryType, setProps }) => {
+const DrawInteraction = ({
+  id,
+  geometryType,
+  snapToVertex = true,
+  snapToEdge = true,
+  snapTolerance = 10,
+  setProps,
+}) => {
   const map = useMap();
   const setPropsRef = useRef(setProps);
 
@@ -41,18 +48,9 @@ const DrawInteraction = ({ id, geometryType, setProps }) => {
         featureProjection: map.getView().getProjection(),
         dataProjection: 'EPSG:4326',
       });
-      const polygonGeometry = ['Polygon', 'MultiPolygon'].includes(geojson.geometry.type);
-      const intersections = polygonGeometry
-        ? kinks(geojson).features.map(({ geometry }) => ({
-            code: 'self_intersection',
-            coordinates: geometry.coordinates,
-          }))
-        : [];
-      const structurallyValid = booleanValid(geojson);
-      const errors = [...intersections];
-      if (!structurallyValid) {
-        errors.unshift({ code: 'invalid_geometry' });
-      }
+      const errors = getTopologyErrors(geojson);
+      const structurallyValid = !errors.some((error) => error.code === 'invalid_geometry');
+      const intersections = errors.filter((error) => error.code === 'self_intersection');
 
       const suggestions = [];
       if (intersections.length > 0) {
@@ -64,7 +62,7 @@ const DrawInteraction = ({ id, geometryType, setProps }) => {
         );
       }
 
-      const valid = structurallyValid && intersections.length === 0;
+      const valid = errors.length === 0;
       if (!valid) {
         source.removeFeature(evt.feature);
       } else {
@@ -100,11 +98,19 @@ const DrawInteraction = ({ id, geometryType, setProps }) => {
     };
   }, [map, geometryType, id]);
 
+  useEffect(
+    () => addSnapInteraction(map, { snapToVertex, snapToEdge, snapTolerance }),
+    [map, id, geometryType, snapToVertex, snapToEdge, snapTolerance],
+  );
+
   return <div style={{ display: 'none' }} />;
 };
 
 DrawInteraction.defaultProps = {
   geometryType: 'Polygon',
+  snapToVertex: true,
+  snapToEdge: true,
+  snapTolerance: 10,
 };
 
 DrawInteraction.propTypes = {
@@ -112,6 +118,12 @@ DrawInteraction.propTypes = {
   id: PropTypes.string,
   /** Geometry type drawn by this interaction. */
   geometryType: PropTypes.oneOf(['Point', 'LineString', 'Polygon', 'Circle']),
+  /** Whether drawing snaps to existing vector vertices. */
+  snapToVertex: PropTypes.bool,
+  /** Whether drawing snaps to existing vector edges. */
+  snapToEdge: PropTypes.bool,
+  /** Maximum snap distance in screen pixels. */
+  snapTolerance: PropTypes.number,
   /** Read-only: GeoJSON Feature emitted only when geometry validation succeeds. */
   drawnGeoJSON: PropTypes.object,
   /** Read-only: validity, topology errors, and repair suggestions from the last draw. */

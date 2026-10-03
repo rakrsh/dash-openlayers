@@ -1,6 +1,6 @@
 ---
 name: dash-duo-test-generator
-description: Generate Python Selenium end-to-end tests for dash-openlayers components using dash[testing]'s dash_duo fixture — mock a Dash app, click the map canvas, drive draw/select interactions, and assert setProps-driven prop updates (e.g. clickData, drawnGeoJSON) land in Python callbacks. Use when asked to add integration/e2e tests for a component's interactive behavior.
+description: Generate Python Selenium end-to-end tests for dash-openlayers components using dash[testing]'s dash_duo fixture — drive map interactions and assert setProps updates, including vertex/edge snapping, Modify topology rollback, geometryValidation, and undo history. Use when asked to add browser tests for interactive map behavior.
 ---
 
 # Skill: dash-duo-test-generator
@@ -85,6 +85,21 @@ geometries — a single `.click()` only completes a `Point` draw:
 - Use `ActionChains(dash_duo.driver).move_to_element_with_offset(canvas, x, y).click().perform()`
   to target specific canvas pixel coordinates deterministically instead of
   relying on the element's center for every click.
+
+## Snapping and topology edits
+
+- Put a `VectorLayer` with known features before the interaction in the map's
+  children. Snap candidates come from mounted vector sources on that map.
+- Verify `snapToVertex`, `snapToEdge`, and `snapTolerance` prop serialization
+  in unit tests. In a browser test, use separate nearby vertices/edges and
+  assert the emitted coordinates land on the expected target.
+- For a deterministic invalid-edit regression, disable snapping, start with a
+  valid square Polygon, and drag one corner across a non-adjacent edge. Assert
+  `geometryValidation.valid` is false, the emitted FeatureCollection contains
+  the restored coordinates, and `canUndo` remains false.
+- Add a valid edit case as well: it should set `geometryValidation.valid` to
+  true and create one undoable operation. Keep topology checks in browser tests
+  because unit mocks cannot prove the real Modify pointer sequence.
 
 ## Assertions to include
 

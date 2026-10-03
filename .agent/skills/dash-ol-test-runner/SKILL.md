@@ -4,8 +4,9 @@ description: >
   Write and execute tests for dash-openlayers across all three layers: import/unit
   tests (tests/unit/), browser integration tests (tests/integration/ via dash_duo),
   and runnable demo apps (tests/demos/). Covers exact pytest commands, coverage
-  collection, CI alignment, and debugging failed browser tests. Use whenever asked
-  to add, run, or fix tests for any component or feature.
+    collection, CI alignment, and debugging failed browser tests, including native
+    snapping and topology-preserving Modify behavior. Use whenever asked to add,
+    run, or fix tests or demos for a component or feature.
 ---
 
 # Skill: dash-ol-test-runner
@@ -186,6 +187,20 @@ ActionChains(dash_duo.driver).move_to_element_with_offset(
 ).click().move_to_element_with_offset(canvas, 120, 160).double_click().perform()
 ```
 
+### Snapping and topology-preserving Modify
+
+- Assert `snapToVertex`, `snapToEdge`, and `snapTolerance` serialization in
+    `tests/unit/test_components.py`; cover Snap interaction options and source
+    cleanup in Jest.
+- Add a `dash_duo` regression using a valid square Polygon. Disable snapping for
+    the geometry-invalidity gesture, drag a corner across a non-adjacent edge,
+    then assert rollback, `geometryValidation.valid == false`, and no new undo
+    entry. For the accepted path, verify the geometry changes and history gains
+    one undo entry.
+- Keep Draw and Modify browser tests separate from unit tests. The browser
+    needs the actual VectorLayer source mounted before the interaction so the
+    Snap collection has real features.
+
 ---
 
 ## 5. Demo apps (`tests/demos/`)
@@ -225,6 +240,10 @@ Run manually:
 ```bash
 uv run python tests/demos/<component_snake>.py
 ```
+
+For snap and topology workflows, use `tests/demos/draw_demo.py` to inspect
+vertex/edge targets and rollback feedback, or `tests/demos/wfs_demo.py` to try
+snapping while editing a fetched WFS feature.
 
 ---
 
