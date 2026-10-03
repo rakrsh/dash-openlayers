@@ -854,7 +854,21 @@ An <code>else</code> rule applies only when no earlier filter matches:</p>
     <span class="p">],</span>
 <span class="p">)</span>
 </code></pre></div>
-<p>Example usage (from the repository <code>usage.py</code>) — draw polygons and capture GeoJSON:</p>
+<p>The runnable example below draws polygons and captures GeoJSON:</p>
+<p><code>DrawInteraction</code> validates completed features before emitting <code>drawnGeoJSON</code>.
+Valid features are exported normally. Invalid features are removed from the
+drawing layer, <code>drawnGeoJSON</code> is cleared, and the read-only <code>geometryValidation</code>
+prop reports errors and suggestions. Self-intersection errors include their
+<code>[longitude, latitude]</code> crossing coordinates; malformed rings suggest closing
+the ring and providing enough positions.</p>
+<p>Listen to the validation result with <code>Input("draw-tool", "geometryValidation")</code>
+in a Dash callback. A self-intersection result has this shape:</p>
+<div class="highlight"><pre><span></span><code><span class="p">{</span>
+    <span class="s2">"valid"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="s2">"errors"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"code"</span><span class="p">:</span> <span class="s2">"self_intersection"</span><span class="p">,</span> <span class="s2">"coordinates"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]}],</span>
+    <span class="s2">"suggestions"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"Move the reported vertices so polygon boundaries do not cross."</span><span class="p">],</span>
+<span class="p">}</span>
+</code></pre></div>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">dash</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dash</span><span class="w"> </span><span class="kn">import</span> <span class="n">html</span><span class="p">,</span> <span class="n">Output</span><span class="p">,</span> <span class="n">Input</span><span class="p">,</span> <span class="n">json</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">dash_openlayers</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dol</span>
