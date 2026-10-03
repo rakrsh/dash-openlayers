@@ -77,17 +77,17 @@ jest.mock('ol/source/XYZ', () => ({
 }));
 
 jest.mock('ol/format/GeoJSON', () => ({
-    __esModule: true,
-    default: jest.fn().mockImplementation(function MockGeoJSON() {
-      this.features = [{ id: 'feature' }];
-      this.readFeatures = jest.fn(() => this.features);
-      this.writeFeatureObject = jest.fn(() => ({
-        type: 'Feature',
-        geometry: { type: 'Point', coordinates: [10, 45] },
-        properties: {},
-      }));
-    }),
-  }));
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockGeoJSON() {
+    this.features = [{ id: 'feature' }];
+    this.readFeatures = jest.fn(() => this.features);
+    this.writeFeatureObject = jest.fn(() => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [10, 45] },
+      properties: {},
+    }));
+  }),
+}));
 
 jest.mock('ol/interaction/Draw', () => ({
   __esModule: true,
