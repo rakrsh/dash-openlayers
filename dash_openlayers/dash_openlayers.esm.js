@@ -1,6 +1,52 @@
 import React, { createContext, useContext, useRef, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 
+function _arrayLikeToArray(r, a) {
+  (null == a || a > r.length) && (a = r.length);
+  for (var e = 0, n = Array(a); e < a; e++) n[e] = r[e];
+  return n;
+}
+function _arrayWithHoles(r) {
+  if (Array.isArray(r)) return r;
+}
+function _iterableToArrayLimit(r, l) {
+  var t = null == r ? null : "undefined" != typeof Symbol && r[Symbol.iterator] || r["@@iterator"];
+  if (null != t) {
+    var e,
+      n,
+      i,
+      u,
+      a = [],
+      f = true,
+      o = false;
+    try {
+      if (i = (t = t.call(r)).next, 0 === l) ; else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0);
+    } catch (r) {
+      o = true, n = r;
+    } finally {
+      try {
+        if (!f && null != t.return && (u = t.return(), Object(u) !== u)) return;
+      } finally {
+        if (o) throw n;
+      }
+    }
+    return a;
+  }
+}
+function _nonIterableRest() {
+  throw new TypeError("Invalid attempt to destructure non-iterable instance.\nIn order to be iterable, non-array objects must have a [Symbol.iterator]() method.");
+}
+function _slicedToArray(r, e) {
+  return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest();
+}
+function _unsupportedIterableToArray(r, a) {
+  if (r) {
+    if ("string" == typeof r) return _arrayLikeToArray(r, a);
+    var t = {}.toString.call(r).slice(8, -1);
+    return "Object" === t && r.constructor && (t = r.constructor.name), "Map" === t || "Set" === t ? Array.from(r) : "Arguments" === t || /^(?:Ui|I)nt(?:8|16|32)(?:Clamped)?Array$/.test(t) ? _arrayLikeToArray(r, a) : void 0;
+  }
+}
+
 function styleInject(css, ref) {
   if ( ref === void 0 ) ref = {};
   var insertAt = ref.insertAt;
@@ -29136,9 +29182,9 @@ function createOptionsInternal(options) {
   };
 }
 
-const OLContext = createContext(null);
-const useMap = () => {
-  const map = useContext(OLContext);
+var OLContext = createContext(null);
+var useMap = () => {
+  var map = useContext(OLContext);
   if (!map) {
     throw new Error('dash-openlayers components must be wrapped within a <Map>');
   }
@@ -39956,35 +40002,36 @@ function register(proj4) {
   }
 }
 
-const registerProjections = proj4Defs => {
+var registerProjections = proj4Defs => {
   if (!proj4Defs || proj4Defs.length === 0) return;
-  proj4Defs.forEach(({
-    code,
-    def
-  }) => {
+  proj4Defs.forEach(_ref => {
+    var code = _ref.code,
+      def = _ref.def;
     proj4.defs(code, def);
   });
   register(proj4);
 };
 
-const MapComponent = ({
-  id,
-  children,
-  center,
-  zoom,
-  projection,
-  proj4Defs,
-  style,
-  setProps
-}) => {
-  const mapElement = useRef(null);
-  const [map, setMap] = useState(null);
+var MapComponent = _ref => {
+  var id = _ref.id,
+    children = _ref.children,
+    center = _ref.center,
+    zoom = _ref.zoom,
+    projection = _ref.projection,
+    proj4Defs = _ref.proj4Defs,
+    style = _ref.style,
+    setProps = _ref.setProps;
+  var mapElement = useRef(null);
+  var _useState = useState(null),
+    _useState2 = _slicedToArray(_useState, 2),
+    map = _useState2[0],
+    setMap = _useState2[1];
   useEffect(() => {
     registerProjections(proj4Defs);
   }, [proj4Defs]);
   useEffect(() => {
     if (!mapElement.current) return;
-    const olMap = new Map({
+    var olMap = new Map({
       target: mapElement.current,
       view: new View({
         projection: projection,
@@ -39994,7 +40041,7 @@ const MapComponent = ({
     });
     olMap.on('singleclick', evt => {
       if (setProps) {
-        const lonLat = toLonLat(evt.coordinate, projection);
+        var lonLat = toLonLat(evt.coordinate, projection);
         setProps({
           clickData: {
             coordinate: evt.coordinate,
@@ -40005,7 +40052,7 @@ const MapComponent = ({
     });
     olMap.on('moveend', () => {
       if (setProps) {
-        const view = olMap.getView();
+        var view = olMap.getView();
         setProps({
           center: view.getCenter(),
           zoom: view.getZoom()
@@ -40017,8 +40064,8 @@ const MapComponent = ({
   }, []);
   useEffect(() => {
     if (!map) return;
-    const view = map.getView();
-    const currentCenter = view.getCenter();
+    var view = map.getView();
+    var currentCenter = view.getCenter();
     if (center && (!currentCenter || currentCenter[0] !== center[0] || currentCenter[1] !== center[1])) {
       view.setCenter(center);
     }
@@ -55599,27 +55646,26 @@ function writePolygonGeometry(geometry, options) {
   };
 }
 
-const DrawInteraction = ({
-  id,
-  geometryType,
-  setProps
-}) => {
-  const map = useMap();
+var DrawInteraction = _ref => {
+  _ref.id;
+    var geometryType = _ref.geometryType,
+    setProps = _ref.setProps;
+  var map = useMap();
   useEffect(() => {
     if (!map) return;
-    const source = new VectorSource();
-    const vector = new VectorLayer({
+    var source = new VectorSource();
+    var vector = new VectorLayer({
       source
     });
     map.addLayer(vector);
-    const draw = new Draw({
+    var draw = new Draw({
       source: source,
       type: geometryType
     });
     map.addInteraction(draw);
-    const drawEndListener = draw.on('drawend', evt => {
-      const writer = new GeoJSON();
-      const geojson = writer.writeFeatureObject(evt.feature, {
+    var drawEndListener = draw.on('drawend', evt => {
+      var writer = new GeoJSON();
+      var geojson = writer.writeFeatureObject(evt.feature, {
         featureProjection: map.getView().getProjection(),
         dataProjection: 'EPSG:4326'
       });
@@ -57220,25 +57266,25 @@ function getDefaultStyleFunction() {
 }
 
 /** Allow editing vertices in a VectorLayer and report the updated features. */
-const ModifyInteraction = ({
-  layerId,
-  setProps
-}) => {
-  const map = useMap();
+var ModifyInteraction = _ref => {
+  var layerId = _ref.layerId,
+    setProps = _ref.setProps;
+  var map = useMap();
   useEffect(() => {
-    const layers = map.getLayers().getArray();
-    const targetLayer = layers.find(layer => {
-      const source = layer.getSource?.();
+    var layers = map.getLayers().getArray();
+    var targetLayer = layers.find(layer => {
+      var _layer$getSource;
+      var source = (_layer$getSource = layer.getSource) === null || _layer$getSource === void 0 ? void 0 : _layer$getSource.call(layer);
       return source instanceof VectorSource && (!layerId || layer.get('dashId') === layerId);
     });
-    const source = targetLayer?.getSource();
+    var source = targetLayer === null || targetLayer === void 0 ? void 0 : targetLayer.getSource();
     if (!source) return;
-    const format = new GeoJSON();
-    const modify = new Modify({
+    var format = new GeoJSON();
+    var modify = new Modify({
       source
     });
     map.addInteraction(modify);
-    const listenerKey = modify.on('modifyend', () => {
+    var listenerKey = modify.on('modifyend', () => {
       if (setProps) {
         setProps({
           modifiedGeoJSON: format.writeFeaturesObject(source.getFeatures(), {
@@ -62836,17 +62882,16 @@ class OSM extends XYZ {
   }
 }
 
-const TileLayer = ({
-  source,
-  url
-}) => {
-  const map = useMap();
+var TileLayer = _ref => {
+  var source = _ref.source,
+    url = _ref.url;
+  var map = useMap();
   useEffect(() => {
-    const tileSource = url ? new XYZ({
+    var tileSource = url ? new XYZ({
       url
     }) : source === 'OSM' ? new OSM() : null;
     if (!tileSource) return;
-    const tileLayer = new TileLayer$1({
+    var tileLayer = new TileLayer$1({
       source: tileSource
     });
     map.addLayer(tileLayer);
@@ -62870,19 +62915,18 @@ TileLayer.propTypes = {
 };
 
 /** Render GeoJSON features in a canvas-backed OpenLayers vector layer. */
-const VectorLayerComponent = ({
-  id,
-  geojson
-}) => {
-  const map = useMap();
-  const sourceRef = useRef(null);
-  const formatRef = useRef(null);
+var VectorLayerComponent = _ref => {
+  var id = _ref.id,
+    geojson = _ref.geojson;
+  var map = useMap();
+  var sourceRef = useRef(null);
+  var formatRef = useRef(null);
   useEffect(() => {
-    const source = new VectorSource();
-    const layer = new VectorLayer({
+    var source = new VectorSource();
+    var layer = new VectorLayer({
       source
     });
-    const format = new GeoJSON();
+    var format = new GeoJSON();
     layer.set('dashId', id);
     sourceRef.current = source;
     formatRef.current = format;
@@ -62895,12 +62939,12 @@ const VectorLayerComponent = ({
     };
   }, [id, map]);
   useEffect(() => {
-    const source = sourceRef.current;
-    const format = formatRef.current;
+    var source = sourceRef.current;
+    var format = formatRef.current;
     if (!source || !format) return;
     source.clear();
     if (!geojson) return;
-    const features = format.readFeatures(geojson, {
+    var features = format.readFeatures(geojson, {
       dataProjection: 'EPSG:4326',
       featureProjection: map.getView().getProjection()
     });
