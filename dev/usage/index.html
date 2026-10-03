@@ -809,6 +809,51 @@ features:</p>
     <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
 <span class="p">)</span>
 </code></pre></div>
+<p>Pass a JSON-serializable OpenLayers flat style to <code>VectorLayer.style</code>. Flat
+styles use OpenLayers keys such as <code>icon-src</code>, <code>fill-color</code>, and <code>stroke-width</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span>
+    <span class="nb">id</span><span class="o">=</span><span class="s2">"styled-features"</span><span class="p">,</span>
+    <span class="n">geojson</span><span class="o">=</span><span class="n">features</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="p">{</span>
+        <span class="s2">"icon-src"</span><span class="p">:</span> <span class="s2">"https://openlayers.org/en/latest/examples/data/icon.png"</span><span class="p">,</span>
+        <span class="s2">"icon-scale"</span><span class="p">:</span> <span class="mf">0.7</span><span class="p">,</span>
+        <span class="s2">"fill-color"</span><span class="p">:</span> <span class="s2">"rgba(31, 106, 94, 0.24)"</span><span class="p">,</span>
+        <span class="s2">"stroke-color"</span><span class="p">:</span> <span class="s2">"#1f6a5e"</span><span class="p">,</span>
+        <span class="s2">"stroke-width"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+    <span class="p">},</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>Use a rule array with a <code>resolution</code> expression to vary styles by map scale.
+An <code>else</code> rule applies only when no earlier filter matches:</p>
+<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span>
+    <span class="nb">id</span><span class="o">=</span><span class="s2">"scale-styled-features"</span><span class="p">,</span>
+    <span class="n">geojson</span><span class="o">=</span><span class="n">features</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">"filter"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"&lt;"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"resolution"</span><span class="p">],</span> <span class="mi">2500</span><span class="p">],</span>
+            <span class="s2">"style"</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">"icon-src"</span><span class="p">:</span> <span class="s2">"https://openlayers.org/en/latest/examples/data/icon.png"</span><span class="p">,</span>
+                <span class="s2">"icon-scale"</span><span class="p">:</span> <span class="mf">0.7</span><span class="p">,</span>
+                <span class="s2">"fill-color"</span><span class="p">:</span> <span class="s2">"rgba(31, 106, 94, 0.24)"</span><span class="p">,</span>
+                <span class="s2">"stroke-color"</span><span class="p">:</span> <span class="s2">"#1f6a5e"</span><span class="p">,</span>
+                <span class="s2">"stroke-width"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="p">},</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+            <span class="s2">"else"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">"style"</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">"circle-radius"</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+                <span class="s2">"circle-fill-color"</span><span class="p">:</span> <span class="s2">"#d66f41"</span><span class="p">,</span>
+                <span class="s2">"circle-stroke-color"</span><span class="p">:</span> <span class="s2">"#ffffff"</span><span class="p">,</span>
+                <span class="s2">"circle-stroke-width"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+                <span class="s2">"fill-color"</span><span class="p">:</span> <span class="s2">"rgba(214, 111, 65, 0.18)"</span><span class="p">,</span>
+                <span class="s2">"stroke-color"</span><span class="p">:</span> <span class="s2">"#b34a36"</span><span class="p">,</span>
+                <span class="s2">"stroke-width"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
+            <span class="p">},</span>
+        <span class="p">},</span>
+    <span class="p">],</span>
+<span class="p">)</span>
+</code></pre></div>
 <p>Example usage (from the repository <code>usage.py</code>) — draw polygons and capture GeoJSON:</p>
 <div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">dash</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">dash</span><span class="w"> </span><span class="kn">import</span> <span class="n">html</span><span class="p">,</span> <span class="n">Output</span><span class="p">,</span> <span class="n">Input</span><span class="p">,</span> <span class="n">json</span>
