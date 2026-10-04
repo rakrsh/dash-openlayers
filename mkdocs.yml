@@ -25,6 +25,7 @@ nav:
   - Home: index.md
   - Usage: usage.md
   - Quickstart: quickstart.md
+  - Examples: examples.md
   - API: api.md
   - Architecture: architecture.md
   - Testing: testing.md

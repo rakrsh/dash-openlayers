@@ -75,6 +75,7 @@ transaction callback.
 ## Documentation
 
 - [Example gallery](examples/README.md)
+- [Changelog](CHANGELOG.md)
 - [Quickstart](docs/quickstart.md)
 - [Usage guide](docs/usage.md)
 - [API reference](docs/api.md)
