@@ -103,6 +103,51 @@ dol.VectorLayer(
 
 See `tests/demos/layer_control.py` for a runnable example with nearby points.
 
+## WebGL Points for Large Datasets
+
+Use `WebGLPointsLayer` for GeoJSON point datasets that benefit from GPU-backed
+rendering. Its `style` prop uses OpenLayers' WebGL style expressions, which can
+derive color, size, and symbol shape from feature properties. The layer accepts
+GeoJSON as an object or JSON string; embedded CRS metadata is honored, with
+EPSG:4326 used when it is absent. WebGL styles are compiled when the layer is
+created, so changing `style` recreates the layer. Set `disableHitDetection=True`
+when feature hit detection is not needed for a small additional performance
+gain.
+
+```python
+webgl_style = {
+    "shape-points": ["match", ["get", "kind"], "station", 5, 4],
+    "shape-radius": ["interpolate", ["linear"], ["get", "magnitude"], 0, 3, 10, 9],
+    "shape-fill-color": [
+        "match",
+        ["get", "kind"],
+        "station",
+        "#d66f41",
+        "incident",
+        "#1f6a5e",
+        "#284d78",
+    ],
+}
+
+dol.Map(
+    id="large-points-map",
+    center=[0, 0],
+    zoom=5,
+    children=[
+        dol.WebGLPointsLayer(
+            id="large-points",
+            data=point_feature_collection,
+            style=webgl_style,
+            disableHitDetection=True,
+        )
+    ],
+    style={"height": "500px"},
+)
+```
+
+See `usage_webgl_points_layer.py` for a runnable example that creates 20,000
+styled points. Use Point or MultiPoint geometries with this layer.
+
 `TileWMS` requests tiled WMS images. `ImageWMS` requests one image for the map
 viewport. Both accept a WMS endpoint, request `params` (including `LAYERS`),
 and an optional `serverType` (`geoserver`, `mapserver`, `carmentaserver`, or

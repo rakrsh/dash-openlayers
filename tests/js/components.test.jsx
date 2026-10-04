@@ -4,6 +4,7 @@ import MapComponent from '../../src/lib/components/Map.react';
 import TileLayer from '../../src/lib/components/TileLayer.react';
 import VectorLayer from '../../src/lib/components/VectorLayer.react';
 import VectorTileLayer from '../../src/lib/components/VectorTileLayer.react';
+import WebGLPointsLayerComponent from '../../src/lib/components/WebGLPointsLayer.react';
 import WMTSLayer from '../../src/lib/components/WMTSLayer.react';
 import TileWMSLayer from '../../src/lib/components/TileWMS.react';
 import ImageWMSLayer from '../../src/lib/components/ImageWMS.react';
@@ -41,6 +42,7 @@ import WMTS, { optionsFromCapabilities } from 'ol/source/WMTS';
 import ImageLayer from 'ol/layer/Image';
 import TileWMSSource from 'ol/source/TileWMS';
 import ImageWMSSource from 'ol/source/ImageWMS';
+import OpenLayersWebGLPointsLayer from 'ol/layer/WebGLPoints';
 
 jest.mock('ol/source/Cluster', () => ({
   __esModule: true,
@@ -255,6 +257,15 @@ jest.mock('ol/layer/Vector', () => ({
     this.setStyle = jest.fn((style) => {
       if (typeof style === 'function') this.styleFunction = style;
     });
+  }),
+}));
+
+jest.mock('ol/layer/WebGLPoints', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockWebGLPointsLayer(options) {
+    this.options = options;
+    this.set = jest.fn();
+    this.dispose = jest.fn();
   }),
 }));
 
@@ -733,6 +744,93 @@ describe('TileLayer', () => {
       </OLContext.Provider>,
     );
     expect(map.addLayer).not.toHaveBeenCalled();
+  });
+});
+
+describe('WebGLPointsLayer', () => {
+  it('uses a default circle style when no WebGL style is provided', () => {
+    const map = makeMap();
+    render(
+      <OLContext.Provider value={map}>
+        <WebGLPointsLayerComponent />
+      </OLContext.Provider>,
+    );
+
+    expect(OpenLayersWebGLPointsLayer.mock.instances[0].options.style).toEqual({
+      'circle-radius': 5,
+      'circle-fill-color': '#3399cc',
+    });
+  });
+
+  it('loads GeoJSON, updates its stable source, and disposes replaced and removed layers', () => {
+    const map = makeMap();
+    const initialData = { type: 'FeatureCollection', features: [] };
+    const updatedData = JSON.stringify({ type: 'FeatureCollection', features: [] });
+    const initialStyle = {
+      'circle-radius': ['interpolate', ['linear'], ['get', 'magnitude'], 0, 3, 10, 12],
+      'circle-fill-color': ['match', ['get', 'kind'], 'station', '#d66f41', '#1f6a5e'],
+    };
+    const updatedStyle = { 'shape-points': 5, 'shape-radius': 8, 'shape-fill-color': '#d66f41' };
+    const { rerender, unmount } = render(
+      <OLContext.Provider value={map}>
+        <WebGLPointsLayerComponent
+          id="large-points"
+          data={initialData}
+          style={initialStyle}
+          disableHitDetection
+        />
+      </OLContext.Provider>,
+    );
+
+    const source = VectorSource.mock.instances[0];
+    const firstLayer = OpenLayersWebGLPointsLayer.mock.instances[0];
+    expect(firstLayer.options).toEqual({ source, style: initialStyle, disableHitDetection: true });
+    expect(firstLayer.set).toHaveBeenCalledWith('dashId', 'large-points');
+    expect(firstLayer.set).toHaveBeenCalledWith('dashLayerControl', true);
+    expect(map.addLayer).toHaveBeenCalledWith(firstLayer);
+    expect(GeoJSON.mock.instances.at(-1).readFeatures).toHaveBeenCalledWith(initialData, {
+      featureProjection: 'EPSG:3857',
+    });
+
+    rerender(
+      <OLContext.Provider value={map}>
+        <WebGLPointsLayerComponent
+          id="large-points"
+          data={updatedData}
+          style={initialStyle}
+          disableHitDetection
+        />
+      </OLContext.Provider>,
+    );
+    expect(OpenLayersWebGLPointsLayer).toHaveBeenCalledTimes(1);
+    expect(source.clear).toHaveBeenCalledTimes(2);
+    expect(GeoJSON.mock.instances.at(-1).readFeatures).toHaveBeenCalledWith(updatedData, {
+      featureProjection: 'EPSG:3857',
+    });
+
+    rerender(
+      <OLContext.Provider value={map}>
+        <WebGLPointsLayerComponent
+          id="large-points"
+          data={updatedData}
+          style={updatedStyle}
+          disableHitDetection
+        />
+      </OLContext.Provider>,
+    );
+    const replacementLayer = OpenLayersWebGLPointsLayer.mock.instances[1];
+    expect(firstLayer.dispose).toHaveBeenCalledTimes(1);
+    expect(map.removeLayer).toHaveBeenCalledWith(firstLayer);
+    expect(replacementLayer.options).toEqual({
+      source,
+      style: updatedStyle,
+      disableHitDetection: true,
+    });
+
+    unmount();
+    expect(map.removeLayer).toHaveBeenLastCalledWith(replacementLayer);
+    expect(replacementLayer.dispose).toHaveBeenCalledTimes(1);
+    expect(source.clear).toHaveBeenCalledTimes(3);
   });
 });
 
