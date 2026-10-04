@@ -309,6 +309,144 @@
       }
     }
   },
+  "src/lib/components/Popup.react.js": {
+    "description": "Render Dash content in an OpenLayers overlay anchored to a map coordinate.",
+    "displayName": "Popup",
+    "methods": [],
+    "props": {
+      "id": {
+        "type": {
+          "name": "string"
+        },
+        "required": false,
+        "description": "The ID used to identify this component in Dash callbacks."
+      },
+      "children": {
+        "type": {
+          "name": "node"
+        },
+        "required": false,
+        "description": "Dash children rendered inside the overlay element."
+      },
+      "position": {
+        "type": {
+          "name": "arrayOf",
+          "value": {
+            "name": "number"
+          }
+        },
+        "required": false,
+        "description": "Overlay position as [x, y] in the map view projection; null hides the popup.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "positioning": {
+        "type": {
+          "name": "enum",
+          "value": [
+            {
+              "value": "'bottom-left'",
+              "computed": false
+            },
+            {
+              "value": "'bottom-center'",
+              "computed": false
+            },
+            {
+              "value": "'bottom-right'",
+              "computed": false
+            },
+            {
+              "value": "'center-left'",
+              "computed": false
+            },
+            {
+              "value": "'center-center'",
+              "computed": false
+            },
+            {
+              "value": "'center-right'",
+              "computed": false
+            },
+            {
+              "value": "'top-left'",
+              "computed": false
+            },
+            {
+              "value": "'top-center'",
+              "computed": false
+            },
+            {
+              "value": "'top-right'",
+              "computed": false
+            }
+          ]
+        },
+        "required": false,
+        "description": "Overlay alignment relative to its position coordinate.",
+        "defaultValue": {
+          "value": "'bottom-center'",
+          "computed": false
+        }
+      },
+      "offset": {
+        "type": {
+          "name": "arrayOf",
+          "value": {
+            "name": "number"
+          }
+        },
+        "required": false,
+        "description": "Pixel offset [x, y] applied to the overlay.",
+        "defaultValue": {
+          "value": "[0, 0]",
+          "computed": false
+        }
+      },
+      "autoPan": {
+        "type": {
+          "name": "bool"
+        },
+        "required": false,
+        "description": "Pan the map when positioning the overlay would place it outside the viewport.",
+        "defaultValue": {
+          "value": "false",
+          "computed": false
+        }
+      },
+      "className": {
+        "type": {
+          "name": "string"
+        },
+        "required": false,
+        "description": "CSS class applied to the popup content element.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "style": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Inline CSS style applied to the popup content element.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "setProps": {
+        "type": {
+          "name": "func"
+        },
+        "required": false,
+        "description": "Dash-supplied prop setter; internal, do not set from Python."
+      }
+    }
+  },
   "src/lib/components/ModifyInteraction.react.js": {
     "description": "Allow editing vertices in a VectorLayer and report the updated features.",
     "displayName": "ModifyInteraction",

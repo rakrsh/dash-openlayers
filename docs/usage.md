@@ -16,6 +16,35 @@ dol.Map(
 )
 ```
 
+## Popups
+
+Add `Popup` as a `Map` child to render Dash content at a coordinate. The
+coordinate uses `[x, y]` units in the map view projection. Set `position` to
+`None` to hide the popup; `autoPan=True` keeps it in view when it is positioned.
+Use `className` or `style` to customize the popup content.
+
+```python
+dol.Map(
+    id="popup-map",
+    center=[0, 0],
+    zoom=2,
+    children=[
+        dol.TileLayer(source="OSM"),
+        dol.Popup(
+            id="place-popup",
+            position=[0, 0],
+            positioning="bottom-center",
+            offset=[0, -12],
+            autoPan=True,
+            className="place-popup",
+            style={"backgroundColor": "white", "padding": "8px 12px"},
+            children=html.Div([html.Strong("Null Island"), html.P("0, 0")]),
+        ),
+    ],
+    style={"height": "500px"},
+)
+```
+
 Add `LayerControl` as a child of `Map` to toggle visibility, adjust opacity,
 and change the drawing order of declarative layer components. Layers are
 identified by their component `id`; interaction-owned temporary layers are
