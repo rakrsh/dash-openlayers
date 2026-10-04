@@ -35,7 +35,11 @@ Keyword arguments:
 
 - selectedGeoJSON (dict; optional):
     Read-only: current selection as a GeoJSON FeatureCollection in
-    EPSG:4326."""
+    EPSG:4326.
+
+- selectedFeature (dict; optional):
+    Read-only: first selected GeoJSON Feature in EPSG:4326, or None
+    when nothing is selected."""
     _children_props: typing.List[str] = []
     _base_nodes = ['children']
     _namespace = 'dash_openlayers'
@@ -47,11 +51,12 @@ Keyword arguments:
         id: typing.Optional[typing.Union[str, dict]] = None,
         layerId: typing.Optional[str] = None,
         selectedGeoJSON: typing.Optional[dict] = None,
+        selectedFeature: typing.Optional[dict] = None,
         **kwargs
     ):
-        self._prop_names = ['id', 'layerId', 'selectedGeoJSON']
+        self._prop_names = ['id', 'layerId', 'selectedGeoJSON', 'selectedFeature']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'layerId', 'selectedGeoJSON']
+        self.available_properties = ['id', 'layerId', 'selectedGeoJSON', 'selectedFeature']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()

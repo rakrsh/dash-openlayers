@@ -1146,6 +1146,13 @@
         "required": false,
         "description": "Read-only: current selection as a GeoJSON FeatureCollection in EPSG:4326."
       },
+      "selectedFeature": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Read-only: first selected GeoJSON Feature in EPSG:4326, or null when nothing is selected."
+      },
       "setProps": {
         "type": {
           "name": "func"

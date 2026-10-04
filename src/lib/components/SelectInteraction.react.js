@@ -19,7 +19,10 @@ const SelectInteraction = ({ id, layerId, setProps }) => {
           featureProjection: map.getView().getProjection(),
           dataProjection: 'EPSG:4326',
         });
-        setProps({ selectedGeoJSON });
+        setProps({
+          selectedGeoJSON,
+          selectedFeature: selectedGeoJSON.features[0] ?? null,
+        });
       }
     });
     map.addInteraction(select);
@@ -45,6 +48,8 @@ SelectInteraction.propTypes = {
   layerId: PropTypes.string,
   /** Read-only: current selection as a GeoJSON FeatureCollection in EPSG:4326. */
   selectedGeoJSON: PropTypes.object,
+  /** Read-only: first selected GeoJSON Feature in EPSG:4326, or null when nothing is selected. */
+  selectedFeature: PropTypes.object,
   /** Dash-supplied prop setter; internal, do not set from Python. */
   setProps: PropTypes.func,
 };

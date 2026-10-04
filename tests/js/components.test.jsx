@@ -159,7 +159,10 @@ jest.mock('ol/format/GeoJSON', () => ({
       geometry: { type: 'Point', coordinates: [10, 45] },
       properties: {},
     }));
-    this.writeFeaturesObject = jest.fn(() => ({ type: 'FeatureCollection', features: [] }));
+    this.writeFeaturesObject = jest.fn((features) => ({
+      type: 'FeatureCollection',
+      features: features.map((feature) => feature.geoJSON).filter(Boolean),
+    }));
   }),
 }));
 
@@ -1396,7 +1399,12 @@ describe('SelectInteraction', () => {
     );
 
     const select = Select.mock.instances[0];
-    const feature = { id: 'selected-feature' };
+    const selectedGeoJSONFeature = {
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [10, 45] },
+      properties: { name: 'Station A' },
+    };
+    const feature = { id: 'selected-feature', geoJSON: selectedGeoJSONFeature };
     select.selectedFeatures.items = [feature];
     expect(
       select.options.layers({ get: (key) => (key === 'dashId' ? 'vectors' : undefined) }),
@@ -1410,7 +1418,15 @@ describe('SelectInteraction', () => {
       dataProjection: 'EPSG:4326',
     });
     expect(setProps).toHaveBeenCalledWith({
+      selectedGeoJSON: { type: 'FeatureCollection', features: [selectedGeoJSONFeature] },
+      selectedFeature: selectedGeoJSONFeature,
+    });
+
+    select.selectedFeatures.items = [];
+    select.listeners.select();
+    expect(setProps).toHaveBeenLastCalledWith({
       selectedGeoJSON: { type: 'FeatureCollection', features: [] },
+      selectedFeature: null,
     });
 
     const listenerKey = { event: 'select', listener: select.listeners.select };

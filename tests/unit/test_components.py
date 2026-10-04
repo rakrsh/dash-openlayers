@@ -31,6 +31,11 @@ def test_component_props_serialize():
         "geometry": {"type": "Point", "coordinates": [1, 2]},
         "properties": {},
     }
+    selected_feature = {
+        "type": "Feature",
+        "geometry": {"type": "Point", "coordinates": [1, 2]},
+        "properties": {"name": "Station A"},
+    }
     components = [
         (
             dol.Map(
@@ -234,11 +239,13 @@ def test_component_props_serialize():
             dol.SelectInteraction(
                 id="select",
                 layerId="vectors",
+                selectedFeature=selected_feature,
                 selectedGeoJSON={"type": "FeatureCollection", "features": []},
             ),
             {
                 "id": "select",
                 "layerId": "vectors",
+                "selectedFeature": selected_feature,
                 "selectedGeoJSON": {"type": "FeatureCollection", "features": []},
             },
             "SelectInteraction",
