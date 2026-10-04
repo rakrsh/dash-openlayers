@@ -25,6 +25,7 @@ nav:
   - Home: index.md
   - Usage: usage.md
   - Quickstart: quickstart.md
+  - Examples: examples.md
   - API: api.md
   - Architecture: architecture.md
   - Testing: testing.md
@@ -37,7 +38,6 @@ extra_javascript:
 extra:
   repo_name: dash-openlayers
 markdown_extensions:
-  - pymdownx.superfences
   - pymdownx.highlight
   - pymdownx.inlinehilite
   - attr_list

@@ -1,9 +1,10 @@
 [project]
 name = "dash-openlayers"
-version = "0.0.1"
+version = "0.0.2"
 description = "A Dash wrapper around OpenLayers - GIS rendering engine"
 readme = "README.md"
-license = { file = "LICENSE" }
+license = "MIT"
+license-files = ["LICENSE"]
 authors = [{ name = "Ravi Sharma", email = "ravikr731@gmail.com" }]
 requires-python = ">=3.10"
 dependencies = [
@@ -12,7 +13,6 @@ dependencies = [
 classifiers = [
     "Framework :: Dash",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Topic :: Scientific/Engineering :: GIS",
 ]
@@ -63,7 +63,7 @@ extend-exclude = ["dash_openlayers", "dash_openlayers.egg-info"]
 select = ["E", "F", "I", "UP", "B"]
 
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]

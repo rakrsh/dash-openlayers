@@ -62,5 +62,6 @@ that metadata. Run `uv run python scripts/generate_components.py` or
 `npm run docs:api` separately when only one generated surface needs updating.
 
 Runnable component demos are under `tests/demos/`; complete end-to-end apps are
-in the [example gallery](https://github.com/rakrsh/dash-openlayers/tree/main/examples).
+in the [deployed example gallery](examples.md), with their full source in the
+[repository examples directory](https://github.com/rakrsh/dash-openlayers/tree/main/examples).
 The MkDocs site can be previewed locally with `uv run mkdocs serve`.

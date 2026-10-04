@@ -6,11 +6,12 @@ on:
 
 jobs:
   publish:
+    if: ${{ !github.event.release.prerelease }}
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
       id-token: write  # Required for PyPI OIDC
-      contents: read   # Required for repo checkout
+      contents: write # Required to attach distributions to the GitHub release
 
     steps:
       - name: Checkout Repository
@@ -22,7 +23,7 @@ jobs:
           node-version: ${{ vars.NODE_VERSION || '20' }}
 
       - name: Install npm deps
-        run: npm install
+        run: npm ci
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -38,6 +39,22 @@ jobs:
       - name: Build JS bundles and Python components
         run: npm run build
 
+      - name: Install Python quality-gate dependencies
+        run: uv sync --group docs
+
+      - name: Run release quality gates
+        run: |
+          npm test
+          npm run lint
+          node scripts/check-ai-invariants.js
+          uv run pytest -q tests/unit
+          uv run ruff check .
+          uv run mkdocs build --strict
+
+      - name: Verify release tag and package versions
+        run: |
+          uv run python scripts/check_release_metadata.py "${{ github.event.release.tag_name }}"
+
       - name: Build wheel and sdist
         run: uv build
 
@@ -45,7 +62,13 @@ jobs:
         run: |
           uv venv .venv-check
           uv pip install --python .venv-check dist/*.whl
-          .venv-check/bin/python -c "import dash_openlayers; print(getattr(dash_openlayers, '__version__', 'Installed successfully'))"
+          cd "$RUNNER_TEMP"
+          "$GITHUB_WORKSPACE/.venv-check/bin/python" "$GITHUB_WORKSPACE/scripts/check_installed_package.py"
+
+      - name: Upload distributions to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$GITHUB_REF_NAME" dist/* --clobber
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

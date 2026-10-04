@@ -6,6 +6,7 @@ map state and selected or edited features flow back through Dash properties.
 
 - [Install and build a first map](quickstart.md)
 - [Layer, projection, selection, and editing examples](usage.md)
+- [Runnable end-to-end example gallery](examples.md)
 - [Component props and defaults](api.md)
 - [Architecture](architecture.md)
 - [Test suite](testing.md)
