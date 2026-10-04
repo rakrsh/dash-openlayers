@@ -53,6 +53,51 @@ def test_simple_map_starts(dash_duo):
     assert dash_duo.get_logs() == []
 
 
+def test_select_interaction_reports_selected_feature_geojson(dash_duo):
+    feature = {
+        "type": "Feature",
+        "geometry": {"type": "Point", "coordinates": [0, 0]},
+        "properties": {"name": "Station A", "kind": "station"},
+    }
+    app = dash.Dash(__name__)
+    app.layout = dash.html.Div(
+        [
+            dol.Map(
+                id="map",
+                center=[0, 0],
+                zoom=5,
+                children=[
+                    dol.VectorLayer(
+                        id="points",
+                        data={"type": "FeatureCollection", "features": [feature]},
+                        style={"circle-radius": 12, "circle-fill-color": "#d66f41"},
+                    ),
+                    dol.SelectInteraction(id="select", layerId="points"),
+                ],
+                style={"height": "400px", "width": "600px"},
+            ),
+            html.Pre(id="feature-output"),
+        ]
+    )
+
+    @app.callback(Output("feature-output", "children"), Input("select", "selectedFeature"))
+    def show_selected_feature(selected_feature):
+        return json.dumps(selected_feature) if selected_feature else ""
+
+    dash_duo.start_server(app)
+    viewport = dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
+    dash_duo.wait_for_element("#map canvas", timeout=15)
+    viewport.click()
+    dash_duo.wait_for_contains_text("#feature-output", "Station A", timeout=10)
+
+    selected_feature = json.loads(dash_duo.find_element("#feature-output").text)
+    assert selected_feature["type"] == "Feature"
+    assert selected_feature["geometry"]["type"] == "Point"
+    assert selected_feature["properties"] == {"name": "Station A", "kind": "station"}
+    assert selected_feature["geometry"]["coordinates"] == [0, 0]
+    assert dash_duo.get_logs() == []
+
+
 def test_popup_child_mounts_and_unmounts(dash_duo):
     app = dash.Dash(__name__)
     app.layout = dash.html.Div(

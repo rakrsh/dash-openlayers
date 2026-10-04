@@ -100,6 +100,7 @@ Select vector features and report the current selection to Dash.
 | `id` | `string` | — | The ID used to identify this component in Dash callbacks. |
 | `layerId` | `string` | `null` | Dash ID of the vector layer to select from; omit to allow all selectable layers. |
 | `selectedGeoJSON` | `dict` | — | Read-only: current selection as a GeoJSON FeatureCollection in EPSG:4326. |
+| `selectedFeature` | `dict` | — | Read-only: first selected GeoJSON Feature in EPSG:4326, or null when nothing is selected. |
 
 ## `TileLayer`
 

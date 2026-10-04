@@ -66990,12 +66990,14 @@ var SelectInteraction = _ref => {
     });
     var listenerKey = select.on('select', () => {
       if (setProps) {
+        var _selectedGeoJSON$feat;
         var selectedGeoJSON = new GeoJSON().writeFeaturesObject(select.getFeatures().getArray(), {
           featureProjection: map.getView().getProjection(),
           dataProjection: 'EPSG:4326'
         });
         setProps({
-          selectedGeoJSON
+          selectedGeoJSON,
+          selectedFeature: (_selectedGeoJSON$feat = selectedGeoJSON.features[0]) !== null && _selectedGeoJSON$feat !== void 0 ? _selectedGeoJSON$feat : null
         });
       }
     });
@@ -67018,6 +67020,8 @@ SelectInteraction.propTypes = {
   layerId: PropTypes.string,
   /** Read-only: current selection as a GeoJSON FeatureCollection in EPSG:4326. */
   selectedGeoJSON: PropTypes.object,
+  /** Read-only: first selected GeoJSON Feature in EPSG:4326, or null when nothing is selected. */
+  selectedFeature: PropTypes.object,
   /** Dash-supplied prop setter; internal, do not set from Python. */
   setProps: PropTypes.func
 };

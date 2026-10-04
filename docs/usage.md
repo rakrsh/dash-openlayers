@@ -16,6 +16,27 @@ dol.Map(
 )
 ```
 
+Add a `SelectInteraction` to a map to select vector features on click. Its
+read-only `selectedFeature` prop contains the first selected GeoJSON Feature,
+including its properties and geometry in EPSG:4326; it becomes `None` when
+selection is cleared. `selectedGeoJSON` remains available for the full
+selection, while `Map.clickData` independently reports click coordinates:
+
+```python
+dol.Map(
+    id="map",
+    children=[
+        dol.VectorLayer(id="points", data=point_feature_collection),
+        dol.SelectInteraction(id="select", layerId="points"),
+    ],
+)
+
+
+@app.callback(Output("feature-details", "children"), Input("select", "selectedFeature"))
+def show_feature(feature):
+    return json.dumps(feature["properties"], indent=2) if feature else "Select a feature"
+```
+
 ## Popups
 
 Add `Popup` as a `Map` child to render Dash content at a coordinate. The
