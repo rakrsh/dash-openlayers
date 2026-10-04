@@ -1006,25 +1006,25 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>drawnGeoJSON</code></td>
 <td><code>dict</code></td>
 <td>—</td>
-<td>Read-only GeoJSON Feature emitted only when geometry validation succeeds.</td>
+<td>Read-only: GeoJSON Feature emitted only when geometry validation succeeds.</td>
 </tr>
 <tr>
 <td><code>drawnWKT</code></td>
 <td><code>string</code></td>
 <td>—</td>
-<td>Read-only WKT geometry emitted only when geometry validation succeeds.</td>
+<td>Read-only: WKT geometry emitted only when geometry validation succeeds.</td>
 </tr>
 <tr>
 <td><code>drawnTopoJSON</code></td>
 <td><code>dict</code></td>
 <td>—</td>
-<td>Read-only TopoJSON topology emitted only when geometry validation succeeds.</td>
+<td>Read-only: TopoJSON topology emitted only when geometry validation succeeds.</td>
 </tr>
 <tr>
 <td><code>geometryValidation</code></td>
 <td><code>dict</code></td>
 <td>—</td>
-<td>Read-only validity, topology errors, and repair suggestions from the last draw.</td>
+<td>Read-only: validity, topology errors, and repair suggestions from the last draw.</td>
 </tr>
 <tr>
 <td><code>snapToVertex</code></td>
@@ -1068,31 +1068,31 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>geometryType</code></td>
 <td><code>'Point' \| 'LineString' \| 'Polygon' \| 'Circle' \| 'Box'</code></td>
 <td><code>'Polygon'</code></td>
-<td>Geometry type drawn by this interaction.</td>
+<td>Geometry to draw: Point, LineString, Polygon, Circle, or Box (an axis-aligned rectangle).</td>
 </tr>
 <tr>
 <td><code>drawnGeoJSON</code></td>
 <td><code>dict</code></td>
 <td>—</td>
-<td>Read-only GeoJSON Feature emitted only when geometry validation succeeds.</td>
+<td>Read-only: GeoJSON Feature emitted only when geometry validation succeeds.</td>
 </tr>
 <tr>
 <td><code>drawnWKT</code></td>
 <td><code>string</code></td>
 <td>—</td>
-<td>Read-only WKT geometry emitted only when geometry validation succeeds.</td>
+<td>Read-only: WKT geometry emitted only when geometry validation succeeds.</td>
 </tr>
 <tr>
 <td><code>drawnTopoJSON</code></td>
 <td><code>dict</code></td>
 <td>—</td>
-<td>Read-only TopoJSON topology emitted only when geometry validation succeeds.</td>
+<td>Read-only: TopoJSON topology emitted only when geometry validation succeeds.</td>
 </tr>
 <tr>
 <td><code>geometryValidation</code></td>
 <td><code>dict</code></td>
 <td>—</td>
-<td>Read-only validity, topology errors, and repair suggestions from the last draw.</td>
+<td>Read-only: validity, topology errors, and repair suggestions from the last draw.</td>
 </tr>
 <tr>
 <td><code>snapToVertex</code></td>
@@ -1212,61 +1212,61 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>center</code></td>
 <td><code>list[number]</code></td>
 <td><code>[0, 0]</code></td>
-<td>Map view center as [x, y] in projection units; bidirectional with the rendered view.</td>
+<td>Map view center as [x, y] in projection's units (e.g. [lon, lat] for EPSG:4326, [x, y] in meters for EPSG:3857/projected CRSs). Bidirectional: updates on moveend and can be set from Python.</td>
 </tr>
 <tr>
 <td><code>zoom</code></td>
 <td><code>number</code></td>
 <td><code>2</code></td>
-<td>Map zoom level; bidirectional with the rendered view.</td>
+<td>Map zoom level. Bidirectional: updates on moveend and can be set from Python.</td>
 </tr>
 <tr>
 <td><code>projection</code></td>
 <td><code>string</code></td>
 <td><code>'EPSG:3857'</code></td>
-<td>EPSG code used for the map view.</td>
+<td>EPSG code the view is rendered in, e.g. 'EPSG:3857' or a custom code registered via <code>proj4Defs</code>.</td>
 </tr>
 <tr>
 <td><code>proj4Defs</code></td>
 <td><code>list[dict]</code></td>
 <td><code>[]</code></td>
-<td>Custom proj4 definitions registered before the map view is created.</td>
+<td>Custom proj4 projection definitions to register before the view is constructed, e.g. [{ code: 'EPSG:27700', def: '+proj=tmerc ...' }].</td>
 </tr>
 <tr>
 <td><code>style</code></td>
 <td><code>dict</code></td>
 <td>—</td>
-<td>Inline CSS style applied to the map container.</td>
+<td>Inline CSS style object applied to the map container div.</td>
 </tr>
 <tr>
 <td><code>clickData</code></td>
 <td><code>dict</code></td>
 <td>—</td>
-<td>Read-only click position with raw projected coordinates and [latitude, longitude].</td>
+<td>Read-only: set on <code>singleclick</code> with <code>{ coordinate: [x, y], latLon: [lat, lon] }</code>.</td>
 </tr>
 <tr>
 <td><code>undo</code></td>
 <td><code>number</code></td>
 <td><code>0</code></td>
-<td>Increment to undo the latest Draw or Modify operation.</td>
+<td>Increment to undo the latest draw or modify operation on this map.</td>
 </tr>
 <tr>
 <td><code>redo</code></td>
 <td><code>number</code></td>
 <td><code>0</code></td>
-<td>Increment to redo the latest undone operation.</td>
+<td>Increment to redo the latest undone draw or modify operation on this map.</td>
 </tr>
 <tr>
 <td><code>canUndo</code></td>
 <td><code>bool</code></td>
 <td>—</td>
-<td>Read-only; whether an operation is available to undo.</td>
+<td>Read-only: whether this map's edit history has an operation to undo.</td>
 </tr>
 <tr>
 <td><code>canRedo</code></td>
 <td><code>bool</code></td>
 <td>—</td>
-<td>Read-only; whether an operation is available to redo.</td>
+<td>Read-only: whether this map's edit history has an operation to redo.</td>
 </tr>
 </tbody>
 </table>
@@ -1466,13 +1466,13 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>source</code></td>
 <td><code>string</code></td>
 <td><code>null</code></td>
-<td>Built-in tile source identifier. Currently supports OSM.</td>
+<td>Built-in tile source identifier. Currently supports "OSM".</td>
 </tr>
 <tr>
 <td><code>url</code></td>
 <td><code>string</code></td>
 <td><code>null</code></td>
-<td>URL template for a custom XYZ tile source.</td>
+<td>URL template for a custom XYZ tile source, e.g. 'https://tiles.example.com/{z}/{x}/{y}.png'.</td>
 </tr>
 </tbody>
 </table>
@@ -1542,13 +1542,13 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>geojson</code></td>
 <td><code>dict</code></td>
 <td><code>null</code></td>
-<td>Backward-compatible GeoJSON Feature or FeatureCollection object alias for data.</td>
+<td>Backward-compatible GeoJSON Feature or FeatureCollection object alias for <code>data</code>.</td>
 </tr>
 <tr>
 <td><code>wkt</code></td>
 <td><code>string</code></td>
 <td><code>null</code></td>
-<td>WKT geometry in [x, y] order; takes precedence over data and geojson when non-empty.</td>
+<td>WKT geometry string in [x, y] order; takes precedence over <code>data</code> and <code>geojson</code> when non-empty.</td>
 </tr>
 <tr>
 <td><code>style</code></td>
@@ -1572,7 +1572,7 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>declutter</code></td>
 <td><code>bool \| string</code></td>
 <td><code>false</code></td>
-<td>Enable label decluttering or set a shared group name for decluttering across layers.</td>
+<td>Enable label decluttering, or provide a shared group name to declutter with other layers.</td>
 </tr>
 </tbody>
 </table>
