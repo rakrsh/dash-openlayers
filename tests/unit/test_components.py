@@ -322,6 +322,22 @@ def test_popup_serializes_as_nested_map_child():
 
 
 @pytest.mark.parametrize(
+    "data",
+    [
+        {"type": "FeatureCollection", "features": []},
+        '{"type":"FeatureCollection","features":[]}',
+    ],
+)
+def test_vector_layer_serializes_geojson_data(data):
+    component = dol.VectorLayer(data=data, style={"circle-radius": 5})
+
+    assert component.to_plotly_json()["props"] == {
+        "data": data,
+        "style": {"circle-radius": 5},
+    }
+
+
+@pytest.mark.parametrize(
     "children",
     [
         {"not": "a component"},

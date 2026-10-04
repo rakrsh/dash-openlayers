@@ -771,7 +771,6 @@ describe('VectorLayer', () => {
     expect(layer.set).toHaveBeenCalledWith('dashId', 'features');
     expect(map.addLayer).toHaveBeenCalledWith(layer);
     expect(initialFormat.readFeatures).toHaveBeenCalledWith(initialGeoJSON, {
-      dataProjection: 'EPSG:4326',
       featureProjection: 'EPSG:3857',
     });
     expect(source.addFeatures).toHaveBeenCalledWith(initialFormat.features);
@@ -784,13 +783,40 @@ describe('VectorLayer', () => {
     expect(source.clear).toHaveBeenCalledTimes(2);
     const updatedFormat = GeoJSON.mock.instances.at(-1);
     expect(updatedFormat.readFeatures).toHaveBeenCalledWith(updatedGeoJSON, {
-      dataProjection: 'EPSG:4326',
       featureProjection: 'EPSG:3857',
     });
 
     unmount();
     expect(map.removeLayer).toHaveBeenCalledWith(layer);
     expect(source.clear).toHaveBeenCalledTimes(3);
+  });
+
+  it('accepts GeoJSON strings and objects through data and prefers data to geojson', () => {
+    const map = makeMap();
+    const data = {
+      type: 'FeatureCollection',
+      crs: { type: 'name', properties: { name: 'EPSG:3857' } },
+      features: [],
+    };
+    const serializedData = JSON.stringify(data);
+    const { rerender } = render(
+      <OLContext.Provider value={map}>
+        <VectorLayer data={serializedData} geojson={{ type: 'FeatureCollection', features: [] }} />
+      </OLContext.Provider>,
+    );
+
+    expect(GeoJSON.mock.instances.at(-1).readFeatures).toHaveBeenCalledWith(serializedData, {
+      featureProjection: 'EPSG:3857',
+    });
+
+    rerender(
+      <OLContext.Provider value={map}>
+        <VectorLayer data={data} />
+      </OLContext.Provider>,
+    );
+    expect(GeoJSON.mock.instances.at(-1).readFeatures).toHaveBeenCalledWith(data, {
+      featureProjection: 'EPSG:3857',
+    });
   });
 
   it('loads WKT input in the map projection ahead of GeoJSON input', () => {
@@ -800,6 +826,7 @@ describe('VectorLayer', () => {
       <OLContext.Provider value={map}>
         <VectorLayer
           id="features"
+          data={{ type: 'FeatureCollection', features: [] }}
           geojson={{ type: 'FeatureCollection', features: [] }}
           wkt={wkt}
         />

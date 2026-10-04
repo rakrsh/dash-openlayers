@@ -362,36 +362,56 @@ def disable_undo(can_undo):
     return not can_undo
 ```
 
-`VectorLayer` renders a GeoJSON Feature or FeatureCollection. Coordinates use
-GeoJSON's `[longitude, latitude]` order and are transformed into the map's
-projection. Updating `geojson` from a Dash callback replaces the rendered
-features:
+`VectorLayer.data` accepts a GeoJSON Feature or FeatureCollection as either a
+Python dictionary or a serialized JSON string. This includes the string
+returned by `GeoDataFrame.to_json()`:
 
 ```python
-features = {
-    "type": "FeatureCollection",
-    "features": [
-        {
-            "type": "Feature",
-            "geometry": {"type": "Point", "coordinates": [-0.1, 51.5]},
-            "properties": {"name": "London"},
-        }
-    ],
-}
+geojson_text = geodataframe.to_json()
 
 dol.Map(
     id="map",
-    center=[-0.1, 51.5],
+    center=[0, 0],
     zoom=8,
-    children=[dol.VectorLayer(id="features", geojson=features)],
+    children=[dol.VectorLayer(id="features", data=geojson_text)],
     style={"height": "500px"},
 )
 ```
 
-`VectorLayer` can also read a WKT string with `wkt`. When both `wkt` and
-`geojson` are set, a non-empty `wkt` takes precedence. WKT coordinates use
-`[x, y]` order; by default they are interpreted as EPSG:4326 and transformed
-to the map projection, just like GeoJSON.
+For GeoJSON without embedded CRS metadata, coordinates default to EPSG:4326
+and are transformed into the map projection. Embedded CRS metadata, including
+GeoPandas `to_json()` output for projected data, is honored. `geojson` remains
+available as a backward-compatible object alias; `data` takes precedence when
+both are set. A non-empty `wkt` takes precedence over both. WKT coordinates use
+`[x, y]` order and default to EPSG:4326.
+
+GeoJSON feature properties can drive flat-style rules. The same layer can
+render points, lines, and polygons using rules that match a feature property:
+
+```python
+dol.VectorLayer(
+    id="styled-features",
+    data=geojson_text,
+    style=[
+        {
+            "filter": ["==", ["get", "category"], "site"],
+            "style": {"circle-radius": 6, "circle-fill-color": "#d66f41"},
+        },
+        {
+            "filter": ["==", ["get", "category"], "route"],
+            "style": {"stroke-color": "#1f6a5e", "stroke-width": 3},
+        },
+        {
+            "else": True,
+            "style": {
+                "fill-color": "rgba(31, 106, 94, 0.24)",
+                "stroke-color": "#1f6a5e",
+                "stroke-width": 2,
+            },
+        },
+    ],
+)
+```
 
 Draw and modify interactions keep their GeoJSON outputs and also publish WKT
 and TopoJSON:
