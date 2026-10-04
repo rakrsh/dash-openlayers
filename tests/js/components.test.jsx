@@ -798,7 +798,11 @@ describe('VectorLayer', () => {
     const wkt = 'POINT (10 45)';
     render(
       <OLContext.Provider value={map}>
-        <VectorLayer id="features" geojson={{ type: 'FeatureCollection', features: [] }} wkt={wkt} />
+        <VectorLayer
+          id="features"
+          geojson={{ type: 'FeatureCollection', features: [] }}
+          wkt={wkt}
+        />
       </OLContext.Provider>,
     );
 
@@ -1269,9 +1273,9 @@ describe('SelectInteraction', () => {
     const select = Select.mock.instances[0];
     const feature = { id: 'selected-feature' };
     select.selectedFeatures.items = [feature];
-    expect(select.options.layers({ get: (key) => (key === 'dashId' ? 'vectors' : undefined) })).toBe(
-      true,
-    );
+    expect(
+      select.options.layers({ get: (key) => (key === 'dashId' ? 'vectors' : undefined) }),
+    ).toBe(true);
     expect(select.options.layers({ get: () => 'other-layer' })).toBe(false);
     expect(map.addInteraction).toHaveBeenCalledWith(select);
 
