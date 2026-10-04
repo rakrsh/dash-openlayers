@@ -336,6 +336,76 @@ def test_vector_layer_renders_geopandas_geojson_string_and_property_styles(dash_
     assert dash_duo.get_logs() == []
 
 
+def test_webgl_points_layer_renders_twenty_thousand_styled_points(dash_duo):
+    features = [
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [((index % 200) - 100) / 100, ((index // 200) - 50) / 100],
+            },
+            "properties": {
+                "kind": "station" if index % 2 else "incident",
+                "magnitude": index % 11,
+            },
+        }
+        for index in range(20_000)
+    ]
+    style = {
+        "shape-points": ["match", ["get", "kind"], "station", 5, 4],
+        "shape-radius": ["interpolate", ["linear"], ["get", "magnitude"], 0, 3, 10, 9],
+        "shape-fill-color": [
+            "match",
+            ["get", "kind"],
+            "station",
+            "#d66f41",
+            "incident",
+            "#1f6a5e",
+            "#284d78",
+        ],
+    }
+    app = dash.Dash(__name__)
+    app.layout = dol.Map(
+        id="map",
+        center=[0, 0],
+        zoom=5,
+        children=[
+            dol.WebGLPointsLayer(
+                id="large-points",
+                data={"type": "FeatureCollection", "features": features},
+                style=style,
+                disableHitDetection=True,
+            )
+        ],
+        style={"height": "400px", "width": "600px"},
+    )
+
+    dash_duo.start_server(app)
+    dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
+    WebDriverWait(dash_duo.driver, 15).until(
+        lambda driver: driver.execute_script(
+            "return !!document.querySelector('#map canvas.ol-layer')"
+        )
+    )
+    WebDriverWait(dash_duo.driver, 30).until(
+        lambda driver: driver.execute_script(
+            """
+            const canvas = document.querySelector('#map canvas.ol-layer');
+            if (!canvas) return false;
+            const gl = canvas.getContext('experimental-webgl');
+            if (!gl) return false;
+            const pixels = new Uint8Array(gl.drawingBufferWidth * gl.drawingBufferHeight * 4);
+            gl.readPixels(
+              0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight,
+              gl.RGBA, gl.UNSIGNED_BYTE, pixels
+            );
+            return pixels.some((value, index) => index % 4 === 3 && value > 0);
+            """
+        )
+    )
+    assert dash_duo.get_logs() == []
+
+
 def test_modify_reverts_self_intersecting_polygon_edit(dash_duo):
     geojson = {
         "type": "FeatureCollection",

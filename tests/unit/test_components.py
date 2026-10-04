@@ -18,6 +18,7 @@ def test_components_exported():
     assert hasattr(mod, "TileWMS")
     assert hasattr(mod, "VectorLayer")
     assert hasattr(mod, "VectorTileLayer")
+    assert hasattr(mod, "WebGLPointsLayer")
     assert hasattr(mod, "WFSLayer")
     assert hasattr(mod, "WMTSLayer")
     assert hasattr(mod, "__version__")
@@ -334,6 +335,27 @@ def test_vector_layer_serializes_geojson_data(data):
     assert component.to_plotly_json()["props"] == {
         "data": data,
         "style": {"circle-radius": 5},
+    }
+
+
+def test_webgl_points_layer_serializes_data_style_and_hit_detection():
+    data = '{"type":"FeatureCollection","features":[]}'
+    style = {
+        "circle-radius": ["interpolate", ["linear"], ["get", "magnitude"], 0, 3, 10, 12],
+        "circle-fill-color": ["match", ["get", "kind"], "station", "#d66f41", "#1f6a5e"],
+    }
+    component = dol.WebGLPointsLayer(
+        id="large-points",
+        data=data,
+        style=style,
+        disableHitDetection=True,
+    )
+
+    assert component.to_plotly_json()["props"] == {
+        "id": "large-points",
+        "data": data,
+        "style": style,
+        "disableHitDetection": True,
     }
 
 

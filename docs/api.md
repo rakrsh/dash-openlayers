@@ -182,3 +182,14 @@ Render a WMTS layer using its service capabilities to configure the tile grid.
 | `requestEncoding` | `'KVP' \| 'REST'` | `null` | WMTS request encoding, either KVP or REST. |
 | `dimensions` | `dict` | `null` | Values for advertised WMTS dimensions, such as TIME or ELEVATION. |
 | `attributions` | `string \| list[string]` | `null` | Attribution text or a list of attribution strings for the tile provider. |
+
+## `WebGLPointsLayer`
+
+Render large GeoJSON point datasets with the OpenLayers WebGL renderer.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | — | Component ID used to identify this layer in the Dash layout. |
+| `data` | `string \| dict` | `null` | GeoJSON Point or MultiPoint FeatureCollection as an object or JSON string; embedded CRS metadata is honored, otherwise coordinates default to EPSG:4326. |
+| `style` | `dict` | `null` | OpenLayers WebGL style object; expressions such as get, match, and interpolate style feature properties. Changing the style recreates the layer; the default style is blue circles. |
+| `disableHitDetection` | `bool` | `false` | Disable WebGL feature hit detection for a small rendering performance gain. |

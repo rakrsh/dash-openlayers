@@ -9,6 +9,7 @@ import TileLayer from './lib/components/TileLayer.react';
 import TileWMS from './lib/components/TileWMS.react';
 import VectorLayer from './lib/components/VectorLayer.react';
 import VectorTileLayer from './lib/components/VectorTileLayer.react';
+import WebGLPointsLayer from './lib/components/WebGLPointsLayer.react';
 import WFSLayer from './lib/components/WFSLayer.react';
 import WMTSLayer from './lib/components/WMTSLayer.react';
 import OLContext from './lib/context/OLContext';
@@ -26,6 +27,7 @@ export {
   TileWMS,
   VectorLayer,
   VectorTileLayer,
+  WebGLPointsLayer,
   WFSLayer,
   WMTSLayer,
   OLContext,

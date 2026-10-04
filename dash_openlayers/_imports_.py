@@ -8,6 +8,7 @@ from .VectorLayer import VectorLayer
 from .VectorTileLayer import VectorTileLayer
 from .TileWMS import TileWMS
 from .ImageWMS import ImageWMS
+from .WebGLPointsLayer import WebGLPointsLayer
 from .WFSLayer import WFSLayer
 from .SelectInteraction import SelectInteraction
 from .WMTSLayer import WMTSLayer
@@ -23,6 +24,7 @@ __all__ = [
     "VectorTileLayer",
     "TileWMS",
     "ImageWMS",
+    "WebGLPointsLayer",
     "WFSLayer",
     "SelectInteraction",
     "WMTSLayer"
