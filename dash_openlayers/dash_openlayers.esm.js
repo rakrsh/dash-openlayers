@@ -72628,6 +72628,7 @@ class Cluster extends VectorSource {
 /** Render GeoJSON features in a canvas-backed OpenLayers vector layer. */
 var VectorLayerComponent = _ref => {
   var id = _ref.id,
+    data = _ref.data,
     geojson = _ref.geojson,
     wkt = _ref.wkt,
     style = _ref.style,
@@ -72733,18 +72734,21 @@ var VectorLayerComponent = _ref => {
     if (!source) return;
     source.clear();
     var useWKT = typeof wkt === 'string' && wkt.trim().length > 0;
-    var data = useWKT ? wkt : geojson;
-    if (!data) return;
-    var features = readFeatures(data, {
-      format: useWKT ? 'WKT' : 'GeoJSON',
-      dataProjection: 'EPSG:4326',
+    var featureData = useWKT ? wkt : data !== null && data !== void 0 ? data : geojson;
+    if (!featureData) return;
+    var readOptions = {
       featureProjection: map.getView().getProjection()
-    });
+    };
+    if (useWKT) readOptions.dataProjection = 'EPSG:4326';
+    var features = readFeatures(featureData, _objectSpread2({
+      format: useWKT ? 'WKT' : 'GeoJSON'
+    }, readOptions));
     source.addFeatures(features);
-  }, [geojson, id, map, wkt]);
+  }, [data, geojson, id, map, wkt]);
   return null;
 };
 VectorLayerComponent.defaultProps = {
+  data: null,
   geojson: null,
   wkt: null,
   style: null,
@@ -72755,9 +72759,11 @@ VectorLayerComponent.defaultProps = {
 VectorLayerComponent.propTypes = {
   /** Dash component ID; also used by ModifyInteraction to target this vector layer. */
   id: PropTypes.string,
-  /** GeoJSON Feature or FeatureCollection with coordinates in [longitude, latitude] order; updates are rendered in the map projection. */
+  /** GeoJSON Feature or FeatureCollection as an object or JSON string; embedded CRS metadata is honored, otherwise coordinates default to EPSG:4326. Takes precedence over `geojson`. */
+  data: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+  /** Backward-compatible GeoJSON Feature or FeatureCollection object alias for `data`. */
   geojson: PropTypes.object,
-  /** WKT geometry string in [x, y] order; takes precedence over `geojson` when non-empty. */
+  /** WKT geometry string in [x, y] order; takes precedence over `data` and `geojson` when non-empty. */
   wkt: PropTypes.string,
   /** OpenLayers flat style object or rule array; supports icon, fill, stroke, feature filters, and resolution expressions. */
   style: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),

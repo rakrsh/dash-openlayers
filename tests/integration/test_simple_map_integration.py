@@ -251,6 +251,91 @@ def test_vector_layer_renders_geojson_and_updates(dash_duo):
     assert dash_duo.get_logs() == []
 
 
+def test_vector_layer_renders_geopandas_geojson_string_and_property_styles(dash_duo):
+    geojson_text = json.dumps(
+        {
+            "type": "FeatureCollection",
+            "crs": {
+                "type": "name",
+                "properties": {"name": "urn:ogc:def:crs:EPSG::3857"},
+            },
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {"type": "Point", "coordinates": [1_000_000, 2_000_000]},
+                    "properties": {"category": "site", "details": {"name": "Point"}},
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [[900_000, 1_900_000], [1_100_000, 2_100_000]],
+                    },
+                    "properties": {"category": "route", "details": {"name": "Line"}},
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [
+                            [
+                                [900_000, 1_900_000],
+                                [1_100_000, 1_900_000],
+                                [1_100_000, 2_100_000],
+                                [900_000, 2_100_000],
+                                [900_000, 1_900_000],
+                            ]
+                        ],
+                    },
+                    "properties": {"category": "area", "details": {"name": "Polygon"}},
+                },
+            ],
+        }
+    )
+    style = [
+        {
+            "filter": ["==", ["get", "category"], "site"],
+            "style": {"circle-radius": 6, "circle-fill-color": "#d66f41"},
+        },
+        {
+            "filter": ["==", ["get", "category"], "route"],
+            "style": {"stroke-color": "#1f6a5e", "stroke-width": 3},
+        },
+        {
+            "else": True,
+            "style": {
+                "fill-color": "rgba(31, 106, 94, 0.24)",
+                "stroke-color": "#1f6a5e",
+                "stroke-width": 2,
+            },
+        },
+    ]
+    app = dash.Dash(__name__)
+    app.layout = dol.Map(
+        id="map",
+        center=[1_000_000, 2_000_000],
+        zoom=5,
+        children=[dol.VectorLayer(id="features", data=geojson_text, style=style)],
+        style={"height": "400px", "width": "600px"},
+    )
+
+    dash_duo.start_server(app)
+    dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
+    WebDriverWait(dash_duo.driver, 15).until(
+        lambda driver: driver.execute_script(
+            """
+            const canvas = document.querySelector('#map .ol-layer canvas');
+            if (!canvas) return false;
+            const pixels = canvas.getContext('2d').getImageData(
+              0, 0, canvas.width, canvas.height
+            ).data;
+            return pixels.some((value, index) => index % 4 === 3 && value > 0);
+            """
+        )
+    )
+    assert dash_duo.get_logs() == []
+
+
 def test_modify_reverts_self_intersecting_polygon_edit(dash_duo):
     geojson = {
         "type": "FeatureCollection",

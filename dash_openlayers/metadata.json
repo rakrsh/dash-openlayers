@@ -606,12 +606,31 @@
         "required": false,
         "description": "Dash component ID; also used by ModifyInteraction to target this vector layer."
       },
+      "data": {
+        "type": {
+          "name": "union",
+          "value": [
+            {
+              "name": "string"
+            },
+            {
+              "name": "object"
+            }
+          ]
+        },
+        "required": false,
+        "description": "GeoJSON Feature or FeatureCollection as an object or JSON string; embedded CRS metadata is honored, otherwise coordinates default to EPSG:4326. Takes precedence over geojson.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
       "geojson": {
         "type": {
           "name": "object"
         },
         "required": false,
-        "description": "GeoJSON Feature or FeatureCollection with coordinates in [longitude, latitude] order; updates are rendered in the map projection.",
+        "description": "Backward-compatible GeoJSON Feature or FeatureCollection object alias for data.",
         "defaultValue": {
           "value": "null",
           "computed": false
@@ -622,7 +641,7 @@
           "name": "string"
         },
         "required": false,
-        "description": "WKT geometry in [x, y] order; takes precedence over geojson when non-empty.",
+        "description": "WKT geometry in [x, y] order; takes precedence over data and geojson when non-empty.",
         "defaultValue": {
           "value": "null",
           "computed": false

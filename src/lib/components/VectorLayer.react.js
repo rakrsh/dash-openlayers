@@ -15,6 +15,7 @@ import { readFeatures } from '../utils/featureFormats';
 /** Render GeoJSON features in a canvas-backed OpenLayers vector layer. */
 const VectorLayerComponent = ({
   id,
+  data,
   geojson,
   wkt,
   style,
@@ -126,21 +127,26 @@ const VectorLayerComponent = ({
 
     source.clear();
     const useWKT = typeof wkt === 'string' && wkt.trim().length > 0;
-    const data = useWKT ? wkt : geojson;
-    if (!data) return;
+    const featureData = useWKT ? wkt : (data ?? geojson);
+    if (!featureData) return;
 
-    const features = readFeatures(data, {
-      format: useWKT ? 'WKT' : 'GeoJSON',
-      dataProjection: 'EPSG:4326',
+    const readOptions = {
       featureProjection: map.getView().getProjection(),
+    };
+    if (useWKT) readOptions.dataProjection = 'EPSG:4326';
+
+    const features = readFeatures(featureData, {
+      format: useWKT ? 'WKT' : 'GeoJSON',
+      ...readOptions,
     });
     source.addFeatures(features);
-  }, [geojson, id, map, wkt]);
+  }, [data, geojson, id, map, wkt]);
 
   return null;
 };
 
 VectorLayerComponent.defaultProps = {
+  data: null,
   geojson: null,
   wkt: null,
   style: null,
@@ -152,9 +158,11 @@ VectorLayerComponent.defaultProps = {
 VectorLayerComponent.propTypes = {
   /** Dash component ID; also used by ModifyInteraction to target this vector layer. */
   id: PropTypes.string,
-  /** GeoJSON Feature or FeatureCollection with coordinates in [longitude, latitude] order; updates are rendered in the map projection. */
+  /** GeoJSON Feature or FeatureCollection as an object or JSON string; embedded CRS metadata is honored, otherwise coordinates default to EPSG:4326. Takes precedence over `geojson`. */
+  data: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+  /** Backward-compatible GeoJSON Feature or FeatureCollection object alias for `data`. */
   geojson: PropTypes.object,
-  /** WKT geometry string in [x, y] order; takes precedence over `geojson` when non-empty. */
+  /** WKT geometry string in [x, y] order; takes precedence over `data` and `geojson` when non-empty. */
   wkt: PropTypes.string,
   /** OpenLayers flat style object or rule array; supports icon, fill, stroke, feature filters, and resolution expressions. */
   style: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),

@@ -129,8 +129,9 @@ Render GeoJSON features in a canvas-backed OpenLayers vector layer.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `id` | `string` | — | Dash component ID; also used by ModifyInteraction to target this vector layer. |
-| `geojson` | `dict` | `null` | GeoJSON Feature or FeatureCollection with coordinates in [longitude, latitude] order; updates are rendered in the map projection. |
-| `wkt` | `string` | `null` | WKT geometry in [x, y] order; takes precedence over geojson when non-empty. |
+| `data` | `string \| dict` | `null` | GeoJSON Feature or FeatureCollection as an object or JSON string; embedded CRS metadata is honored, otherwise coordinates default to EPSG:4326. Takes precedence over geojson. |
+| `geojson` | `dict` | `null` | Backward-compatible GeoJSON Feature or FeatureCollection object alias for data. |
+| `wkt` | `string` | `null` | WKT geometry in [x, y] order; takes precedence over data and geojson when non-empty. |
 | `style` | `dict \| list[dict]` | `null` | OpenLayers flat style object or rule array; supports icon, fill, stroke, feature filters, and resolution expressions. |
 | `clusterDistance` | `number` | `0` | Point clustering distance in screen pixels; set to 0 to disable clustering. |
 | `clusterMinDistance` | `number` | `0` | Minimum distance in screen pixels between clusters; capped at clusterDistance. |
