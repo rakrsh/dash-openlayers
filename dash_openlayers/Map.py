@@ -34,18 +34,22 @@ Keyword arguments:
     map.
 
 - center (list of numbers; default [0, 0]):
-    Map view center as [x, y] in projection units; bidirectional with
-    the rendered view.
+    Map view center as [x, y] in projection's units (e.g. [lon, lat]
+    for EPSG:4326, [x, y] in meters for EPSG:3857/projected CRSs).
+    Bidirectional: updates on moveend and can be set from Python.
 
 - zoom (number; default 2):
-    Map zoom level; bidirectional with the rendered view.
+    Map zoom level. Bidirectional: updates on moveend and can be set
+    from Python.
 
 - projection (string; default 'EPSG:3857'):
-    EPSG code used for the map view.
+    EPSG code the view is rendered in, e.g. 'EPSG:3857' or a custom
+    code registered via `proj4Defs`.
 
 - proj4Defs (list of dicts; optional):
-    Custom proj4 definitions registered before the map view is
-    created.
+    Custom proj4 projection definitions to register before the view is
+    constructed, e.g. [{ code: 'EPSG:27700', def: '+proj=tmerc ...'
+    }].
 
     `proj4Defs` is a list of dicts with keys:
 
@@ -54,20 +58,23 @@ Keyword arguments:
     - def (string; required)
 
 - clickData (dict; optional):
-    Read-only click position with raw projected coordinates and
-    [latitude, longitude].
+    Read-only: set on `singleclick` with `{ coordinate: [x, y],
+    latLon: [lat, lon] }`.
 
 - undo (number; default 0):
-    Increment to undo the latest Draw or Modify operation.
+    Increment to undo the latest draw or modify operation on this map.
 
 - redo (number; default 0):
-    Increment to redo the latest undone operation.
+    Increment to redo the latest undone draw or modify operation on
+    this map.
 
 - canUndo (boolean; optional):
-    Read-only; whether an operation is available to undo.
+    Read-only: whether this map's edit history has an operation to
+    undo.
 
 - canRedo (boolean; optional):
-    Read-only; whether an operation is available to redo."""
+    Read-only: whether this map's edit history has an operation to
+    redo."""
     _children_props: typing.List[str] = []
     _base_nodes = ['children']
     _namespace = 'dash_openlayers'

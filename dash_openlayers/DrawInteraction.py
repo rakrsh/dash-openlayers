@@ -30,22 +30,23 @@ Keyword arguments:
     The ID used to identify this component in Dash callbacks.
 
 - geometryType (a value equal to: 'Point', 'LineString', 'Polygon', 'Circle', 'Box'; default 'Polygon'):
-    Geometry type drawn by this interaction.
+    Geometry to draw: Point, LineString, Polygon, Circle, or Box (an
+    axis-aligned rectangle).
 
 - drawnGeoJSON (dict; optional):
-    Read-only GeoJSON Feature emitted only when geometry validation
+    Read-only: GeoJSON Feature emitted only when geometry validation
     succeeds.
 
 - drawnWKT (string; optional):
-    Read-only WKT geometry emitted only when geometry validation
+    Read-only: WKT geometry emitted only when geometry validation
     succeeds.
 
 - drawnTopoJSON (dict; optional):
-    Read-only TopoJSON topology emitted only when geometry validation
+    Read-only: TopoJSON topology emitted only when geometry validation
     succeeds.
 
 - geometryValidation (dict; optional):
-    Read-only validity, topology errors, and repair suggestions from
+    Read-only: validity, topology errors, and repair suggestions from
     the last draw.
 
 - snapToVertex (boolean; default True):

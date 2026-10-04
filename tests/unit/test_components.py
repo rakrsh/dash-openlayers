@@ -1,4 +1,5 @@
 import importlib
+import inspect
 
 import pytest
 from dash import html
@@ -22,6 +23,23 @@ def test_components_exported():
     assert hasattr(mod, "WFSLayer")
     assert hasattr(mod, "WMTSLayer")
     assert hasattr(mod, "__version__")
+
+
+@pytest.mark.parametrize(
+    ("component", "parameter", "description"),
+    [
+        (dol.Map, "center", "Map view center as [x, y] in projection's units"),
+        (dol.TileLayer, "url", "URL template for a custom XYZ tile source"),
+        (dol.VectorLayer, "data", "GeoJSON Feature or FeatureCollection"),
+        (dol.DrawInteraction, "geometryType", "Box (an axis-aligned rectangle)"),
+    ],
+)
+def test_component_help_includes_prop_descriptions_and_type_hints(
+    component, parameter, description
+):
+    assert description in " ".join(component.__doc__.split())
+    signature = inspect.signature(component)
+    assert signature.parameters[parameter].annotation is not inspect.Parameter.empty
 
 
 def test_component_props_serialize():

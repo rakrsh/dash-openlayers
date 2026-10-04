@@ -13,10 +13,10 @@ Provide interactive map tools for drawing and serializing spatial study areas.
 | `geometryTypes` | `list['Point' \| 'LineString' \| 'Polygon' \| 'Box']` | `['Point', 'LineString', 'Polygon', 'Box']` | Drawing modes displayed in the control: Point, LineString, Polygon, and Box (rectangle). |
 | `position` | `'top-left' \| 'top-right' \| 'bottom-left' \| 'bottom-right'` | `'top-left'` | Corner of the map where the drawing tools are displayed. |
 | `title` | `string` | `'Draw'` | Accessible toolbar label and visible heading. |
-| `drawnGeoJSON` | `dict` | — | Read-only GeoJSON Feature emitted only when geometry validation succeeds. |
-| `drawnWKT` | `string` | — | Read-only WKT geometry emitted only when geometry validation succeeds. |
-| `drawnTopoJSON` | `dict` | — | Read-only TopoJSON topology emitted only when geometry validation succeeds. |
-| `geometryValidation` | `dict` | — | Read-only validity, topology errors, and repair suggestions from the last draw. |
+| `drawnGeoJSON` | `dict` | — | Read-only: GeoJSON Feature emitted only when geometry validation succeeds. |
+| `drawnWKT` | `string` | — | Read-only: WKT geometry emitted only when geometry validation succeeds. |
+| `drawnTopoJSON` | `dict` | — | Read-only: TopoJSON topology emitted only when geometry validation succeeds. |
+| `geometryValidation` | `dict` | — | Read-only: validity, topology errors, and repair suggestions from the last draw. |
 | `snapToVertex` | `bool` | `true` | Whether drawing snaps to existing vector vertices. |
 | `snapToEdge` | `bool` | `true` | Whether drawing snaps to existing vector edges. |
 | `snapTolerance` | `number` | `10` | Maximum snap distance in screen pixels. |
@@ -28,11 +28,11 @@ Draw and validate OpenLayers features, then publish their serialized geometry to
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `id` | `string` | — | The ID used to identify this component in Dash callbacks. |
-| `geometryType` | `'Point' \| 'LineString' \| 'Polygon' \| 'Circle' \| 'Box'` | `'Polygon'` | Geometry type drawn by this interaction. |
-| `drawnGeoJSON` | `dict` | — | Read-only GeoJSON Feature emitted only when geometry validation succeeds. |
-| `drawnWKT` | `string` | — | Read-only WKT geometry emitted only when geometry validation succeeds. |
-| `drawnTopoJSON` | `dict` | — | Read-only TopoJSON topology emitted only when geometry validation succeeds. |
-| `geometryValidation` | `dict` | — | Read-only validity, topology errors, and repair suggestions from the last draw. |
+| `geometryType` | `'Point' \| 'LineString' \| 'Polygon' \| 'Circle' \| 'Box'` | `'Polygon'` | Geometry to draw: Point, LineString, Polygon, Circle, or Box (an axis-aligned rectangle). |
+| `drawnGeoJSON` | `dict` | — | Read-only: GeoJSON Feature emitted only when geometry validation succeeds. |
+| `drawnWKT` | `string` | — | Read-only: WKT geometry emitted only when geometry validation succeeds. |
+| `drawnTopoJSON` | `dict` | — | Read-only: TopoJSON topology emitted only when geometry validation succeeds. |
+| `geometryValidation` | `dict` | — | Read-only: validity, topology errors, and repair suggestions from the last draw. |
 | `snapToVertex` | `bool` | `true` | Whether drawing snaps to existing vector vertices. |
 | `snapToEdge` | `bool` | `true` | Whether drawing snaps to existing vector edges. |
 | `snapTolerance` | `number` | `10` | Maximum snap distance in screen pixels. |
@@ -66,16 +66,16 @@ Create an OpenLayers map and synchronize its view and click events with Dash.
 | --- | --- | --- | --- |
 | `id` | `string` | — | The ID used to identify this component in Dash callbacks. |
 | `children` | `Dash component` | — | OpenLayers layer and interaction components rendered inside this map. |
-| `center` | `list[number]` | `[0, 0]` | Map view center as [x, y] in projection units; bidirectional with the rendered view. |
-| `zoom` | `number` | `2` | Map zoom level; bidirectional with the rendered view. |
-| `projection` | `string` | `'EPSG:3857'` | EPSG code used for the map view. |
-| `proj4Defs` | `list[dict]` | `[]` | Custom proj4 definitions registered before the map view is created. |
-| `style` | `dict` | — | Inline CSS style applied to the map container. |
-| `clickData` | `dict` | — | Read-only click position with raw projected coordinates and [latitude, longitude]. |
-| `undo` | `number` | `0` | Increment to undo the latest Draw or Modify operation. |
-| `redo` | `number` | `0` | Increment to redo the latest undone operation. |
-| `canUndo` | `bool` | — | Read-only; whether an operation is available to undo. |
-| `canRedo` | `bool` | — | Read-only; whether an operation is available to redo. |
+| `center` | `list[number]` | `[0, 0]` | Map view center as [x, y] in projection's units (e.g. [lon, lat] for EPSG:4326, [x, y] in meters for EPSG:3857/projected CRSs). Bidirectional: updates on moveend and can be set from Python. |
+| `zoom` | `number` | `2` | Map zoom level. Bidirectional: updates on moveend and can be set from Python. |
+| `projection` | `string` | `'EPSG:3857'` | EPSG code the view is rendered in, e.g. 'EPSG:3857' or a custom code registered via `proj4Defs`. |
+| `proj4Defs` | `list[dict]` | `[]` | Custom proj4 projection definitions to register before the view is constructed, e.g. [{ code: 'EPSG:27700', def: '+proj=tmerc ...' }]. |
+| `style` | `dict` | — | Inline CSS style object applied to the map container div. |
+| `clickData` | `dict` | — | Read-only: set on `singleclick` with `{ coordinate: [x, y], latLon: [lat, lon] }`. |
+| `undo` | `number` | `0` | Increment to undo the latest draw or modify operation on this map. |
+| `redo` | `number` | `0` | Increment to redo the latest undone draw or modify operation on this map. |
+| `canUndo` | `bool` | — | Read-only: whether this map's edit history has an operation to undo. |
+| `canRedo` | `bool` | — | Read-only: whether this map's edit history has an operation to redo. |
 
 ## `ModifyInteraction`
 
@@ -127,8 +127,8 @@ Render OpenStreetMap or custom XYZ tiles on the map.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `id` | `string` | — | The ID used to identify this layer in Dash callbacks. |
-| `source` | `string` | `null` | Built-in tile source identifier. Currently supports OSM. |
-| `url` | `string` | `null` | URL template for a custom XYZ tile source. |
+| `source` | `string` | `null` | Built-in tile source identifier. Currently supports "OSM". |
+| `url` | `string` | `null` | URL template for a custom XYZ tile source, e.g. 'https://tiles.example.com/{z}/{x}/{y}.png'. |
 
 ## `TileWMS`
 
@@ -149,12 +149,12 @@ Render GeoJSON features in a canvas-backed OpenLayers vector layer.
 | --- | --- | --- | --- |
 | `id` | `string` | — | Dash component ID; also used by ModifyInteraction to target this vector layer. |
 | `data` | `string \| dict` | `null` | GeoJSON Feature or FeatureCollection as an object or JSON string; embedded CRS metadata is honored, otherwise coordinates default to EPSG:4326. Takes precedence over geojson. |
-| `geojson` | `dict` | `null` | Backward-compatible GeoJSON Feature or FeatureCollection object alias for data. |
-| `wkt` | `string` | `null` | WKT geometry in [x, y] order; takes precedence over data and geojson when non-empty. |
+| `geojson` | `dict` | `null` | Backward-compatible GeoJSON Feature or FeatureCollection object alias for `data`. |
+| `wkt` | `string` | `null` | WKT geometry string in [x, y] order; takes precedence over `data` and `geojson` when non-empty. |
 | `style` | `dict \| list[dict]` | `null` | OpenLayers flat style object or rule array; supports icon, fill, stroke, feature filters, and resolution expressions. |
 | `clusterDistance` | `number` | `0` | Point clustering distance in screen pixels; set to 0 to disable clustering. |
 | `clusterMinDistance` | `number` | `0` | Minimum distance in screen pixels between clusters; capped at clusterDistance. |
-| `declutter` | `bool \| string` | `false` | Enable label decluttering or set a shared group name for decluttering across layers. |
+| `declutter` | `bool \| string` | `false` | Enable label decluttering, or provide a shared group name to declutter with other layers. |
 
 ## `VectorTileLayer`
 
