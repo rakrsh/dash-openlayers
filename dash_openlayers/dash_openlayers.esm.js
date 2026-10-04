@@ -61300,7 +61300,7 @@ DrawInteraction.defaultProps = {
 DrawInteraction.propTypes = {
   /** The ID used to identify this component in Dash callbacks. */
   id: PropTypes.string,
-  /** Geometry type drawn by this interaction. */
+  /** Geometry to draw: Point, LineString, Polygon, Circle, or Box (an axis-aligned rectangle). */
   geometryType: PropTypes.oneOf(['Point', 'LineString', 'Polygon', 'Circle', 'Box']),
   /** Whether drawing snaps to existing vector vertices. */
   snapToVertex: PropTypes.bool,

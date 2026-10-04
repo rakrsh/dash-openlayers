@@ -88,28 +88,28 @@
           "name": "object"
         },
         "required": false,
-        "description": "Read-only GeoJSON Feature emitted only when geometry validation succeeds."
+        "description": "Read-only: GeoJSON Feature emitted only when geometry validation succeeds."
       },
       "drawnWKT": {
         "type": {
           "name": "string"
         },
         "required": false,
-        "description": "Read-only WKT geometry emitted only when geometry validation succeeds."
+        "description": "Read-only: WKT geometry emitted only when geometry validation succeeds."
       },
       "drawnTopoJSON": {
         "type": {
           "name": "object"
         },
         "required": false,
-        "description": "Read-only TopoJSON topology emitted only when geometry validation succeeds."
+        "description": "Read-only: TopoJSON topology emitted only when geometry validation succeeds."
       },
       "geometryValidation": {
         "type": {
           "name": "object"
         },
         "required": false,
-        "description": "Read-only validity, topology errors, and repair suggestions from the last draw."
+        "description": "Read-only: validity, topology errors, and repair suggestions from the last draw."
       },
       "snapToVertex": {
         "type": {
@@ -192,7 +192,7 @@
           ]
         },
         "required": false,
-        "description": "Geometry type drawn by this interaction.",
+        "description": "Geometry to draw: Point, LineString, Polygon, Circle, or Box (an axis-aligned rectangle).",
         "defaultValue": {
           "value": "'Polygon'",
           "computed": false
@@ -203,28 +203,28 @@
           "name": "object"
         },
         "required": false,
-        "description": "Read-only GeoJSON Feature emitted only when geometry validation succeeds."
+        "description": "Read-only: GeoJSON Feature emitted only when geometry validation succeeds."
       },
       "drawnWKT": {
         "type": {
           "name": "string"
         },
         "required": false,
-        "description": "Read-only WKT geometry emitted only when geometry validation succeeds."
+        "description": "Read-only: WKT geometry emitted only when geometry validation succeeds."
       },
       "drawnTopoJSON": {
         "type": {
           "name": "object"
         },
         "required": false,
-        "description": "Read-only TopoJSON topology emitted only when geometry validation succeeds."
+        "description": "Read-only: TopoJSON topology emitted only when geometry validation succeeds."
       },
       "geometryValidation": {
         "type": {
           "name": "object"
         },
         "required": false,
-        "description": "Read-only validity, topology errors, and repair suggestions from the last draw."
+        "description": "Read-only: validity, topology errors, and repair suggestions from the last draw."
       },
       "snapToVertex": {
         "type": {
@@ -356,7 +356,7 @@
           }
         },
         "required": false,
-        "description": "Map view center as [x, y] in projection units; bidirectional with the rendered view.",
+        "description": "Map view center as [x, y] in projection's units (e.g. [lon, lat] for EPSG:4326, [x, y] in meters for EPSG:3857/projected CRSs). Bidirectional: updates on moveend and can be set from Python.",
         "defaultValue": {
           "value": "[0, 0]",
           "computed": false
@@ -367,7 +367,7 @@
           "name": "number"
         },
         "required": false,
-        "description": "Map zoom level; bidirectional with the rendered view.",
+        "description": "Map zoom level. Bidirectional: updates on moveend and can be set from Python.",
         "defaultValue": {
           "value": "2",
           "computed": false
@@ -378,7 +378,7 @@
           "name": "string"
         },
         "required": false,
-        "description": "EPSG code used for the map view.",
+        "description": "EPSG code the view is rendered in, e.g. 'EPSG:3857' or a custom code registered via `proj4Defs`.",
         "defaultValue": {
           "value": "'EPSG:3857'",
           "computed": false
@@ -402,7 +402,7 @@
           }
         },
         "required": false,
-        "description": "Custom proj4 definitions registered before the map view is created.",
+        "description": "Custom proj4 projection definitions to register before the view is constructed, e.g. [{ code: 'EPSG:27700', def: '+proj=tmerc ...' }].",
         "defaultValue": {
           "value": "[]",
           "computed": false
@@ -413,21 +413,21 @@
           "name": "object"
         },
         "required": false,
-        "description": "Inline CSS style applied to the map container."
+        "description": "Inline CSS style object applied to the map container div."
       },
       "clickData": {
         "type": {
           "name": "object"
         },
         "required": false,
-        "description": "Read-only click position with raw projected coordinates and [latitude, longitude]."
+        "description": "Read-only: set on `singleclick` with `{ coordinate: [x, y], latLon: [lat, lon] }`."
       },
       "undo": {
         "type": {
           "name": "number"
         },
         "required": false,
-        "description": "Increment to undo the latest Draw or Modify operation.",
+        "description": "Increment to undo the latest draw or modify operation on this map.",
         "defaultValue": {
           "value": "0",
           "computed": false
@@ -438,7 +438,7 @@
           "name": "number"
         },
         "required": false,
-        "description": "Increment to redo the latest undone operation.",
+        "description": "Increment to redo the latest undone draw or modify operation on this map.",
         "defaultValue": {
           "value": "0",
           "computed": false
@@ -449,14 +449,14 @@
           "name": "bool"
         },
         "required": false,
-        "description": "Read-only; whether an operation is available to undo."
+        "description": "Read-only: whether this map's edit history has an operation to undo."
       },
       "canRedo": {
         "type": {
           "name": "bool"
         },
         "required": false,
-        "description": "Read-only; whether an operation is available to redo."
+        "description": "Read-only: whether this map's edit history has an operation to redo."
       },
       "setProps": {
         "type": {
@@ -726,7 +726,7 @@
           "name": "string"
         },
         "required": false,
-        "description": "Built-in tile source identifier. Currently supports OSM.",
+        "description": "Built-in tile source identifier. Currently supports \"OSM\".",
         "defaultValue": {
           "value": "null",
           "computed": false
@@ -737,7 +737,7 @@
           "name": "string"
         },
         "required": false,
-        "description": "URL template for a custom XYZ tile source.",
+        "description": "URL template for a custom XYZ tile source, e.g. 'https://tiles.example.com/{z}/{x}/{y}.png'.",
         "defaultValue": {
           "value": "null",
           "computed": false
@@ -788,7 +788,7 @@
           "name": "object"
         },
         "required": false,
-        "description": "Backward-compatible GeoJSON Feature or FeatureCollection object alias for data.",
+        "description": "Backward-compatible GeoJSON Feature or FeatureCollection object alias for `data`.",
         "defaultValue": {
           "value": "null",
           "computed": false
@@ -799,7 +799,7 @@
           "name": "string"
         },
         "required": false,
-        "description": "WKT geometry in [x, y] order; takes precedence over data and geojson when non-empty.",
+        "description": "WKT geometry string in [x, y] order; takes precedence over `data` and `geojson` when non-empty.",
         "defaultValue": {
           "value": "null",
           "computed": false
@@ -862,7 +862,7 @@
           ]
         },
         "required": false,
-        "description": "Enable label decluttering or set a shared group name for decluttering across layers.",
+        "description": "Enable label decluttering, or provide a shared group name to declutter with other layers.",
         "defaultValue": {
           "value": "false",
           "computed": false

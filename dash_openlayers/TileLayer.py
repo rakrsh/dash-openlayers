@@ -30,10 +30,11 @@ Keyword arguments:
     The ID used to identify this layer in Dash callbacks.
 
 - source (string; optional):
-    Built-in tile source identifier. Currently supports OSM.
+    Built-in tile source identifier. Currently supports \"OSM\".
 
 - url (string; optional):
-    URL template for a custom XYZ tile source."""
+    URL template for a custom XYZ tile source, e.g.
+    'https://tiles.example.com/{z}/{x}/{y}.png'."""
     _children_props: typing.List[str] = []
     _base_nodes = ['children']
     _namespace = 'dash_openlayers'

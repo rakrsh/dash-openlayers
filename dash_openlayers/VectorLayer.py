@@ -37,11 +37,11 @@ Keyword arguments:
 
 - geojson (dict; optional):
     Backward-compatible GeoJSON Feature or FeatureCollection object
-    alias for data.
+    alias for `data`.
 
 - wkt (string; optional):
-    WKT geometry in [x, y] order; takes precedence over data and
-    geojson when non-empty.
+    WKT geometry string in [x, y] order; takes precedence over `data`
+    and `geojson` when non-empty.
 
 - clusterDistance (number; default 0):
     Point clustering distance in screen pixels; set to 0 to disable
@@ -52,8 +52,8 @@ Keyword arguments:
     clusterDistance.
 
 - declutter (boolean | string; default False):
-    Enable label decluttering or set a shared group name for
-    decluttering across layers."""
+    Enable label decluttering, or provide a shared group name to
+    declutter with other layers."""
     _children_props: typing.List[str] = []
     _base_nodes = ['children']
     _namespace = 'dash_openlayers'
