@@ -1030,33 +1030,50 @@ disable buttons:</p>
 <span class="k">def</span><span class="w"> </span><span class="nf">disable_undo</span><span class="p">(</span><span class="n">can_undo</span><span class="p">):</span>
     <span class="k">return</span> <span class="ow">not</span> <span class="n">can_undo</span>
 </code></pre></div>
-<p><code>VectorLayer</code> renders a GeoJSON Feature or FeatureCollection. Coordinates use
-GeoJSON's <code>[longitude, latitude]</code> order and are transformed into the map's
-projection. Updating <code>geojson</code> from a Dash callback replaces the rendered
-features:</p>
-<div class="highlight"><pre><span></span><code><span class="n">features</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"FeatureCollection"</span><span class="p">,</span>
-    <span class="s2">"features"</span><span class="p">:</span> <span class="p">[</span>
-        <span class="p">{</span>
-            <span class="s2">"type"</span><span class="p">:</span> <span class="s2">"Feature"</span><span class="p">,</span>
-            <span class="s2">"geometry"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"Point"</span><span class="p">,</span> <span class="s2">"coordinates"</span><span class="p">:</span> <span class="p">[</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">51.5</span><span class="p">]},</span>
-            <span class="s2">"properties"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"name"</span><span class="p">:</span> <span class="s2">"London"</span><span class="p">},</span>
-        <span class="p">}</span>
-    <span class="p">],</span>
-<span class="p">}</span>
+<p><code>VectorLayer.data</code> accepts a GeoJSON Feature or FeatureCollection as either a
+Python dictionary or a serialized JSON string. This includes the string
+returned by <code>GeoDataFrame.to_json()</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">geojson_text</span> <span class="o">=</span> <span class="n">geodataframe</span><span class="o">.</span><span class="n">to_json</span><span class="p">()</span>
 
 <span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
     <span class="nb">id</span><span class="o">=</span><span class="s2">"map"</span><span class="p">,</span>
-    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="o">-</span><span class="mf">0.1</span><span class="p">,</span> <span class="mf">51.5</span><span class="p">],</span>
+    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
     <span class="n">zoom</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
-    <span class="n">children</span><span class="o">=</span><span class="p">[</span><span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"features"</span><span class="p">,</span> <span class="n">geojson</span><span class="o">=</span><span class="n">features</span><span class="p">)],</span>
+    <span class="n">children</span><span class="o">=</span><span class="p">[</span><span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"features"</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">geojson_text</span><span class="p">)],</span>
     <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
 <span class="p">)</span>
 </code></pre></div>
-<p><code>VectorLayer</code> can also read a WKT string with <code>wkt</code>. When both <code>wkt</code> and
-<code>geojson</code> are set, a non-empty <code>wkt</code> takes precedence. WKT coordinates use
-<code>[x, y]</code> order; by default they are interpreted as EPSG:4326 and transformed
-to the map projection, just like GeoJSON.</p>
+<p>For GeoJSON without embedded CRS metadata, coordinates default to EPSG:4326
+and are transformed into the map projection. Embedded CRS metadata, including
+GeoPandas <code>to_json()</code> output for projected data, is honored. <code>geojson</code> remains
+available as a backward-compatible object alias; <code>data</code> takes precedence when
+both are set. A non-empty <code>wkt</code> takes precedence over both. WKT coordinates use
+<code>[x, y]</code> order and default to EPSG:4326.</p>
+<p>GeoJSON feature properties can drive flat-style rules. The same layer can
+render points, lines, and polygons using rules that match a feature property:</p>
+<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span>
+    <span class="nb">id</span><span class="o">=</span><span class="s2">"styled-features"</span><span class="p">,</span>
+    <span class="n">data</span><span class="o">=</span><span class="n">geojson_text</span><span class="p">,</span>
+    <span class="n">style</span><span class="o">=</span><span class="p">[</span>
+        <span class="p">{</span>
+            <span class="s2">"filter"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"=="</span><span class="p">,</span> <span class="p">[</span><span class="s2">"get"</span><span class="p">,</span> <span class="s2">"category"</span><span class="p">],</span> <span class="s2">"site"</span><span class="p">],</span>
+            <span class="s2">"style"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"circle-radius"</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="s2">"circle-fill-color"</span><span class="p">:</span> <span class="s2">"#d66f41"</span><span class="p">},</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+            <span class="s2">"filter"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"=="</span><span class="p">,</span> <span class="p">[</span><span class="s2">"get"</span><span class="p">,</span> <span class="s2">"category"</span><span class="p">],</span> <span class="s2">"route"</span><span class="p">],</span>
+            <span class="s2">"style"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"stroke-color"</span><span class="p">:</span> <span class="s2">"#1f6a5e"</span><span class="p">,</span> <span class="s2">"stroke-width"</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+        <span class="p">},</span>
+        <span class="p">{</span>
+            <span class="s2">"else"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
+            <span class="s2">"style"</span><span class="p">:</span> <span class="p">{</span>
+                <span class="s2">"fill-color"</span><span class="p">:</span> <span class="s2">"rgba(31, 106, 94, 0.24)"</span><span class="p">,</span>
+                <span class="s2">"stroke-color"</span><span class="p">:</span> <span class="s2">"#1f6a5e"</span><span class="p">,</span>
+                <span class="s2">"stroke-width"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
+            <span class="p">},</span>
+        <span class="p">},</span>
+    <span class="p">],</span>
+<span class="p">)</span>
+</code></pre></div>
 <p>Draw and modify interactions keep their GeoJSON outputs and also publish WKT
 and TopoJSON:</p>
 <div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"wkt-feature"</span><span class="p">,</span> <span class="n">wkt</span><span class="o">=</span><span class="s2">"POINT (0 0)"</span><span class="p">)</span>

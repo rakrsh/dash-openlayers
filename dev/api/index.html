@@ -1403,16 +1403,22 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td>Dash component ID; also used by ModifyInteraction to target this vector layer.</td>
 </tr>
 <tr>
+<td><code>data</code></td>
+<td><code>string \| dict</code></td>
+<td><code>null</code></td>
+<td>GeoJSON Feature or FeatureCollection as an object or JSON string; embedded CRS metadata is honored, otherwise coordinates default to EPSG:4326. Takes precedence over geojson.</td>
+</tr>
+<tr>
 <td><code>geojson</code></td>
 <td><code>dict</code></td>
 <td><code>null</code></td>
-<td>GeoJSON Feature or FeatureCollection with coordinates in [longitude, latitude] order; updates are rendered in the map projection.</td>
+<td>Backward-compatible GeoJSON Feature or FeatureCollection object alias for data.</td>
 </tr>
 <tr>
 <td><code>wkt</code></td>
 <td><code>string</code></td>
 <td><code>null</code></td>
-<td>WKT geometry in [x, y] order; takes precedence over geojson when non-empty.</td>
+<td>WKT geometry in [x, y] order; takes precedence over data and geojson when non-empty.</td>
 </tr>
 <tr>
 <td><code>style</code></td>
