@@ -494,6 +494,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#webgl-points-for-large-datasets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebGL Points for Large Datasets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#wfs-and-wfs-t" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -680,6 +691,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#webgl-points-for-large-datasets" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebGL Points for Large Datasets
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#wfs-and-wfs-t" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -808,6 +830,46 @@ Decluttering is opt-in and does not change existing layer rendering by default.<
 <span class="p">)</span>
 </code></pre></div>
 <p>See <code>tests/demos/layer_control.py</code> for a runnable example with nearby points.</p>
+<h2 id="webgl-points-for-large-datasets">WebGL Points for Large Datasets</h2>
+<p>Use <code>WebGLPointsLayer</code> for GeoJSON point datasets that benefit from GPU-backed
+rendering. Its <code>style</code> prop uses OpenLayers' WebGL style expressions, which can
+derive color, size, and symbol shape from feature properties. The layer accepts
+GeoJSON as an object or JSON string; embedded CRS metadata is honored, with
+EPSG:4326 used when it is absent. WebGL styles are compiled when the layer is
+created, so changing <code>style</code> recreates the layer. Set <code>disableHitDetection=True</code>
+when feature hit detection is not needed for a small additional performance
+gain.</p>
+<div class="highlight"><pre><span></span><code><span class="n">webgl_style</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"shape-points"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"match"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"get"</span><span class="p">,</span> <span class="s2">"kind"</span><span class="p">],</span> <span class="s2">"station"</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>
+    <span class="s2">"shape-radius"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"interpolate"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"linear"</span><span class="p">],</span> <span class="p">[</span><span class="s2">"get"</span><span class="p">,</span> <span class="s2">"magnitude"</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">9</span><span class="p">],</span>
+    <span class="s2">"shape-fill-color"</span><span class="p">:</span> <span class="p">[</span>
+        <span class="s2">"match"</span><span class="p">,</span>
+        <span class="p">[</span><span class="s2">"get"</span><span class="p">,</span> <span class="s2">"kind"</span><span class="p">],</span>
+        <span class="s2">"station"</span><span class="p">,</span>
+        <span class="s2">"#d66f41"</span><span class="p">,</span>
+        <span class="s2">"incident"</span><span class="p">,</span>
+        <span class="s2">"#1f6a5e"</span><span class="p">,</span>
+        <span class="s2">"#284d78"</span><span class="p">,</span>
+    <span class="p">],</span>
+<span class="p">}</span>
+
+<span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
+    <span class="nb">id</span><span class="o">=</span><span class="s2">"large-points-map"</span><span class="p">,</span>
+    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">zoom</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">WebGLPointsLayer</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="s2">"large-points"</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">point_feature_collection</span><span class="p">,</span>
+            <span class="n">style</span><span class="o">=</span><span class="n">webgl_style</span><span class="p">,</span>
+            <span class="n">disableHitDetection</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+        <span class="p">)</span>
+    <span class="p">],</span>
+    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
+<span class="p">)</span>
+</code></pre></div>
+<p>See <code>usage_webgl_points_layer.py</code> for a runnable example that creates 20,000
+styled points. Use Point or MultiPoint geometries with this layer.</p>
 <p><code>TileWMS</code> requests tiled WMS images. <code>ImageWMS</code> requests one image for the map
 viewport. Both accept a WMS endpoint, request <code>params</code> (including <code>LAYERS</code>),
 and an optional <code>serverType</code> (<code>geoserver</code>, <code>mapserver</code>, <code>carmentaserver</code>, or
