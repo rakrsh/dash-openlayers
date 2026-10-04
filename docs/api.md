@@ -3,6 +3,24 @@
 This reference is generated from the component metadata used to build the Python wrappers.
 For runnable examples, see the [usage guide](usage.md).
 
+## `DrawControl`
+
+Provide interactive map tools for drawing and serializing spatial study areas.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | — | Component ID used to identify this drawing control and its callback outputs. |
+| `geometryTypes` | `list['Point' \| 'LineString' \| 'Polygon' \| 'Box']` | `['Point', 'LineString', 'Polygon', 'Box']` | Drawing modes displayed in the control: Point, LineString, Polygon, and Box (rectangle). |
+| `position` | `'top-left' \| 'top-right' \| 'bottom-left' \| 'bottom-right'` | `'top-left'` | Corner of the map where the drawing tools are displayed. |
+| `title` | `string` | `'Draw'` | Accessible toolbar label and visible heading. |
+| `drawnGeoJSON` | `dict` | — | Read-only GeoJSON Feature emitted only when geometry validation succeeds. |
+| `drawnWKT` | `string` | — | Read-only WKT geometry emitted only when geometry validation succeeds. |
+| `drawnTopoJSON` | `dict` | — | Read-only TopoJSON topology emitted only when geometry validation succeeds. |
+| `geometryValidation` | `dict` | — | Read-only validity, topology errors, and repair suggestions from the last draw. |
+| `snapToVertex` | `bool` | `true` | Whether drawing snaps to existing vector vertices. |
+| `snapToEdge` | `bool` | `true` | Whether drawing snaps to existing vector edges. |
+| `snapTolerance` | `number` | `10` | Maximum snap distance in screen pixels. |
+
 ## `DrawInteraction`
 
 Draw and validate OpenLayers features, then publish their serialized geometry to Dash.
@@ -10,7 +28,7 @@ Draw and validate OpenLayers features, then publish their serialized geometry to
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `id` | `string` | — | The ID used to identify this component in Dash callbacks. |
-| `geometryType` | `'Point' \| 'LineString' \| 'Polygon' \| 'Circle'` | `'Polygon'` | Geometry type drawn by this interaction. |
+| `geometryType` | `'Point' \| 'LineString' \| 'Polygon' \| 'Circle' \| 'Box'` | `'Polygon'` | Geometry type drawn by this interaction. |
 | `drawnGeoJSON` | `dict` | — | Read-only GeoJSON Feature emitted only when geometry validation succeeds. |
 | `drawnWKT` | `string` | — | Read-only WKT geometry emitted only when geometry validation succeeds. |
 | `drawnTopoJSON` | `dict` | — | Read-only TopoJSON topology emitted only when geometry validation succeeds. |

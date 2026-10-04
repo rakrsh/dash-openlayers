@@ -1,3 +1,4 @@
+from .DrawControl import DrawControl
 from .DrawInteraction import DrawInteraction
 from .LayerControl import LayerControl
 from .Map import Map
@@ -14,6 +15,7 @@ from .SelectInteraction import SelectInteraction
 from .WMTSLayer import WMTSLayer
 
 __all__ = [
+    "DrawControl",
     "DrawInteraction",
     "LayerControl",
     "Map",

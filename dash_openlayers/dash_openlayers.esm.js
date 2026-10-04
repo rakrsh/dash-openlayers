@@ -55129,6 +55129,41 @@ function getDefaultStyleFunction$2() {
 }
 
 /**
+ * Create a `geometryFunction` that will create a box-shaped polygon (aligned
+ * with the coordinate system axes).  Use this with the draw interaction and
+ * `type: 'Circle'` to return a box instead of a circle geometry.
+ * @return {GeometryFunction} Function that draws a box-shaped polygon.
+ * @api
+ */
+function createBox() {
+  return function (coordinates, geometry, projection) {
+    const extent = boundingExtent(
+      /** @type {LineCoordType} */ ([
+        coordinates[0],
+        coordinates[coordinates.length - 1],
+      ]).map(function (coordinate) {
+        return fromUserCoordinate(coordinate);
+      }),
+    );
+    const boxCoordinates = [
+      [
+        getBottomLeft(extent),
+        getBottomRight(extent),
+        getTopRight(extent),
+        getTopLeft(extent),
+        getBottomLeft(extent),
+      ],
+    ];
+    if (geometry) {
+      geometry.setCoordinates(boxCoordinates);
+    } else {
+      geometry = new Polygon(boxCoordinates);
+    }
+    return geometry;
+  };
+}
+
+/**
  * Get the drawing mode.  The mode for multi-part geometries is the same as for
  * their single-part cousins.
  * @param {import("../geom/Geometry.js").Type} type Geometry type.
@@ -61147,6 +61182,7 @@ var DrawInteraction = _ref => {
     setProps = _ref.setProps;
   var map = useMap();
   var setPropsRef = useRef(setProps);
+  var sourceRef = useRef(null);
   useEffect(() => {
     setPropsRef.current = setProps;
   }, [setProps]);
@@ -61157,12 +61193,26 @@ var DrawInteraction = _ref => {
       source
     });
     var history = getEditHistory(map);
+    sourceRef.current = source;
     vector.set('dashId', id);
     map.addLayer(vector);
-    var draw = new Draw({
-      source: source,
-      type: geometryType
-    });
+    return () => {
+      history.removeSource(source);
+      map.removeLayer(vector);
+      source.clear();
+      if (sourceRef.current === source) sourceRef.current = null;
+    };
+  }, [map, id]);
+  useEffect(() => {
+    var source = sourceRef.current;
+    if (!map || !source || !geometryType) return undefined;
+    var drawOptions = {
+      source,
+      type: geometryType === 'Box' ? 'Circle' : geometryType
+    };
+    if (geometryType === 'Box') drawOptions.geometryFunction = createBox();
+    var draw = new Draw(drawOptions);
+    var history = getEditHistory(map);
     map.addInteraction(draw);
     var drawEndListener = draw.on('drawend', evt => {
       var formatOptions = {
@@ -61224,17 +61274,17 @@ var DrawInteraction = _ref => {
     });
     return () => {
       unByKey(drawEndListener);
-      history.removeSource(source);
       map.removeInteraction(draw);
-      map.removeLayer(vector);
-      source.clear();
     };
-  }, [map, geometryType, id]);
-  useEffect(() => addSnapInteraction(map, {
-    snapToVertex,
-    snapToEdge,
-    snapTolerance
-  }), [map, id, geometryType, snapToVertex, snapToEdge, snapTolerance]);
+  }, [map, geometryType]);
+  useEffect(() => {
+    if (!geometryType) return undefined;
+    return addSnapInteraction(map, {
+      snapToVertex,
+      snapToEdge,
+      snapTolerance
+    });
+  }, [map, id, geometryType, snapToVertex, snapToEdge, snapTolerance]);
   return /*#__PURE__*/React$1.createElement("div", {
     style: {
       display: 'none'
@@ -61251,7 +61301,7 @@ DrawInteraction.propTypes = {
   /** The ID used to identify this component in Dash callbacks. */
   id: PropTypes.string,
   /** Geometry type drawn by this interaction. */
-  geometryType: PropTypes.oneOf(['Point', 'LineString', 'Polygon', 'Circle']),
+  geometryType: PropTypes.oneOf(['Point', 'LineString', 'Polygon', 'Circle', 'Box']),
   /** Whether drawing snaps to existing vector vertices. */
   snapToVertex: PropTypes.bool,
   /** Whether drawing snaps to existing vector edges. */
@@ -61271,6 +61321,168 @@ DrawInteraction.propTypes = {
     suggestions: PropTypes.arrayOf(PropTypes.string)
   }),
   /** Dash-supplied prop setter; internal, do not set from Python. */
+  setProps: PropTypes.func
+};
+
+var TOOL_LABELS = {
+  Point: 'Point',
+  LineString: 'Line',
+  Polygon: 'Polygon',
+  Box: 'Rectangle'
+};
+var DEFAULT_GEOMETRY_TYPES = ['Point', 'LineString', 'Polygon', 'Box'];
+
+/** Add map controls for drawing and serializing spatial study areas. */
+var DrawControl = _ref => {
+  var id = _ref.id,
+    _ref$geometryTypes = _ref.geometryTypes,
+    geometryTypes = _ref$geometryTypes === void 0 ? DEFAULT_GEOMETRY_TYPES : _ref$geometryTypes,
+    _ref$position = _ref.position,
+    position = _ref$position === void 0 ? 'top-left' : _ref$position,
+    _ref$title = _ref.title,
+    title = _ref$title === void 0 ? 'Draw' : _ref$title,
+    _ref$snapToVertex = _ref.snapToVertex,
+    snapToVertex = _ref$snapToVertex === void 0 ? true : _ref$snapToVertex,
+    _ref$snapToEdge = _ref.snapToEdge,
+    snapToEdge = _ref$snapToEdge === void 0 ? true : _ref$snapToEdge,
+    _ref$snapTolerance = _ref.snapTolerance,
+    snapTolerance = _ref$snapTolerance === void 0 ? 10 : _ref$snapTolerance,
+    setProps = _ref.setProps;
+  var map = useMap();
+  var controlElementRef = React$1.useRef(null);
+  var _useState = useState(null),
+    _useState2 = _slicedToArray(_useState, 2),
+    activeGeometryType = _useState2[0],
+    setActiveGeometryType = _useState2[1];
+  useEffect(() => {
+    if (!map) return undefined;
+    var element = document.createElement('div');
+    var toolbar = document.createElement('div');
+    toolbar.setAttribute('role', 'toolbar');
+    toolbar.setAttribute('aria-label', title);
+    Object.assign(toolbar.style, {
+      display: 'flex',
+      flexWrap: 'wrap',
+      gap: '4px',
+      alignItems: 'center'
+    });
+    element.className = 'ol-control ol-unselectable';
+    Object.assign(element.style, Object.fromEntries(position.split('-').map(side => [side, '0.5em'])), {
+      maxWidth: 'min(320px, calc(100% - 1em))',
+      padding: '6px',
+      color: '#182522',
+      background: 'rgba(255, 255, 255, 0.96)',
+      border: '1px solid #778581',
+      borderRadius: '4px',
+      boxShadow: '0 2px 8px rgba(20, 35, 31, 0.18)'
+    });
+    if (title) {
+      var heading = document.createElement('span');
+      heading.textContent = title;
+      Object.assign(heading.style, {
+        margin: '0 4px',
+        fontSize: '13px',
+        fontWeight: '600'
+      });
+      toolbar.appendChild(heading);
+    }
+    var buttonListeners = [];
+    geometryTypes.forEach(geometryType => {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.dataset.geometryType = geometryType;
+      button.setAttribute('aria-label', "Draw ".concat(TOOL_LABELS[geometryType]));
+      button.setAttribute('aria-pressed', 'false');
+      button.title = "Draw ".concat(TOOL_LABELS[geometryType]);
+      button.textContent = TOOL_LABELS[geometryType];
+      Object.assign(button.style, {
+        minHeight: '32px',
+        padding: '4px 8px',
+        color: '#182522',
+        background: '#ffffff',
+        border: '1px solid #778581',
+        borderRadius: '3px',
+        cursor: 'pointer'
+      });
+      var listener = () => {
+        setActiveGeometryType(current => current === geometryType ? null : geometryType);
+      };
+      button.addEventListener('click', listener);
+      buttonListeners.push([button, listener]);
+      toolbar.appendChild(button);
+    });
+    element.appendChild(toolbar);
+    var control = new Control({
+      element
+    });
+    map.addControl(control);
+    controlElementRef.current = element;
+    return () => {
+      map.removeControl(control);
+      buttonListeners.forEach(_ref2 => {
+        var _ref3 = _slicedToArray(_ref2, 2),
+          button = _ref3[0],
+          listener = _ref3[1];
+        return button.removeEventListener('click', listener);
+      });
+      controlElementRef.current = null;
+    };
+  }, [map, position, title, geometryTypes]);
+  useEffect(() => {
+    var _controlElementRef$cu, _controlElementRef$cu2;
+    var buttons = (_controlElementRef$cu = (_controlElementRef$cu2 = controlElementRef.current) === null || _controlElementRef$cu2 === void 0 ? void 0 : _controlElementRef$cu2.querySelectorAll('button[data-geometry-type]')) !== null && _controlElementRef$cu !== void 0 ? _controlElementRef$cu : [];
+    buttons.forEach(button => {
+      var isActive = button.dataset.geometryType === activeGeometryType;
+      button.setAttribute('aria-pressed', String(isActive));
+      button.style.color = isActive ? '#ffffff' : '#182522';
+      button.style.background = isActive ? '#1f6a5e' : '#ffffff';
+    });
+  }, [activeGeometryType]);
+  return /*#__PURE__*/React$1.createElement(React$1.Fragment, null, /*#__PURE__*/React$1.createElement(DrawInteraction, {
+    id: id ? "".concat(id, "-interaction") : undefined,
+    geometryType: activeGeometryType,
+    snapToVertex: snapToVertex,
+    snapToEdge: snapToEdge,
+    snapTolerance: snapTolerance,
+    setProps: setProps
+  }));
+};
+DrawControl.defaultProps = {
+  geometryTypes: DEFAULT_GEOMETRY_TYPES,
+  position: 'top-left',
+  title: 'Draw',
+  snapToVertex: true,
+  snapToEdge: true,
+  snapTolerance: 10
+};
+DrawControl.propTypes = {
+  /** Component ID used to identify this drawing control and its callback outputs. */
+  id: PropTypes.string,
+  /** Drawing modes displayed in the control: Point, LineString, Polygon, and Box (rectangle). */
+  geometryTypes: PropTypes.arrayOf(PropTypes.oneOf(['Point', 'LineString', 'Polygon', 'Box'])),
+  /** Corner of the map where the drawing tools are displayed. */
+  position: PropTypes.oneOf(['top-left', 'top-right', 'bottom-left', 'bottom-right']),
+  /** Accessible toolbar label and visible heading. */
+  title: PropTypes.string,
+  /** Whether drawing snaps to existing vector vertices. */
+  snapToVertex: PropTypes.bool,
+  /** Whether drawing snaps to existing vector edges. */
+  snapToEdge: PropTypes.bool,
+  /** Maximum snap distance in screen pixels. */
+  snapTolerance: PropTypes.number,
+  /** Read-only: GeoJSON Feature emitted only when geometry validation succeeds. */
+  drawnGeoJSON: PropTypes.object,
+  /** Read-only: WKT geometry emitted only when geometry validation succeeds. */
+  drawnWKT: PropTypes.string,
+  /** Read-only: TopoJSON topology emitted only when geometry validation succeeds. */
+  drawnTopoJSON: PropTypes.object,
+  /** Read-only: validity, topology errors, and repair suggestions from the last draw. */
+  geometryValidation: PropTypes.shape({
+    valid: PropTypes.bool,
+    errors: PropTypes.arrayOf(PropTypes.object),
+    suggestions: PropTypes.arrayOf(PropTypes.string)
+  }),
+  /** Dash-supplied callback used to write component state back to the layout. */
   setProps: PropTypes.func
 };
 
@@ -84461,4 +84673,4 @@ WMTSLayer.propTypes = {
   setProps: PropTypes.func
 };
 
-export { DrawInteraction, ImageWMSLayer as ImageWMS, LayerControl, MapComponent as Map, ModifyInteraction, OLContext, Popup, SelectInteraction, TileLayer, TileWMSLayer as TileWMS, VectorLayerComponent as VectorLayer, VectorTileLayer, WFSLayer, WMTSLayer, WebGLPointsLayerComponent as WebGLPointsLayer, exportFeature, exportFeatures, readFeatures };
+export { DrawControl, DrawInteraction, ImageWMSLayer as ImageWMS, LayerControl, MapComponent as Map, ModifyInteraction, OLContext, Popup, SelectInteraction, TileLayer, TileWMSLayer as TileWMS, VectorLayerComponent as VectorLayer, VectorTileLayer, WFSLayer, WMTSLayer, WebGLPointsLayerComponent as WebGLPointsLayer, exportFeature, exportFeatures, readFeatures };

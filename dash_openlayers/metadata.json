@@ -1,4 +1,158 @@
 {
+  "src/lib/components/DrawControl.react.js": {
+    "description": "Provide interactive map tools for drawing and serializing spatial study areas.",
+    "displayName": "DrawControl",
+    "methods": [],
+    "props": {
+      "id": {
+        "type": {
+          "name": "string"
+        },
+        "required": false,
+        "description": "Component ID used to identify this drawing control and its callback outputs."
+      },
+      "geometryTypes": {
+        "type": {
+          "name": "arrayOf",
+          "value": {
+            "name": "enum",
+            "value": [
+              {
+                "value": "'Point'",
+                "computed": false
+              },
+              {
+                "value": "'LineString'",
+                "computed": false
+              },
+              {
+                "value": "'Polygon'",
+                "computed": false
+              },
+              {
+                "value": "'Box'",
+                "computed": false
+              }
+            ]
+          }
+        },
+        "required": false,
+        "description": "Drawing modes displayed in the control: Point, LineString, Polygon, and Box (rectangle).",
+        "defaultValue": {
+          "value": "['Point', 'LineString', 'Polygon', 'Box']",
+          "computed": false
+        }
+      },
+      "position": {
+        "type": {
+          "name": "enum",
+          "value": [
+            {
+              "value": "'top-left'",
+              "computed": false
+            },
+            {
+              "value": "'top-right'",
+              "computed": false
+            },
+            {
+              "value": "'bottom-left'",
+              "computed": false
+            },
+            {
+              "value": "'bottom-right'",
+              "computed": false
+            }
+          ]
+        },
+        "required": false,
+        "description": "Corner of the map where the drawing tools are displayed.",
+        "defaultValue": {
+          "value": "'top-left'",
+          "computed": false
+        }
+      },
+      "title": {
+        "type": {
+          "name": "string"
+        },
+        "required": false,
+        "description": "Accessible toolbar label and visible heading.",
+        "defaultValue": {
+          "value": "'Draw'",
+          "computed": false
+        }
+      },
+      "drawnGeoJSON": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Read-only GeoJSON Feature emitted only when geometry validation succeeds."
+      },
+      "drawnWKT": {
+        "type": {
+          "name": "string"
+        },
+        "required": false,
+        "description": "Read-only WKT geometry emitted only when geometry validation succeeds."
+      },
+      "drawnTopoJSON": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Read-only TopoJSON topology emitted only when geometry validation succeeds."
+      },
+      "geometryValidation": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Read-only validity, topology errors, and repair suggestions from the last draw."
+      },
+      "snapToVertex": {
+        "type": {
+          "name": "bool"
+        },
+        "required": false,
+        "description": "Whether drawing snaps to existing vector vertices.",
+        "defaultValue": {
+          "value": "true",
+          "computed": false
+        }
+      },
+      "snapToEdge": {
+        "type": {
+          "name": "bool"
+        },
+        "required": false,
+        "description": "Whether drawing snaps to existing vector edges.",
+        "defaultValue": {
+          "value": "true",
+          "computed": false
+        }
+      },
+      "snapTolerance": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Maximum snap distance in screen pixels.",
+        "defaultValue": {
+          "value": "10",
+          "computed": false
+        }
+      },
+      "setProps": {
+        "type": {
+          "name": "func"
+        },
+        "required": false,
+        "description": "Dash-supplied callback used to write component state back to the layout."
+      }
+    }
+  },
   "src/lib/components/DrawInteraction.react.js": {
     "description": "Draw and validate OpenLayers features, then publish their serialized geometry to Dash.",
     "displayName": "DrawInteraction",
@@ -29,6 +183,10 @@
             },
             {
               "value": "'Circle'",
+              "computed": false
+            },
+            {
+              "value": "'Box'",
               "computed": false
             }
           ]

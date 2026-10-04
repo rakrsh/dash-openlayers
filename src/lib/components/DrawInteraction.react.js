@@ -1,7 +1,7 @@
 import React from 'react';
 import { useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
-import Draw from 'ol/interaction/Draw';
+import Draw, { createBox } from 'ol/interaction/Draw';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
 import GeoJSON from 'ol/format/GeoJSON';
@@ -22,6 +22,7 @@ const DrawInteraction = ({
 }) => {
   const map = useMap();
   const setPropsRef = useRef(setProps);
+  const sourceRef = useRef(null);
 
   useEffect(() => {
     setPropsRef.current = setProps;
@@ -33,14 +34,30 @@ const DrawInteraction = ({
     const source = new VectorSource();
     const vector = new VectorLayer({ source });
     const history = getEditHistory(map);
+    sourceRef.current = source;
     vector.set('dashId', id);
     map.addLayer(vector);
 
-    const draw = new Draw({
-      source: source,
-      type: geometryType,
-    });
+    return () => {
+      history.removeSource(source);
+      map.removeLayer(vector);
+      source.clear();
+      if (sourceRef.current === source) sourceRef.current = null;
+    };
+  }, [map, id]);
 
+  useEffect(() => {
+    const source = sourceRef.current;
+    if (!map || !source || !geometryType) return undefined;
+
+    const drawOptions = {
+      source,
+      type: geometryType === 'Box' ? 'Circle' : geometryType,
+    };
+    if (geometryType === 'Box') drawOptions.geometryFunction = createBox();
+
+    const draw = new Draw(drawOptions);
+    const history = getEditHistory(map);
     map.addInteraction(draw);
 
     const drawEndListener = draw.on('drawend', (evt) => {
@@ -108,17 +125,14 @@ const DrawInteraction = ({
 
     return () => {
       unByKey(drawEndListener);
-      history.removeSource(source);
       map.removeInteraction(draw);
-      map.removeLayer(vector);
-      source.clear();
     };
-  }, [map, geometryType, id]);
+  }, [map, geometryType]);
 
-  useEffect(
-    () => addSnapInteraction(map, { snapToVertex, snapToEdge, snapTolerance }),
-    [map, id, geometryType, snapToVertex, snapToEdge, snapTolerance],
-  );
+  useEffect(() => {
+    if (!geometryType) return undefined;
+    return addSnapInteraction(map, { snapToVertex, snapToEdge, snapTolerance });
+  }, [map, id, geometryType, snapToVertex, snapToEdge, snapTolerance]);
 
   return <div style={{ display: 'none' }} />;
 };
@@ -134,7 +148,7 @@ DrawInteraction.propTypes = {
   /** The ID used to identify this component in Dash callbacks. */
   id: PropTypes.string,
   /** Geometry type drawn by this interaction. */
-  geometryType: PropTypes.oneOf(['Point', 'LineString', 'Polygon', 'Circle']),
+  geometryType: PropTypes.oneOf(['Point', 'LineString', 'Polygon', 'Circle', 'Box']),
   /** Whether drawing snaps to existing vector vertices. */
   snapToVertex: PropTypes.bool,
   /** Whether drawing snaps to existing vector edges. */
