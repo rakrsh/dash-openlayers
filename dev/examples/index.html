@@ -10,11 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://rakrsh.github.io/dash-openlayers/dev/testing/">
+        <link rel="canonical" href="https://rakrsh.github.io/dash-openlayers/dev/examples/">
       
       
-        <link rel="prev" href="../architecture/">
+        <link rel="prev" href="../quickstart/">
       
+      
+        <link rel="next" href="../api/">
       
       
         
@@ -25,7 +27,7 @@
     
     
       
-        <title>Testing - dash-openlayers</title>
+        <title>Examples - dash-openlayers</title>
       
     
     
@@ -76,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#testing" class="md-skip">
+        <a href="#example-gallery" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Testing
+              Examples
             
           </span>
         </div>
@@ -276,9 +278,11 @@
   
   
   
+    
   
-    <li class="md-tabs__item">
-      <a href="../examples/" class="md-tabs__link">
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
         
   
   
@@ -333,11 +337,9 @@
   
   
   
-    
   
-  
-    <li class="md-tabs__item md-tabs__item--active">
-      <a href="./" class="md-tabs__link">
+    <li class="md-tabs__item">
+      <a href="../testing/" class="md-tabs__link">
         
   
   
@@ -480,10 +482,37 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../examples/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -499,6 +528,98 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#setup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Setup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#applications" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Applications
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Applications">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-tile-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Tile Map
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#geopandas-choropleth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GeoPandas Choropleth
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spatial-filter-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spatial Filter Dashboard
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -561,37 +682,10 @@
       
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Testing
-  
-
-    
-  </span>
-  
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../testing/" class="md-nav__link">
         
   
   
@@ -607,59 +701,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#requirements" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Requirements
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#run-tests" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Run tests
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#manual-demo-apps" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Manual demo apps
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -691,10 +732,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#requirements" class="md-nav__link">
+  <a href="#setup" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Requirements
+        Setup
       
     </span>
   </a>
@@ -702,21 +743,60 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#run-tests" class="md-nav__link">
+  <a href="#applications" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Run tests
+        Applications
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Applications">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic-tile-map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic Tile Map
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#manual-demo-apps" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#geopandas-choropleth" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Manual demo apps
+        GeoPandas Choropleth
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#spatial-filter-dashboard" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Spatial Filter Dashboard
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Data Flow
       
     </span>
   </a>
@@ -743,39 +823,61 @@
   
 
 
-<h1 id="testing">Testing</h1>
-<h2 id="requirements">Requirements</h2>
-<p>Install the development dependencies with <code>uv sync</code>. Browser tests require a
-Chrome-compatible browser; <code>tests/conftest.py</code> installs the matching ChromeDriver.
-On Linux, run browser tests under Xvfb when no display is available.</p>
-<h2 id="run-tests">Run tests</h2>
-<p>Run the fast Python wrapper tests with the required coverage threshold:</p>
-<pre><code class="language-bash">uv run pytest -q tests/unit --cov=dash_openlayers --cov-report=term --cov-fail-under=80
+<h1 id="example-gallery">Example Gallery</h1>
+<p>These complete Dash applications progress from a basic tile map to
+GeoPandas-based styling and callback-driven spatial analysis. The full source,
+per-example requirements, and run instructions are available in the
+<a href="https://github.com/rakrsh/dash-openlayers/tree/main/examples">repository's <code>examples/</code> directory</a>.</p>
+<h2 id="setup">Setup</h2>
+<p>Use Python 3.10 or newer. From a source checkout, install the library and the
+requirements for the selected example:</p>
+<pre><code class="language-bash">python -m pip install -e .
+python -m pip install -r examples/basic_tile_map/requirements.txt
+python examples/basic_tile_map/app.py
 </code></pre>
-<p>Run the Selenium integration and end-to-end tests:</p>
-<pre><code class="language-bash"># Linux headless
-xvfb-run -s &quot;-screen 0 1280x1024x24&quot; uv run pytest -q tests/integration
-
-# Windows or a machine with a display
-uv run pytest -q tests/integration
-</code></pre>
-<p>Generate a combined coverage report after running both test groups:</p>
-<pre><code class="language-bash">uv run pytest -q tests/unit --cov=dash_openlayers --cov-report=term --cov-fail-under=80
-uv run pytest -q tests/integration --cov=dash_openlayers --cov-append --cov-report=term
-uv run coverage xml -o coverage.xml
-uv run coverage html -d coverage/html
-</code></pre>
-<p>Coverage measures the Python Dash wrapper package. The browser tests exercise
-the bundled React/OpenLayers behavior through Dash callbacks; JavaScript source
-coverage is not currently collected.</p>
-<h2 id="manual-demo-apps">Manual demo apps</h2>
-<p>Run an app from the repository root to inspect component behavior in a browser:</p>
-<pre><code class="language-bash">uv run python tests/demos/simple_map.py
-uv run python tests/demos/draw_demo.py
-uv run python tests/demos/projection_demo.py
-</code></pre>
-<p>The simple map reports click coordinates, the draw demo displays emitted
-GeoJSON, and the projection demo opens a British National Grid view.</p>
+<p>For a published package, replace the editable install with
+<code>python -m pip install dash-openlayers</code>. The choropleth and spatial-filter apps
+install GeoPandas or Shapely only for their own use cases; neither is a
+dependency of <code>dash-openlayers</code>. All maps use OpenStreetMap tiles, so the
+browser needs network access to the tile provider.</p>
+<h2 id="applications">Applications</h2>
+<h3 id="basic-tile-map">Basic Tile Map</h3>
+<p>Uses the built-in OSM source and reports the most recent map click in a Dash
+callback. Its view is EPSG:4326 and its center is provided in
+<code>[longitude, latitude]</code> order.</p>
+<ul>
+<li><a href="https://github.com/rakrsh/dash-openlayers/blob/main/examples/basic_tile_map/app.py">App source</a></li>
+<li><a href="https://github.com/rakrsh/dash-openlayers/blob/main/examples/basic_tile_map/README.md">Setup and usage</a></li>
+</ul>
+<h3 id="geopandas-choropleth">GeoPandas Choropleth</h3>
+<p>Builds a GeoDataFrame of sample polygons, serializes it to a GeoJSON
+FeatureCollection, and uses feature properties in an OpenLayers style
+expression. Its sample data is generated in Python, so no external boundary
+file or data download is required.</p>
+<ul>
+<li><a href="https://github.com/rakrsh/dash-openlayers/blob/main/examples/geopandas_choropleth/app.py">App source</a></li>
+<li><a href="https://github.com/rakrsh/dash-openlayers/blob/main/examples/geopandas_choropleth/README.md">Setup and usage</a></li>
+</ul>
+<h3 id="spatial-filter-dashboard">Spatial Filter Dashboard</h3>
+<p>Offers Polygon and Rectangle drawing tools. A completed geometry arrives in a
+Dash callback, Shapely filters a point FeatureCollection, and the callback
+updates the vector layer and match count.</p>
+<ul>
+<li><a href="https://github.com/rakrsh/dash-openlayers/blob/main/examples/spatial_filter_dashboard/app.py">App source</a></li>
+<li><a href="https://github.com/rakrsh/dash-openlayers/blob/main/examples/spatial_filter_dashboard/data.py">Sample data</a></li>
+<li><a href="https://github.com/rakrsh/dash-openlayers/blob/main/examples/spatial_filter_dashboard/README.md">Setup and usage</a></li>
+</ul>
+<h2 id="data-flow">Data Flow</h2>
+<ol>
+<li>Python declares the map, layers, styles, and drawing tools.</li>
+<li>The generated Dash wrappers serialize component props to the React frontend.</li>
+<li>React creates and cleans up OpenLayers maps, layers, and interactions.</li>
+<li>OpenLayers renders the map and emits events such as clicks or completed drawings.</li>
+<li>React sends event values to Dash with <code>setProps</code>; Python callbacks can update layer props.</li>
+</ol>
+<p>OpenLayers coordinates use <code>[x, y]</code> order. For EPSG:4326, GeoJSON coordinates
+are <code>[longitude, latitude]</code>; the drawing and selection examples also exchange
+GeoJSON in EPSG:4326.</p>
 
 
 

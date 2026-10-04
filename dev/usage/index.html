@@ -282,6 +282,25 @@
   
   
     <li class="md-tabs__item">
+      <a href="../examples/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Examples
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
       <a href="../api/" class="md-tabs__link">
         
   
@@ -568,6 +587,33 @@
   
   
     <li class="md-nav__item">
+      <a href="../examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../api/" class="md-nav__link">
         
   
@@ -746,80 +792,80 @@
 <h1 id="usage">Usage</h1>
 <p><code>TileLayer</code> supports the built-in OpenStreetMap source and custom XYZ tile URL
 templates:</p>
-<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
-    <span class="nb">id</span><span class="o">=</span><span class="s2">"map"</span><span class="p">,</span>
-    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="n">zoom</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">TileLayer</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="s2">"OSM"</span><span class="p">),</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">TileLayer</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="s2">"https://tiles.example.com/</span><span class="si">{z}</span><span class="s2">/</span><span class="si">{x}</span><span class="s2">/</span><span class="si">{y}</span><span class="s2">.png"</span><span class="p">),</span>
-    <span class="p">],</span>
-    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
-<span class="p">)</span>
-</code></pre></div>
+<pre><code class="language-python">dol.Map(
+    id=&quot;map&quot;,
+    center=[0, 0],
+    zoom=2,
+    children=[
+        dol.TileLayer(source=&quot;OSM&quot;),
+        dol.TileLayer(url=&quot;https://tiles.example.com/{z}/{x}/{y}.png&quot;),
+    ],
+    style={&quot;height&quot;: &quot;500px&quot;},
+)
+</code></pre>
 <p>Add a <code>SelectInteraction</code> to a map to select vector features on click. Its
 read-only <code>selectedFeature</code> prop contains the first selected GeoJSON Feature,
 including its properties and geometry in EPSG:4326; it becomes <code>None</code> when
 selection is cleared. <code>selectedGeoJSON</code> remains available for the full
 selection, while <code>Map.clickData</code> independently reports click coordinates:</p>
-<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
-    <span class="nb">id</span><span class="o">=</span><span class="s2">"map"</span><span class="p">,</span>
-    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"points"</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">point_feature_collection</span><span class="p">),</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">SelectInteraction</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"select"</span><span class="p">,</span> <span class="n">layerId</span><span class="o">=</span><span class="s2">"points"</span><span class="p">),</span>
-    <span class="p">],</span>
-<span class="p">)</span>
+<pre><code class="language-python">dol.Map(
+    id=&quot;map&quot;,
+    children=[
+        dol.VectorLayer(id=&quot;points&quot;, data=point_feature_collection),
+        dol.SelectInteraction(id=&quot;select&quot;, layerId=&quot;points&quot;),
+    ],
+)
 
 
-<span class="nd">@app</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">Output</span><span class="p">(</span><span class="s2">"feature-details"</span><span class="p">,</span> <span class="s2">"children"</span><span class="p">),</span> <span class="n">Input</span><span class="p">(</span><span class="s2">"select"</span><span class="p">,</span> <span class="s2">"selectedFeature"</span><span class="p">))</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">show_feature</span><span class="p">(</span><span class="n">feature</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">feature</span><span class="p">[</span><span class="s2">"properties"</span><span class="p">],</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="k">if</span> <span class="n">feature</span> <span class="k">else</span> <span class="s2">"Select a feature"</span>
-</code></pre></div>
+@app.callback(Output(&quot;feature-details&quot;, &quot;children&quot;), Input(&quot;select&quot;, &quot;selectedFeature&quot;))
+def show_feature(feature):
+    return json.dumps(feature[&quot;properties&quot;], indent=2) if feature else &quot;Select a feature&quot;
+</code></pre>
 <h2 id="popups">Popups</h2>
 <p>Add <code>Popup</code> as a <code>Map</code> child to render Dash content at a coordinate. The
 coordinate uses <code>[x, y]</code> units in the map view projection. Set <code>position</code> to
 <code>None</code> to hide the popup; <code>autoPan=True</code> keeps it in view when it is positioned.
 Use <code>className</code> or <code>style</code> to customize the popup content.</p>
-<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
-    <span class="nb">id</span><span class="o">=</span><span class="s2">"popup-map"</span><span class="p">,</span>
-    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="n">zoom</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">TileLayer</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="s2">"OSM"</span><span class="p">),</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">Popup</span><span class="p">(</span>
-            <span class="nb">id</span><span class="o">=</span><span class="s2">"place-popup"</span><span class="p">,</span>
-            <span class="n">position</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-            <span class="n">positioning</span><span class="o">=</span><span class="s2">"bottom-center"</span><span class="p">,</span>
-            <span class="n">offset</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">12</span><span class="p">],</span>
-            <span class="n">autoPan</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-            <span class="n">className</span><span class="o">=</span><span class="s2">"place-popup"</span><span class="p">,</span>
-            <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"backgroundColor"</span><span class="p">:</span> <span class="s2">"white"</span><span class="p">,</span> <span class="s2">"padding"</span><span class="p">:</span> <span class="s2">"8px 12px"</span><span class="p">},</span>
-            <span class="n">children</span><span class="o">=</span><span class="n">html</span><span class="o">.</span><span class="n">Div</span><span class="p">([</span><span class="n">html</span><span class="o">.</span><span class="n">Strong</span><span class="p">(</span><span class="s2">"Null Island"</span><span class="p">),</span> <span class="n">html</span><span class="o">.</span><span class="n">P</span><span class="p">(</span><span class="s2">"0, 0"</span><span class="p">)]),</span>
-        <span class="p">),</span>
-    <span class="p">],</span>
-    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
-<span class="p">)</span>
-</code></pre></div>
+<pre><code class="language-python">dol.Map(
+    id=&quot;popup-map&quot;,
+    center=[0, 0],
+    zoom=2,
+    children=[
+        dol.TileLayer(source=&quot;OSM&quot;),
+        dol.Popup(
+            id=&quot;place-popup&quot;,
+            position=[0, 0],
+            positioning=&quot;bottom-center&quot;,
+            offset=[0, -12],
+            autoPan=True,
+            className=&quot;place-popup&quot;,
+            style={&quot;backgroundColor&quot;: &quot;white&quot;, &quot;padding&quot;: &quot;8px 12px&quot;},
+            children=html.Div([html.Strong(&quot;Null Island&quot;), html.P(&quot;0, 0&quot;)]),
+        ),
+    ],
+    style={&quot;height&quot;: &quot;500px&quot;},
+)
+</code></pre>
 <p>Add <code>LayerControl</code> as a child of <code>Map</code> to toggle visibility, adjust opacity,
 and change the drawing order of declarative layer components. Layers are
 identified by their component <code>id</code>; interaction-owned temporary layers are
 not listed. <code>Up</code> moves a layer above the managed layers below it, and <code>Down</code>
 moves it lower in the stack.</p>
-<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
-    <span class="nb">id</span><span class="o">=</span><span class="s2">"controlled-map"</span><span class="p">,</span>
-    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="n">zoom</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">TileLayer</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"basemap"</span><span class="p">,</span> <span class="n">source</span><span class="o">=</span><span class="s2">"OSM"</span><span class="p">),</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span>
-            <span class="nb">id</span><span class="o">=</span><span class="s2">"observations"</span><span class="p">,</span>
-            <span class="n">geojson</span><span class="o">=</span><span class="p">{</span><span class="s2">"type"</span><span class="p">:</span> <span class="s2">"FeatureCollection"</span><span class="p">,</span> <span class="s2">"features"</span><span class="p">:</span> <span class="p">[]},</span>
-        <span class="p">),</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">LayerControl</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"layer-control"</span><span class="p">,</span> <span class="n">position</span><span class="o">=</span><span class="s2">"top-right"</span><span class="p">,</span> <span class="n">title</span><span class="o">=</span><span class="s2">"Map layers"</span><span class="p">),</span>
-    <span class="p">],</span>
-    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
-<span class="p">)</span>
-</code></pre></div>
+<pre><code class="language-python">dol.Map(
+    id=&quot;controlled-map&quot;,
+    center=[0, 0],
+    zoom=2,
+    children=[
+        dol.TileLayer(id=&quot;basemap&quot;, source=&quot;OSM&quot;),
+        dol.VectorLayer(
+            id=&quot;observations&quot;,
+            geojson={&quot;type&quot;: &quot;FeatureCollection&quot;, &quot;features&quot;: []},
+        ),
+        dol.LayerControl(id=&quot;layer-control&quot;, position=&quot;top-right&quot;, title=&quot;Map layers&quot;),
+    ],
+    style={&quot;height&quot;: &quot;500px&quot;},
+)
+</code></pre>
 <p>The control's <code>position</code> can be <code>top-left</code>, <code>top-right</code>, <code>bottom-left</code>, or
 <code>bottom-right</code>.</p>
 <h2 id="point-clustering-and-decluttering">Point Clustering and Decluttering</h2>
@@ -833,20 +879,20 @@ When clustering is enabled, use Point geometries in that layer.</p>
 layer. A string such as <code>declutter="map-labels"</code> groups layers that should
 declutter together; layers with different group names are handled separately.
 Decluttering is opt-in and does not change existing layer rendering by default.</p>
-<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span>
-    <span class="nb">id</span><span class="o">=</span><span class="s2">"city-sites"</span><span class="p">,</span>
-    <span class="n">geojson</span><span class="o">=</span><span class="n">city_site_points</span><span class="p">,</span>
-    <span class="n">clusterDistance</span><span class="o">=</span><span class="mi">40</span><span class="p">,</span>
-    <span class="n">clusterMinDistance</span><span class="o">=</span><span class="mi">12</span><span class="p">,</span>
-    <span class="n">declutter</span><span class="o">=</span><span class="s2">"place-labels"</span><span class="p">,</span>
-    <span class="n">style</span><span class="o">=</span><span class="p">{</span>
-        <span class="s2">"circle-radius"</span><span class="p">:</span> <span class="mi">5</span><span class="p">,</span>
-        <span class="s2">"circle-fill-color"</span><span class="p">:</span> <span class="s2">"#d66f41"</span><span class="p">,</span>
-        <span class="s2">"text-value"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"get"</span><span class="p">,</span> <span class="s2">"name"</span><span class="p">],</span>
-        <span class="s2">"text-offset-y"</span><span class="p">:</span> <span class="o">-</span><span class="mi">12</span><span class="p">,</span>
-    <span class="p">},</span>
-<span class="p">)</span>
-</code></pre></div>
+<pre><code class="language-python">dol.VectorLayer(
+    id=&quot;city-sites&quot;,
+    geojson=city_site_points,
+    clusterDistance=40,
+    clusterMinDistance=12,
+    declutter=&quot;place-labels&quot;,
+    style={
+        &quot;circle-radius&quot;: 5,
+        &quot;circle-fill-color&quot;: &quot;#d66f41&quot;,
+        &quot;text-value&quot;: [&quot;get&quot;, &quot;name&quot;],
+        &quot;text-offset-y&quot;: -12,
+    },
+)
+</code></pre>
 <p>See <code>tests/demos/layer_control.py</code> for a runnable example with nearby points.</p>
 <h2 id="webgl-points-for-large-datasets">WebGL Points for Large Datasets</h2>
 <p>Use <code>WebGLPointsLayer</code> for GeoJSON point datasets that benefit from GPU-backed
@@ -857,35 +903,35 @@ EPSG:4326 used when it is absent. WebGL styles are compiled when the layer is
 created, so changing <code>style</code> recreates the layer. Set <code>disableHitDetection=True</code>
 when feature hit detection is not needed for a small additional performance
 gain.</p>
-<div class="highlight"><pre><span></span><code><span class="n">webgl_style</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">"shape-points"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"match"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"get"</span><span class="p">,</span> <span class="s2">"kind"</span><span class="p">],</span> <span class="s2">"station"</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="mi">4</span><span class="p">],</span>
-    <span class="s2">"shape-radius"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"interpolate"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"linear"</span><span class="p">],</span> <span class="p">[</span><span class="s2">"get"</span><span class="p">,</span> <span class="s2">"magnitude"</span><span class="p">],</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">10</span><span class="p">,</span> <span class="mi">9</span><span class="p">],</span>
-    <span class="s2">"shape-fill-color"</span><span class="p">:</span> <span class="p">[</span>
-        <span class="s2">"match"</span><span class="p">,</span>
-        <span class="p">[</span><span class="s2">"get"</span><span class="p">,</span> <span class="s2">"kind"</span><span class="p">],</span>
-        <span class="s2">"station"</span><span class="p">,</span>
-        <span class="s2">"#d66f41"</span><span class="p">,</span>
-        <span class="s2">"incident"</span><span class="p">,</span>
-        <span class="s2">"#1f6a5e"</span><span class="p">,</span>
-        <span class="s2">"#284d78"</span><span class="p">,</span>
-    <span class="p">],</span>
-<span class="p">}</span>
+<pre><code class="language-python">webgl_style = {
+    &quot;shape-points&quot;: [&quot;match&quot;, [&quot;get&quot;, &quot;kind&quot;], &quot;station&quot;, 5, 4],
+    &quot;shape-radius&quot;: [&quot;interpolate&quot;, [&quot;linear&quot;], [&quot;get&quot;, &quot;magnitude&quot;], 0, 3, 10, 9],
+    &quot;shape-fill-color&quot;: [
+        &quot;match&quot;,
+        [&quot;get&quot;, &quot;kind&quot;],
+        &quot;station&quot;,
+        &quot;#d66f41&quot;,
+        &quot;incident&quot;,
+        &quot;#1f6a5e&quot;,
+        &quot;#284d78&quot;,
+    ],
+}
 
-<span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
-    <span class="nb">id</span><span class="o">=</span><span class="s2">"large-points-map"</span><span class="p">,</span>
-    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="n">zoom</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
-    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">WebGLPointsLayer</span><span class="p">(</span>
-            <span class="nb">id</span><span class="o">=</span><span class="s2">"large-points"</span><span class="p">,</span>
-            <span class="n">data</span><span class="o">=</span><span class="n">point_feature_collection</span><span class="p">,</span>
-            <span class="n">style</span><span class="o">=</span><span class="n">webgl_style</span><span class="p">,</span>
-            <span class="n">disableHitDetection</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="p">],</span>
-    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
-<span class="p">)</span>
-</code></pre></div>
+dol.Map(
+    id=&quot;large-points-map&quot;,
+    center=[0, 0],
+    zoom=5,
+    children=[
+        dol.WebGLPointsLayer(
+            id=&quot;large-points&quot;,
+            data=point_feature_collection,
+            style=webgl_style,
+            disableHitDetection=True,
+        )
+    ],
+    style={&quot;height&quot;: &quot;500px&quot;},
+)
+</code></pre>
 <p>See <code>usage_webgl_points_layer.py</code> for a runnable example that creates 20,000
 styled points. Use Point or MultiPoint geometries with this layer.</p>
 <p><code>TileWMS</code> requests tiled WMS images. <code>ImageWMS</code> requests one image for the map
@@ -893,27 +939,27 @@ viewport. Both accept a WMS endpoint, request <code>params</code> (including <co
 and an optional <code>serverType</code> (<code>geoserver</code>, <code>mapserver</code>, <code>carmentaserver</code>, or
 <code>qgis</code>). Changing the <code>params</code> prop calls OpenLayers <code>updateParams</code>, causing the
 source to request the updated layer:</p>
-<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
-    <span class="nb">id</span><span class="o">=</span><span class="s2">"wms-map"</span><span class="p">,</span>
-    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="n">zoom</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">TileWMS</span><span class="p">(</span>
-            <span class="nb">id</span><span class="o">=</span><span class="s2">"roads-wms"</span><span class="p">,</span>
-            <span class="n">url</span><span class="o">=</span><span class="s2">"https://maps.example.com/geoserver/wms"</span><span class="p">,</span>
-            <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">"LAYERS"</span><span class="p">:</span> <span class="s2">"workspace:roads"</span><span class="p">,</span> <span class="s2">"STYLES"</span><span class="p">:</span> <span class="s2">""</span><span class="p">},</span>
-            <span class="n">serverType</span><span class="o">=</span><span class="s2">"geoserver"</span><span class="p">,</span>
-        <span class="p">),</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">ImageWMS</span><span class="p">(</span>
-            <span class="nb">id</span><span class="o">=</span><span class="s2">"boundaries-wms"</span><span class="p">,</span>
-            <span class="n">url</span><span class="o">=</span><span class="s2">"https://maps.example.com/geoserver/wms"</span><span class="p">,</span>
-            <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">"LAYERS"</span><span class="p">:</span> <span class="s2">"workspace:boundaries"</span><span class="p">,</span> <span class="s2">"STYLES"</span><span class="p">:</span> <span class="s2">""</span><span class="p">},</span>
-            <span class="n">serverType</span><span class="o">=</span><span class="s2">"geoserver"</span><span class="p">,</span>
-        <span class="p">),</span>
-    <span class="p">],</span>
-    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
-<span class="p">)</span>
-</code></pre></div>
+<pre><code class="language-python">dol.Map(
+    id=&quot;wms-map&quot;,
+    center=[0, 0],
+    zoom=2,
+    children=[
+        dol.TileWMS(
+            id=&quot;roads-wms&quot;,
+            url=&quot;https://maps.example.com/geoserver/wms&quot;,
+            params={&quot;LAYERS&quot;: &quot;workspace:roads&quot;, &quot;STYLES&quot;: &quot;&quot;},
+            serverType=&quot;geoserver&quot;,
+        ),
+        dol.ImageWMS(
+            id=&quot;boundaries-wms&quot;,
+            url=&quot;https://maps.example.com/geoserver/wms&quot;,
+            params={&quot;LAYERS&quot;: &quot;workspace:boundaries&quot;, &quot;STYLES&quot;: &quot;&quot;},
+            serverType=&quot;geoserver&quot;,
+        ),
+    ],
+    style={&quot;height&quot;: &quot;500px&quot;},
+)
+</code></pre>
 <p>For dynamic layer switching, update the full <code>params</code> object from a Dash
 callback, for example <code>Output("roads-wms", "params")</code>. WMS servers must allow
 cross-origin requests from the Dash app's origin.</p>
@@ -921,30 +967,30 @@ cross-origin requests from the Dash app's origin.</p>
 Use <code>urls</code> instead of <code>url</code> to supply multiple templates for load balancing.
 The <code>style</code> prop is an OpenLayers flat-style object, not a Mapbox GL style
 document:</p>
-<div class="highlight"><pre><span></span><code><span class="n">vector_style</span> <span class="o">=</span> <span class="p">{</span>
-    <span class="s2">"fill-color"</span><span class="p">:</span> <span class="s2">"rgba(31, 106, 94, 0.24)"</span><span class="p">,</span>
-    <span class="s2">"stroke-color"</span><span class="p">:</span> <span class="s2">"#1f6a5e"</span><span class="p">,</span>
-    <span class="s2">"stroke-width"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-    <span class="s2">"circle-radius"</span><span class="p">:</span> <span class="mi">3</span><span class="p">,</span>
-    <span class="s2">"circle-fill-color"</span><span class="p">:</span> <span class="s2">"#d66f41"</span><span class="p">,</span>
-<span class="p">}</span>
+<pre><code class="language-python">vector_style = {
+    &quot;fill-color&quot;: &quot;rgba(31, 106, 94, 0.24)&quot;,
+    &quot;stroke-color&quot;: &quot;#1f6a5e&quot;,
+    &quot;stroke-width&quot;: 1,
+    &quot;circle-radius&quot;: 3,
+    &quot;circle-fill-color&quot;: &quot;#d66f41&quot;,
+}
 
-<span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
-    <span class="nb">id</span><span class="o">=</span><span class="s2">"vector-map"</span><span class="p">,</span>
-    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="n">zoom</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">VectorTileLayer</span><span class="p">(</span>
-            <span class="nb">id</span><span class="o">=</span><span class="s2">"vector-tiles"</span><span class="p">,</span>
-            <span class="n">url</span><span class="o">=</span><span class="s2">"https://tiles.openfreemap.org/planet/</span><span class="si">{z}</span><span class="s2">/</span><span class="si">{x}</span><span class="s2">/</span><span class="si">{y}</span><span class="s2">.pbf"</span><span class="p">,</span>
-            <span class="n">projection</span><span class="o">=</span><span class="s2">"EPSG:3857"</span><span class="p">,</span>
-            <span class="n">attributions</span><span class="o">=</span><span class="s2">"© OpenFreeMap, © OpenStreetMap contributors"</span><span class="p">,</span>
-            <span class="n">style</span><span class="o">=</span><span class="n">vector_style</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="p">],</span>
-    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
-<span class="p">)</span>
-</code></pre></div>
+dol.Map(
+    id=&quot;vector-map&quot;,
+    center=[0, 0],
+    zoom=2,
+    children=[
+        dol.VectorTileLayer(
+            id=&quot;vector-tiles&quot;,
+            url=&quot;https://tiles.openfreemap.org/planet/{z}/{x}/{y}.pbf&quot;,
+            projection=&quot;EPSG:3857&quot;,
+            attributions=&quot;© OpenFreeMap, © OpenStreetMap contributors&quot;,
+            style=vector_style,
+        )
+    ],
+    style={&quot;height&quot;: &quot;500px&quot;},
+)
+</code></pre>
 <p>The <code>projection</code> prop describes the tile source's projection and defaults to
 <code>EPSG:3857</code>. It must match the CRS and tile grid advertised by the MVT server.
 OpenLayers transforms source coordinates for the map view when the required
@@ -957,25 +1003,25 @@ See <code>tests/demos/vector_tile_demo.py</code> for a runnable styled example.<
 tile grid, matrix set, style, and request URLs. Set <code>layer</code> to the advertised
 identifier; provide <code>matrixSet</code> or <code>projection</code> when the service offers more
 than one option. The capabilities endpoint must allow browser CORS access:</p>
-<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
-    <span class="nb">id</span><span class="o">=</span><span class="s2">"wmts-map"</span><span class="p">,</span>
-    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="n">zoom</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">WMTSLayer</span><span class="p">(</span>
-            <span class="nb">id</span><span class="o">=</span><span class="s2">"basemap-wmts"</span><span class="p">,</span>
-            <span class="n">url</span><span class="o">=</span><span class="s2">"https://tiles.example.com/wmts?SERVICE=WMTS&amp;REQUEST=GetCapabilities"</span><span class="p">,</span>
-            <span class="n">layer</span><span class="o">=</span><span class="s2">"example:basemap"</span><span class="p">,</span>
-            <span class="n">matrixSet</span><span class="o">=</span><span class="s2">"EPSG:3857"</span><span class="p">,</span>
-            <span class="n">projection</span><span class="o">=</span><span class="s2">"EPSG:3857"</span><span class="p">,</span>
-            <span class="n">style</span><span class="o">=</span><span class="s2">"default"</span><span class="p">,</span>
-            <span class="nb">format</span><span class="o">=</span><span class="s2">"image/png"</span><span class="p">,</span>
-            <span class="n">requestEncoding</span><span class="o">=</span><span class="s2">"KVP"</span><span class="p">,</span>
-        <span class="p">)</span>
-    <span class="p">],</span>
-    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
-<span class="p">)</span>
-</code></pre></div>
+<pre><code class="language-python">dol.Map(
+    id=&quot;wmts-map&quot;,
+    center=[0, 0],
+    zoom=2,
+    children=[
+        dol.WMTSLayer(
+            id=&quot;basemap-wmts&quot;,
+            url=&quot;https://tiles.example.com/wmts?SERVICE=WMTS&amp;REQUEST=GetCapabilities&quot;,
+            layer=&quot;example:basemap&quot;,
+            matrixSet=&quot;EPSG:3857&quot;,
+            projection=&quot;EPSG:3857&quot;,
+            style=&quot;default&quot;,
+            format=&quot;image/png&quot;,
+            requestEncoding=&quot;KVP&quot;,
+        )
+    ],
+    style={&quot;height&quot;: &quot;500px&quot;},
+)
+</code></pre>
 <p>See <code>tests/demos/wmts_demo.py</code> for a complete example.</p>
 <h2 id="wfs-and-wfs-t">WFS and WFS-T</h2>
 <p><code>WFSLayer</code> sends a browser-side WFS <code>GetFeature</code> request and reads its GeoJSON
@@ -983,23 +1029,23 @@ response into an editable vector source. Set <code>url</code> and <code>typeName
 <code>version</code>, <code>srsName</code>, <code>outputFormat</code>, and <code>params</code> for service-specific
 requests. <code>params</code> can carry server-supported filters and limits. The endpoint
 must allow CORS, return GeoJSON, and use coordinates compatible with <code>srsName</code>.</p>
-<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
-    <span class="nb">id</span><span class="o">=</span><span class="s2">"wfs-map"</span><span class="p">,</span>
-    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="n">zoom</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
-    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">WFSLayer</span><span class="p">(</span>
-            <span class="nb">id</span><span class="o">=</span><span class="s2">"places"</span><span class="p">,</span>
-            <span class="n">url</span><span class="o">=</span><span class="s2">"https://maps.example.com/geoserver/wfs"</span><span class="p">,</span>
-            <span class="n">typeNames</span><span class="o">=</span><span class="s2">"workspace:places"</span><span class="p">,</span>
-            <span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s2">"count"</span><span class="p">:</span> <span class="mi">100</span><span class="p">},</span>
-        <span class="p">),</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">ModifyInteraction</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"modify-places"</span><span class="p">,</span> <span class="n">layerId</span><span class="o">=</span><span class="s2">"places"</span><span class="p">),</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">SelectInteraction</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"select-places"</span><span class="p">,</span> <span class="n">layerId</span><span class="o">=</span><span class="s2">"places"</span><span class="p">),</span>
-    <span class="p">],</span>
-    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
-<span class="p">)</span>
-</code></pre></div>
+<pre><code class="language-python">dol.Map(
+    id=&quot;wfs-map&quot;,
+    center=[0, 0],
+    zoom=2,
+    children=[
+        dol.WFSLayer(
+            id=&quot;places&quot;,
+            url=&quot;https://maps.example.com/geoserver/wfs&quot;,
+            typeNames=&quot;workspace:places&quot;,
+            params={&quot;count&quot;: 100},
+        ),
+        dol.ModifyInteraction(id=&quot;modify-places&quot;, layerId=&quot;places&quot;),
+        dol.SelectInteraction(id=&quot;select-places&quot;, layerId=&quot;places&quot;),
+    ],
+    style={&quot;height&quot;: &quot;500px&quot;},
+)
+</code></pre>
 <p><code>featureCount</code> and <code>loadError</code> report the latest request outcome. <code>WFSLayer</code>
 only reads features; it does not submit WFS-T transactions. The demo
 <code>tests/demos/wfs_demo.py</code> shows an explicit application-owned WFS-T callback
@@ -1015,37 +1061,37 @@ filter to the schema and WFS version supported by your server.</p>
 in <code>selectedGeoJSON</code>. Use <code>layerId</code> to restrict selection to a specific layer;
 omit it to allow selection from all map layers. Coordinates are transformed to
 EPSG:4326 for the callback payload.</p>
-<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
-    <span class="nb">id</span><span class="o">=</span><span class="s2">"map"</span><span class="p">,</span>
-    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">10</span><span class="p">,</span> <span class="mi">45</span><span class="p">],</span>
-    <span class="n">zoom</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
-    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">TileLayer</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="s2">"OSM"</span><span class="p">),</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"places"</span><span class="p">,</span> <span class="n">geojson</span><span class="o">=</span><span class="n">features</span><span class="p">),</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">SelectInteraction</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"selection"</span><span class="p">,</span> <span class="n">layerId</span><span class="o">=</span><span class="s2">"places"</span><span class="p">),</span>
-    <span class="p">],</span>
-    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
-<span class="p">)</span>
+<pre><code class="language-python">dol.Map(
+    id=&quot;map&quot;,
+    center=[10, 45],
+    zoom=5,
+    children=[
+        dol.TileLayer(source=&quot;OSM&quot;),
+        dol.VectorLayer(id=&quot;places&quot;, geojson=features),
+        dol.SelectInteraction(id=&quot;selection&quot;, layerId=&quot;places&quot;),
+    ],
+    style={&quot;height&quot;: &quot;500px&quot;},
+)
 
 
-<span class="nd">@app</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">Output</span><span class="p">(</span><span class="s2">"selected"</span><span class="p">,</span> <span class="s2">"children"</span><span class="p">),</span> <span class="n">Input</span><span class="p">(</span><span class="s2">"selection"</span><span class="p">,</span> <span class="s2">"selectedGeoJSON"</span><span class="p">))</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">show_selection</span><span class="p">(</span><span class="n">selection</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">selection</span><span class="p">)</span> <span class="k">if</span> <span class="n">selection</span> <span class="k">else</span> <span class="s2">"Select a feature"</span>
-</code></pre></div>
+@app.callback(Output(&quot;selected&quot;, &quot;children&quot;), Input(&quot;selection&quot;, &quot;selectedGeoJSON&quot;))
+def show_selection(selection):
+    return json.dumps(selection) if selection else &quot;Select a feature&quot;
+</code></pre>
 <p>Add a <code>ModifyInteraction</code> beside a <code>VectorLayer</code> to drag feature vertices.
 Pass the vector layer's Dash <code>id</code> as <code>layerId</code>; <code>modifiedGeoJSON</code> receives the
 updated FeatureCollection after each completed edit:</p>
-<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
-    <span class="nb">id</span><span class="o">=</span><span class="s2">"map"</span><span class="p">,</span>
-    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="n">zoom</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>
-    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"editable"</span><span class="p">,</span> <span class="n">geojson</span><span class="o">=</span><span class="n">features</span><span class="p">),</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">ModifyInteraction</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"modify"</span><span class="p">,</span> <span class="n">layerId</span><span class="o">=</span><span class="s2">"editable"</span><span class="p">),</span>
-    <span class="p">],</span>
-    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
-<span class="p">)</span>
-</code></pre></div>
+<pre><code class="language-python">dol.Map(
+    id=&quot;map&quot;,
+    center=[0, 0],
+    zoom=4,
+    children=[
+        dol.VectorLayer(id=&quot;editable&quot;, geojson=features),
+        dol.ModifyInteraction(id=&quot;modify&quot;, layerId=&quot;editable&quot;),
+    ],
+    style={&quot;height&quot;: &quot;500px&quot;},
+)
+</code></pre>
 <p>Use <code>Input("modify", "modifiedGeoJSON")</code> in a Dash callback to receive the
 edited FeatureCollection.</p>
 <p>Draw and Modify snap to vertices and edges from mounted <code>VectorLayer</code> sources
@@ -1058,24 +1104,24 @@ the geometry is restored and the edit is not added to undo history. Read the
 last result from <code>geometryValidation</code>; setting <code>preserveTopology=False</code> allows
 the edit. This check is per feature and does not enforce adjacency, overlap, or
 coverage rules between separate features.</p>
-<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">ModifyInteraction</span><span class="p">(</span>
-    <span class="nb">id</span><span class="o">=</span><span class="s2">"modify"</span><span class="p">,</span>
-    <span class="n">layerId</span><span class="o">=</span><span class="s2">"editable"</span><span class="p">,</span>
-    <span class="n">snapToVertex</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-    <span class="n">snapToEdge</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
-    <span class="n">snapTolerance</span><span class="o">=</span><span class="mi">16</span><span class="p">,</span>
-    <span class="n">preserveTopology</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="p">)</span>
-</code></pre></div>
+<pre><code class="language-python">dol.ModifyInteraction(
+    id=&quot;modify&quot;,
+    layerId=&quot;editable&quot;,
+    snapToVertex=True,
+    snapToEdge=False,
+    snapTolerance=16,
+    preserveTopology=True,
+)
+</code></pre>
 <p>Subscribe to the validation result with <code>Input("modify", "geometryValidation")</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">dash</span><span class="w"> </span><span class="kn">import</span> <span class="n">Input</span><span class="p">,</span> <span class="n">Output</span>
+<pre><code class="language-python">import json
+from dash import Input, Output
 
 
-<span class="nd">@app</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">Output</span><span class="p">(</span><span class="s2">"validation-output"</span><span class="p">,</span> <span class="s2">"children"</span><span class="p">),</span> <span class="n">Input</span><span class="p">(</span><span class="s2">"modify"</span><span class="p">,</span> <span class="s2">"geometryValidation"</span><span class="p">))</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">show_edit_validation</span><span class="p">(</span><span class="n">result</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">result</span><span class="p">)</span> <span class="k">if</span> <span class="n">result</span> <span class="k">else</span> <span class="s2">""</span>
-</code></pre></div>
+@app.callback(Output(&quot;validation-output&quot;, &quot;children&quot;), Input(&quot;modify&quot;, &quot;geometryValidation&quot;))
+def show_edit_validation(result):
+    return json.dumps(result) if result else &quot;&quot;
+</code></pre>
 <p>For runnable examples with vector snap targets and validation outputs, see
 <code>tests/demos/draw_demo.py</code> and <code>tests/demos/wfs_demo.py</code>. The browser rollback
 case is covered in <code>tests/integration/test_simple_map_integration.py</code>.</p>
@@ -1083,46 +1129,46 @@ case is covered in <code>tests/integration/test_simple_map_integration.py</code>
 the map with <code>undo=0</code> and <code>redo=0</code>, then increment a command counter to execute
 an operation. <code>canUndo</code> and <code>canRedo</code> are read-only outputs you can use to
 disable buttons:</p>
-<div class="highlight"><pre><span></span><code><span class="kn">from</span><span class="w"> </span><span class="nn">dash</span><span class="w"> </span><span class="kn">import</span> <span class="n">Input</span><span class="p">,</span> <span class="n">Output</span><span class="p">,</span> <span class="n">State</span>
+<pre><code class="language-python">from dash import Input, Output, State
 
 
-<span class="nd">@app</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span>
-    <span class="n">Output</span><span class="p">(</span><span class="s2">"map"</span><span class="p">,</span> <span class="s2">"undo"</span><span class="p">),</span>
-    <span class="n">Input</span><span class="p">(</span><span class="s2">"undo-button"</span><span class="p">,</span> <span class="s2">"n_clicks"</span><span class="p">),</span>
-    <span class="n">State</span><span class="p">(</span><span class="s2">"map"</span><span class="p">,</span> <span class="s2">"undo"</span><span class="p">),</span>
-    <span class="n">prevent_initial_call</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">request_undo</span><span class="p">(</span><span class="n">clicks</span><span class="p">,</span> <span class="n">command</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">command</span> <span class="o">+</span> <span class="mi">1</span>
+@app.callback(
+    Output(&quot;map&quot;, &quot;undo&quot;),
+    Input(&quot;undo-button&quot;, &quot;n_clicks&quot;),
+    State(&quot;map&quot;, &quot;undo&quot;),
+    prevent_initial_call=True,
+)
+def request_undo(clicks, command):
+    return command + 1
 
 
-<span class="nd">@app</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span>
-    <span class="n">Output</span><span class="p">(</span><span class="s2">"map"</span><span class="p">,</span> <span class="s2">"redo"</span><span class="p">),</span>
-    <span class="n">Input</span><span class="p">(</span><span class="s2">"redo-button"</span><span class="p">,</span> <span class="s2">"n_clicks"</span><span class="p">),</span>
-    <span class="n">State</span><span class="p">(</span><span class="s2">"map"</span><span class="p">,</span> <span class="s2">"redo"</span><span class="p">),</span>
-    <span class="n">prevent_initial_call</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-<span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">request_redo</span><span class="p">(</span><span class="n">clicks</span><span class="p">,</span> <span class="n">command</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">command</span> <span class="o">+</span> <span class="mi">1</span>
+@app.callback(
+    Output(&quot;map&quot;, &quot;redo&quot;),
+    Input(&quot;redo-button&quot;, &quot;n_clicks&quot;),
+    State(&quot;map&quot;, &quot;redo&quot;),
+    prevent_initial_call=True,
+)
+def request_redo(clicks, command):
+    return command + 1
 
 
-<span class="nd">@app</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">Output</span><span class="p">(</span><span class="s2">"undo-button"</span><span class="p">,</span> <span class="s2">"disabled"</span><span class="p">),</span> <span class="n">Input</span><span class="p">(</span><span class="s2">"map"</span><span class="p">,</span> <span class="s2">"canUndo"</span><span class="p">))</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">disable_undo</span><span class="p">(</span><span class="n">can_undo</span><span class="p">):</span>
-    <span class="k">return</span> <span class="ow">not</span> <span class="n">can_undo</span>
-</code></pre></div>
+@app.callback(Output(&quot;undo-button&quot;, &quot;disabled&quot;), Input(&quot;map&quot;, &quot;canUndo&quot;))
+def disable_undo(can_undo):
+    return not can_undo
+</code></pre>
 <p><code>VectorLayer.data</code> accepts a GeoJSON Feature or FeatureCollection as either a
 Python dictionary or a serialized JSON string. This includes the string
 returned by <code>GeoDataFrame.to_json()</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="n">geojson_text</span> <span class="o">=</span> <span class="n">geodataframe</span><span class="o">.</span><span class="n">to_json</span><span class="p">()</span>
+<pre><code class="language-python">geojson_text = geodataframe.to_json()
 
-<span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
-    <span class="nb">id</span><span class="o">=</span><span class="s2">"map"</span><span class="p">,</span>
-    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="n">zoom</span><span class="o">=</span><span class="mi">8</span><span class="p">,</span>
-    <span class="n">children</span><span class="o">=</span><span class="p">[</span><span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"features"</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">geojson_text</span><span class="p">)],</span>
-    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
-<span class="p">)</span>
-</code></pre></div>
+dol.Map(
+    id=&quot;map&quot;,
+    center=[0, 0],
+    zoom=8,
+    children=[dol.VectorLayer(id=&quot;features&quot;, data=geojson_text)],
+    style={&quot;height&quot;: &quot;500px&quot;},
+)
+</code></pre>
 <p>For GeoJSON without embedded CRS metadata, coordinates default to EPSG:4326
 and are transformed into the map projection. Embedded CRS metadata, including
 GeoPandas <code>to_json()</code> output for projected data, is honored. <code>geojson</code> remains
@@ -1131,47 +1177,47 @@ both are set. A non-empty <code>wkt</code> takes precedence over both. WKT coord
 <code>[x, y]</code> order and default to EPSG:4326.</p>
 <p>GeoJSON feature properties can drive flat-style rules. The same layer can
 render points, lines, and polygons using rules that match a feature property:</p>
-<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span>
-    <span class="nb">id</span><span class="o">=</span><span class="s2">"styled-features"</span><span class="p">,</span>
-    <span class="n">data</span><span class="o">=</span><span class="n">geojson_text</span><span class="p">,</span>
-    <span class="n">style</span><span class="o">=</span><span class="p">[</span>
-        <span class="p">{</span>
-            <span class="s2">"filter"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"=="</span><span class="p">,</span> <span class="p">[</span><span class="s2">"get"</span><span class="p">,</span> <span class="s2">"category"</span><span class="p">],</span> <span class="s2">"site"</span><span class="p">],</span>
-            <span class="s2">"style"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"circle-radius"</span><span class="p">:</span> <span class="mi">6</span><span class="p">,</span> <span class="s2">"circle-fill-color"</span><span class="p">:</span> <span class="s2">"#d66f41"</span><span class="p">},</span>
-        <span class="p">},</span>
-        <span class="p">{</span>
-            <span class="s2">"filter"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"=="</span><span class="p">,</span> <span class="p">[</span><span class="s2">"get"</span><span class="p">,</span> <span class="s2">"category"</span><span class="p">],</span> <span class="s2">"route"</span><span class="p">],</span>
-            <span class="s2">"style"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"stroke-color"</span><span class="p">:</span> <span class="s2">"#1f6a5e"</span><span class="p">,</span> <span class="s2">"stroke-width"</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
-        <span class="p">},</span>
-        <span class="p">{</span>
-            <span class="s2">"else"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-            <span class="s2">"style"</span><span class="p">:</span> <span class="p">{</span>
-                <span class="s2">"fill-color"</span><span class="p">:</span> <span class="s2">"rgba(31, 106, 94, 0.24)"</span><span class="p">,</span>
-                <span class="s2">"stroke-color"</span><span class="p">:</span> <span class="s2">"#1f6a5e"</span><span class="p">,</span>
-                <span class="s2">"stroke-width"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
-            <span class="p">},</span>
-        <span class="p">},</span>
-    <span class="p">],</span>
-<span class="p">)</span>
-</code></pre></div>
+<pre><code class="language-python">dol.VectorLayer(
+    id=&quot;styled-features&quot;,
+    data=geojson_text,
+    style=[
+        {
+            &quot;filter&quot;: [&quot;==&quot;, [&quot;get&quot;, &quot;category&quot;], &quot;site&quot;],
+            &quot;style&quot;: {&quot;circle-radius&quot;: 6, &quot;circle-fill-color&quot;: &quot;#d66f41&quot;},
+        },
+        {
+            &quot;filter&quot;: [&quot;==&quot;, [&quot;get&quot;, &quot;category&quot;], &quot;route&quot;],
+            &quot;style&quot;: {&quot;stroke-color&quot;: &quot;#1f6a5e&quot;, &quot;stroke-width&quot;: 3},
+        },
+        {
+            &quot;else&quot;: True,
+            &quot;style&quot;: {
+                &quot;fill-color&quot;: &quot;rgba(31, 106, 94, 0.24)&quot;,
+                &quot;stroke-color&quot;: &quot;#1f6a5e&quot;,
+                &quot;stroke-width&quot;: 2,
+            },
+        },
+    ],
+)
+</code></pre>
 <p>Draw and modify interactions keep their GeoJSON outputs and also publish WKT
 and TopoJSON:</p>
-<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"wkt-feature"</span><span class="p">,</span> <span class="n">wkt</span><span class="o">=</span><span class="s2">"POINT (0 0)"</span><span class="p">)</span>
+<pre><code class="language-python">dol.VectorLayer(id=&quot;wkt-feature&quot;, wkt=&quot;POINT (0 0)&quot;)
 
-<span class="n">dol</span><span class="o">.</span><span class="n">DrawInteraction</span><span class="p">(</span>
-    <span class="nb">id</span><span class="o">=</span><span class="s2">"draw"</span><span class="p">,</span>
-    <span class="n">geometryType</span><span class="o">=</span><span class="s2">"Point"</span><span class="p">,</span>
-<span class="p">)</span>
+dol.DrawInteraction(
+    id=&quot;draw&quot;,
+    geometryType=&quot;Point&quot;,
+)
 
 
-<span class="nd">@app</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span>
-    <span class="n">Output</span><span class="p">(</span><span class="s2">"formats"</span><span class="p">,</span> <span class="s2">"children"</span><span class="p">),</span>
-    <span class="n">Input</span><span class="p">(</span><span class="s2">"draw"</span><span class="p">,</span> <span class="s2">"drawnWKT"</span><span class="p">),</span>
-    <span class="n">Input</span><span class="p">(</span><span class="s2">"draw"</span><span class="p">,</span> <span class="s2">"drawnTopoJSON"</span><span class="p">),</span>
-<span class="p">)</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">show_formats</span><span class="p">(</span><span class="n">wkt</span><span class="p">,</span> <span class="n">topojson</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">({</span><span class="s2">"wkt"</span><span class="p">:</span> <span class="n">wkt</span><span class="p">,</span> <span class="s2">"topojson"</span><span class="p">:</span> <span class="n">topojson</span><span class="p">})</span> <span class="k">if</span> <span class="n">wkt</span> <span class="k">else</span> <span class="s2">""</span>
-</code></pre></div>
+@app.callback(
+    Output(&quot;formats&quot;, &quot;children&quot;),
+    Input(&quot;draw&quot;, &quot;drawnWKT&quot;),
+    Input(&quot;draw&quot;, &quot;drawnTopoJSON&quot;),
+)
+def show_formats(wkt, topojson):
+    return json.dumps({&quot;wkt&quot;: wkt, &quot;topojson&quot;: topojson}) if wkt else &quot;&quot;
+</code></pre>
 <p>For a modified feature, the corresponding properties are <code>modifiedGeoJSON</code>,
 <code>modifiedWKT</code>, and <code>modifiedTopoJSON</code>. GeoJSON properties contain a Feature
 or FeatureCollection; TopoJSON properties contain a Topology object. TopoJSON
@@ -1184,49 +1230,49 @@ fields. Pass OpenLayers <code>dataProjection</code> and <code>featureProjection<
 reading or writing coordinates in projections other than EPSG:4326.</p>
 <p>Pass a JSON-serializable OpenLayers flat style to <code>VectorLayer.style</code>. Flat
 styles use OpenLayers keys such as <code>icon-src</code>, <code>fill-color</code>, and <code>stroke-width</code>:</p>
-<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span>
-    <span class="nb">id</span><span class="o">=</span><span class="s2">"styled-features"</span><span class="p">,</span>
-    <span class="n">geojson</span><span class="o">=</span><span class="n">features</span><span class="p">,</span>
-    <span class="n">style</span><span class="o">=</span><span class="p">{</span>
-        <span class="s2">"icon-src"</span><span class="p">:</span> <span class="s2">"https://openlayers.org/en/latest/examples/data/icon.png"</span><span class="p">,</span>
-        <span class="s2">"icon-scale"</span><span class="p">:</span> <span class="mf">0.7</span><span class="p">,</span>
-        <span class="s2">"fill-color"</span><span class="p">:</span> <span class="s2">"rgba(31, 106, 94, 0.24)"</span><span class="p">,</span>
-        <span class="s2">"stroke-color"</span><span class="p">:</span> <span class="s2">"#1f6a5e"</span><span class="p">,</span>
-        <span class="s2">"stroke-width"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
-    <span class="p">},</span>
-<span class="p">)</span>
-</code></pre></div>
+<pre><code class="language-python">dol.VectorLayer(
+    id=&quot;styled-features&quot;,
+    geojson=features,
+    style={
+        &quot;icon-src&quot;: &quot;https://openlayers.org/en/latest/examples/data/icon.png&quot;,
+        &quot;icon-scale&quot;: 0.7,
+        &quot;fill-color&quot;: &quot;rgba(31, 106, 94, 0.24)&quot;,
+        &quot;stroke-color&quot;: &quot;#1f6a5e&quot;,
+        &quot;stroke-width&quot;: 2,
+    },
+)
+</code></pre>
 <p>Use a rule array with a <code>resolution</code> expression to vary styles by map scale.
 An <code>else</code> rule applies only when no earlier filter matches:</p>
-<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span>
-    <span class="nb">id</span><span class="o">=</span><span class="s2">"scale-styled-features"</span><span class="p">,</span>
-    <span class="n">geojson</span><span class="o">=</span><span class="n">features</span><span class="p">,</span>
-    <span class="n">style</span><span class="o">=</span><span class="p">[</span>
-        <span class="p">{</span>
-            <span class="s2">"filter"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"&lt;"</span><span class="p">,</span> <span class="p">[</span><span class="s2">"resolution"</span><span class="p">],</span> <span class="mi">2500</span><span class="p">],</span>
-            <span class="s2">"style"</span><span class="p">:</span> <span class="p">{</span>
-                <span class="s2">"icon-src"</span><span class="p">:</span> <span class="s2">"https://openlayers.org/en/latest/examples/data/icon.png"</span><span class="p">,</span>
-                <span class="s2">"icon-scale"</span><span class="p">:</span> <span class="mf">0.7</span><span class="p">,</span>
-                <span class="s2">"fill-color"</span><span class="p">:</span> <span class="s2">"rgba(31, 106, 94, 0.24)"</span><span class="p">,</span>
-                <span class="s2">"stroke-color"</span><span class="p">:</span> <span class="s2">"#1f6a5e"</span><span class="p">,</span>
-                <span class="s2">"stroke-width"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span>
-            <span class="p">},</span>
-        <span class="p">},</span>
-        <span class="p">{</span>
-            <span class="s2">"else"</span><span class="p">:</span> <span class="kc">True</span><span class="p">,</span>
-            <span class="s2">"style"</span><span class="p">:</span> <span class="p">{</span>
-                <span class="s2">"circle-radius"</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
-                <span class="s2">"circle-fill-color"</span><span class="p">:</span> <span class="s2">"#d66f41"</span><span class="p">,</span>
-                <span class="s2">"circle-stroke-color"</span><span class="p">:</span> <span class="s2">"#ffffff"</span><span class="p">,</span>
-                <span class="s2">"circle-stroke-width"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-                <span class="s2">"fill-color"</span><span class="p">:</span> <span class="s2">"rgba(214, 111, 65, 0.18)"</span><span class="p">,</span>
-                <span class="s2">"stroke-color"</span><span class="p">:</span> <span class="s2">"#b34a36"</span><span class="p">,</span>
-                <span class="s2">"stroke-width"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span>
-            <span class="p">},</span>
-        <span class="p">},</span>
-    <span class="p">],</span>
-<span class="p">)</span>
-</code></pre></div>
+<pre><code class="language-python">dol.VectorLayer(
+    id=&quot;scale-styled-features&quot;,
+    geojson=features,
+    style=[
+        {
+            &quot;filter&quot;: [&quot;&lt;&quot;, [&quot;resolution&quot;], 2500],
+            &quot;style&quot;: {
+                &quot;icon-src&quot;: &quot;https://openlayers.org/en/latest/examples/data/icon.png&quot;,
+                &quot;icon-scale&quot;: 0.7,
+                &quot;fill-color&quot;: &quot;rgba(31, 106, 94, 0.24)&quot;,
+                &quot;stroke-color&quot;: &quot;#1f6a5e&quot;,
+                &quot;stroke-width&quot;: 2,
+            },
+        },
+        {
+            &quot;else&quot;: True,
+            &quot;style&quot;: {
+                &quot;circle-radius&quot;: 4,
+                &quot;circle-fill-color&quot;: &quot;#d66f41&quot;,
+                &quot;circle-stroke-color&quot;: &quot;#ffffff&quot;,
+                &quot;circle-stroke-width&quot;: 1,
+                &quot;fill-color&quot;: &quot;rgba(214, 111, 65, 0.18)&quot;,
+                &quot;stroke-color&quot;: &quot;#b34a36&quot;,
+                &quot;stroke-width&quot;: 1,
+            },
+        },
+    ],
+)
+</code></pre>
 <p>The runnable example below draws polygons and captures GeoJSON:</p>
 <p><code>DrawInteraction</code> validates completed features before emitting <code>drawnGeoJSON</code>.
 Valid features are exported normally. Invalid features are removed from the
@@ -1237,66 +1283,66 @@ the ring and providing enough positions.</p>
 <p>Use <code>DrawControl</code> to let users choose a drawing mode directly on the map. Its
 <code>drawnGeoJSON</code> prop is a GeoJSON Feature in EPSG:4326 and can be used as a Dash
 callback input. The <code>Box</code> mode draws a rectangular Polygon from two corners:</p>
-<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
-    <span class="nb">id</span><span class="o">=</span><span class="s2">"study-map"</span><span class="p">,</span>
-    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
-    <span class="n">zoom</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
-    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">TileLayer</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="s2">"OSM"</span><span class="p">),</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">DrawControl</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"study-area"</span><span class="p">,</span> <span class="n">geometryTypes</span><span class="o">=</span><span class="p">[</span><span class="s2">"Box"</span><span class="p">]),</span>
-    <span class="p">],</span>
-    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
-<span class="p">)</span>
+<pre><code class="language-python">dol.Map(
+    id=&quot;study-map&quot;,
+    center=[0, 0],
+    zoom=3,
+    children=[
+        dol.TileLayer(source=&quot;OSM&quot;),
+        dol.DrawControl(id=&quot;study-area&quot;, geometryTypes=[&quot;Box&quot;]),
+    ],
+    style={&quot;height&quot;: &quot;500px&quot;},
+)
 
 
-<span class="nd">@app</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">Output</span><span class="p">(</span><span class="s2">"study-area-output"</span><span class="p">,</span> <span class="s2">"children"</span><span class="p">),</span> <span class="n">Input</span><span class="p">(</span><span class="s2">"study-area"</span><span class="p">,</span> <span class="s2">"drawnGeoJSON"</span><span class="p">))</span>
-<span class="k">def</span><span class="w"> </span><span class="nf">show_study_area</span><span class="p">(</span><span class="n">feature</span><span class="p">):</span>
-    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">feature</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="k">if</span> <span class="n">feature</span> <span class="k">else</span> <span class="s2">"Draw an area"</span>
-</code></pre></div>
+@app.callback(Output(&quot;study-area-output&quot;, &quot;children&quot;), Input(&quot;study-area&quot;, &quot;drawnGeoJSON&quot;))
+def show_study_area(feature):
+    return json.dumps(feature, indent=2) if feature else &quot;Draw an area&quot;
+</code></pre>
 <p>The default tools are Point, LineString, Polygon, and Box. Set <code>geometryTypes</code>
 to choose a subset, and click the active tool again to stop drawing.</p>
 <p>Listen to the validation result with <code>Input("draw-tool", "geometryValidation")</code>
 in a Dash callback. A self-intersection result has this shape:</p>
-<div class="highlight"><pre><span></span><code><span class="p">{</span>
-    <span class="s2">"valid"</span><span class="p">:</span> <span class="kc">False</span><span class="p">,</span>
-    <span class="s2">"errors"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"code"</span><span class="p">:</span> <span class="s2">"self_intersection"</span><span class="p">,</span> <span class="s2">"coordinates"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">]}],</span>
-    <span class="s2">"suggestions"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"Move the reported vertices so polygon boundaries do not cross."</span><span class="p">],</span>
-<span class="p">}</span>
-</code></pre></div>
-<div class="highlight"><pre><span></span><code><span class="kn">import</span><span class="w"> </span><span class="nn">dash</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">dash</span><span class="w"> </span><span class="kn">import</span> <span class="n">html</span><span class="p">,</span> <span class="n">Output</span><span class="p">,</span> <span class="n">Input</span><span class="p">,</span> <span class="n">json</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">dash_openlayers</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dol</span>
+<pre><code class="language-python">{
+    &quot;valid&quot;: False,
+    &quot;errors&quot;: [{&quot;code&quot;: &quot;self_intersection&quot;, &quot;coordinates&quot;: [1, 1]}],
+    &quot;suggestions&quot;: [&quot;Move the reported vertices so polygon boundaries do not cross.&quot;],
+}
+</code></pre>
+<pre><code class="language-python">import dash
+from dash import html, Output, Input, json
+import dash_openlayers as dol
 
-<span class="n">app</span> <span class="o">=</span> <span class="n">dash</span><span class="o">.</span><span class="n">Dash</span><span class="p">(</span><span class="vm">__name__</span><span class="p">)</span>
+app = dash.Dash(__name__)
 
-<span class="n">BNG_PROJ</span> <span class="o">=</span> <span class="p">[</span>
-    <span class="p">{</span>
-        <span class="s2">"code"</span><span class="p">:</span> <span class="s2">"EPSG:27700"</span><span class="p">,</span>
-        <span class="s2">"def"</span><span class="p">:</span> <span class="s2">"+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +datum=OSGB36 +units=m +no_defs"</span><span class="p">,</span>
-    <span class="p">}</span>
-<span class="p">]</span>
+BNG_PROJ = [
+    {
+        &quot;code&quot;: &quot;EPSG:27700&quot;,
+        &quot;def&quot;: &quot;+proj=tmerc +lat_0=49 +lon_0=-2 +k=0.9996012717 +x_0=400000 +y_0=-100000 +ellps=airy +datum=OSGB36 +units=m +no_defs&quot;,
+    }
+]
 
-<span class="n">app</span><span class="o">.</span><span class="n">layout</span> <span class="o">=</span> <span class="n">html</span><span class="o">.</span><span class="n">Div</span><span class="p">(</span>
-    <span class="p">[</span>
-        <span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
-            <span class="nb">id</span><span class="o">=</span><span class="s2">"map"</span><span class="p">,</span>
-            <span class="n">projection</span><span class="o">=</span><span class="s2">"EPSG:27700"</span><span class="p">,</span>
-            <span class="n">proj4Defs</span><span class="o">=</span><span class="n">BNG_PROJ</span><span class="p">,</span>
-            <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">530000</span><span class="p">,</span> <span class="mi">180000</span><span class="p">],</span>
-            <span class="n">zoom</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-            <span class="n">children</span><span class="o">=</span><span class="p">[</span>
-                <span class="n">dol</span><span class="o">.</span><span class="n">TileLayer</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="s2">"OSM"</span><span class="p">),</span>
-                <span class="n">dol</span><span class="o">.</span><span class="n">DrawInteraction</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"draw-tool"</span><span class="p">,</span> <span class="n">geometryType</span><span class="o">=</span><span class="s2">"Polygon"</span><span class="p">),</span>
-            <span class="p">],</span>
-            <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"600px"</span><span class="p">,</span> <span class="s2">"width"</span><span class="p">:</span> <span class="s2">"100%"</span><span class="p">},</span>
-        <span class="p">),</span>
-        <span class="n">html</span><span class="o">.</span><span class="n">Pre</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"geojson-output"</span><span class="p">),</span>
-    <span class="p">]</span>
-<span class="p">)</span>
+app.layout = html.Div(
+    [
+        dol.Map(
+            id=&quot;map&quot;,
+            projection=&quot;EPSG:27700&quot;,
+            proj4Defs=BNG_PROJ,
+            center=[530000, 180000],
+            zoom=10,
+            children=[
+                dol.TileLayer(source=&quot;OSM&quot;),
+                dol.DrawInteraction(id=&quot;draw-tool&quot;, geometryType=&quot;Polygon&quot;),
+            ],
+            style={&quot;height&quot;: &quot;600px&quot;, &quot;width&quot;: &quot;100%&quot;},
+        ),
+        html.Pre(id=&quot;geojson-output&quot;),
+    ]
+)
 
-<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
-    <span class="n">app</span><span class="o">.</span><span class="n">run_server</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</code></pre></div>
+if __name__ == &quot;__main__&quot;:
+    app.run_server(debug=True)
+</code></pre>
 
 
 
