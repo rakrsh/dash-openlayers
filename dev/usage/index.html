@@ -1234,6 +1234,27 @@ drawing layer, <code>drawnGeoJSON</code> is cleared, and the read-only <code>geo
 prop reports errors and suggestions. Self-intersection errors include their
 <code>[longitude, latitude]</code> crossing coordinates; malformed rings suggest closing
 the ring and providing enough positions.</p>
+<p>Use <code>DrawControl</code> to let users choose a drawing mode directly on the map. Its
+<code>drawnGeoJSON</code> prop is a GeoJSON Feature in EPSG:4326 and can be used as a Dash
+callback input. The <code>Box</code> mode draws a rectangular Polygon from two corners:</p>
+<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
+    <span class="nb">id</span><span class="o">=</span><span class="s2">"study-map"</span><span class="p">,</span>
+    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">zoom</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">TileLayer</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="s2">"OSM"</span><span class="p">),</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">DrawControl</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"study-area"</span><span class="p">,</span> <span class="n">geometryTypes</span><span class="o">=</span><span class="p">[</span><span class="s2">"Box"</span><span class="p">]),</span>
+    <span class="p">],</span>
+    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
+<span class="p">)</span>
+
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">Output</span><span class="p">(</span><span class="s2">"study-area-output"</span><span class="p">,</span> <span class="s2">"children"</span><span class="p">),</span> <span class="n">Input</span><span class="p">(</span><span class="s2">"study-area"</span><span class="p">,</span> <span class="s2">"drawnGeoJSON"</span><span class="p">))</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">show_study_area</span><span class="p">(</span><span class="n">feature</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">feature</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="k">if</span> <span class="n">feature</span> <span class="k">else</span> <span class="s2">"Draw an area"</span>
+</code></pre></div>
+<p>The default tools are Point, LineString, Polygon, and Box. Set <code>geometryTypes</code>
+to choose a subset, and click the active tool again to stop drawing.</p>
 <p>Listen to the validation result with <code>Input("draw-tool", "geometryValidation")</code>
 in a Dash callback. A self-intersection result has this shape:</p>
 <div class="highlight"><pre><span></span><code><span class="p">{</span>

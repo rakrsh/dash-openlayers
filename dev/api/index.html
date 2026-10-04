@@ -526,6 +526,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#drawcontrol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DrawControl
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#drawinteraction" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -768,6 +779,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#drawcontrol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DrawControl
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#drawinteraction" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -944,6 +966,86 @@
 <h1 id="api-reference">API Reference</h1>
 <p>This reference is generated from the component metadata used to build the Python wrappers.
 For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
+<h2 id="drawcontrol"><code>DrawControl</code></h2>
+<p>Provide interactive map tools for drawing and serializing spatial study areas.</p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>Component ID used to identify this drawing control and its callback outputs.</td>
+</tr>
+<tr>
+<td><code>geometryTypes</code></td>
+<td><code>list['Point' \| 'LineString' \| 'Polygon' \| 'Box']</code></td>
+<td><code>['Point', 'LineString', 'Polygon', 'Box']</code></td>
+<td>Drawing modes displayed in the control: Point, LineString, Polygon, and Box (rectangle).</td>
+</tr>
+<tr>
+<td><code>position</code></td>
+<td><code>'top-left' \| 'top-right' \| 'bottom-left' \| 'bottom-right'</code></td>
+<td><code>'top-left'</code></td>
+<td>Corner of the map where the drawing tools are displayed.</td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td><code>string</code></td>
+<td><code>'Draw'</code></td>
+<td>Accessible toolbar label and visible heading.</td>
+</tr>
+<tr>
+<td><code>drawnGeoJSON</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only GeoJSON Feature emitted only when geometry validation succeeds.</td>
+</tr>
+<tr>
+<td><code>drawnWKT</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>Read-only WKT geometry emitted only when geometry validation succeeds.</td>
+</tr>
+<tr>
+<td><code>drawnTopoJSON</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only TopoJSON topology emitted only when geometry validation succeeds.</td>
+</tr>
+<tr>
+<td><code>geometryValidation</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only validity, topology errors, and repair suggestions from the last draw.</td>
+</tr>
+<tr>
+<td><code>snapToVertex</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether drawing snaps to existing vector vertices.</td>
+</tr>
+<tr>
+<td><code>snapToEdge</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether drawing snaps to existing vector edges.</td>
+</tr>
+<tr>
+<td><code>snapTolerance</code></td>
+<td><code>number</code></td>
+<td><code>10</code></td>
+<td>Maximum snap distance in screen pixels.</td>
+</tr>
+</tbody>
+</table>
 <h2 id="drawinteraction"><code>DrawInteraction</code></h2>
 <p>Draw and validate OpenLayers features, then publish their serialized geometry to Dash.</p>
 <table>
@@ -964,7 +1066,7 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 </tr>
 <tr>
 <td><code>geometryType</code></td>
-<td><code>'Point' \| 'LineString' \| 'Polygon' \| 'Circle'</code></td>
+<td><code>'Point' \| 'LineString' \| 'Polygon' \| 'Circle' \| 'Box'</code></td>
 <td><code>'Polygon'</code></td>
 <td>Geometry type drawn by this interaction.</td>
 </tr>
