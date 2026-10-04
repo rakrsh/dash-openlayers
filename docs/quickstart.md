@@ -61,5 +61,6 @@ Python wrapper generation. The full build also regenerates `docs/api.md` from
 that metadata. Run `uv run python scripts/generate_components.py` or
 `npm run docs:api` separately when only one generated surface needs updating.
 
-Runnable component examples are under `tests/demos/`. The MkDocs site can be
-previewed locally with `uv run mkdocs serve`.
+Runnable component demos are under `tests/demos/`; complete end-to-end apps are
+in the [example gallery](https://github.com/rakrsh/dash-openlayers/tree/main/examples).
+The MkDocs site can be previewed locally with `uv run mkdocs serve`.
