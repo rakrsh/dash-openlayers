@@ -555,7 +555,24 @@ def test_map_center_zoom_syncs_both_directions(dash_duo):
                 id="map",
                 center=[0, 0],
                 zoom=2,
-                children=[dol.TileLayer(source="OSM")],
+                children=[
+                    dol.VectorLayer(
+                        id="sync-features",
+                        geojson={
+                            "type": "FeatureCollection",
+                            "features": [
+                                {
+                                    "type": "Feature",
+                                    "geometry": {
+                                        "type": "Point",
+                                        "coordinates": [8.9831528, 17.6789142],
+                                    },
+                                    "properties": {},
+                                }
+                            ],
+                        },
+                    ),
+                ],
                 style={"height": "400px", "width": "600px"},
             ),
             html.Pre(id="view-state"),
@@ -587,6 +604,9 @@ def test_map_center_zoom_syncs_both_directions(dash_duo):
     dash_duo.start_server(app)
     viewport = dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
     dash_duo.wait_for_element("#map canvas", timeout=15)
+    vector_canvas = WebDriverWait(dash_duo.driver, 15).until(
+        lambda driver: driver.find_element(By.CSS_SELECTOR, "#map .ol-layer canvas")
+    )
 
     dash_duo.find_element("#set-view").click()
     WebDriverWait(dash_duo.driver, 15).until(
@@ -594,6 +614,17 @@ def test_map_center_zoom_syncs_both_directions(dash_duo):
             json.loads(driver.find_element(By.ID, "view-state").text)
             == {"center": target_center, "zoom": target_zoom}
         )
+    )
+    current_vector_canvas = dash_duo.driver.find_element(By.CSS_SELECTOR, "#map .ol-layer canvas")
+    assert current_vector_canvas == vector_canvas
+    assert dash_duo.driver.execute_script(
+        """
+        const canvas = document.querySelector('#map .ol-layer canvas');
+        const context = canvas?.getContext('2d');
+        if (!context) return false;
+        const pixels = context.getImageData(0, 0, context.canvas.width, context.canvas.height).data;
+        return pixels.some((value, index) => index % 4 === 3 && value > 0);
+        """
     )
 
     viewport.click()
