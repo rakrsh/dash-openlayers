@@ -76,6 +76,21 @@ Allow editing vertices in a VectorLayer and report the updated features.
 | `modifiedTopoJSON` | `dict` | — | Read-only: TopoJSON topology of the target layer after modification. |
 | `geometryValidation` | `dict` | — | Read-only: topology validation result from the last modification. |
 
+## `Popup`
+
+Render Dash content in an OpenLayers overlay anchored to a map coordinate.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | — | The ID used to identify this component in Dash callbacks. |
+| `children` | `Dash component` | — | Dash children rendered inside the overlay element. |
+| `position` | `list[number]` | `null` | Overlay position as [x, y] in the map view projection; null hides the popup. |
+| `positioning` | `'bottom-left' \| 'bottom-center' \| 'bottom-right' \| 'center-left' \| 'center-center' \| 'center-right' \| 'top-left' \| 'top-center' \| 'top-right'` | `'bottom-center'` | Overlay alignment relative to its position coordinate. |
+| `offset` | `list[number]` | `[0, 0]` | Pixel offset [x, y] applied to the overlay. |
+| `autoPan` | `bool` | `false` | Pan the map when positioning the overlay would place it outside the viewport. |
+| `className` | `string` | `null` | CSS class applied to the popup content element. |
+| `style` | `dict` | `null` | Inline CSS style applied to the popup content element. |
+
 ## `SelectInteraction`
 
 Select vector features and report the current selection to Dash.

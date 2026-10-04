@@ -1,5 +1,8 @@
 import importlib
 
+import pytest
+from dash import html
+
 import dash_openlayers as dol
 
 
@@ -277,6 +280,58 @@ def test_tile_layer_source_props_serialize():
         "id": "custom",
         "url": "https://tiles.example.com/{z}/{x}/{y}.png",
     }
+
+
+def test_map_accepts_nested_component_children():
+    children = [dol.TileLayer(id="tiles", source="OSM"), dol.VectorLayer(id="vectors")]
+
+    layout = dol.Map(children=children)
+
+    assert layout.children == children
+
+
+def test_popup_serializes_as_nested_map_child():
+    content = html.Div("Place details")
+    popup = dol.Popup(
+        id="place-popup",
+        position=[10, 20],
+        positioning="bottom-center",
+        offset=[0, -8],
+        autoPan=True,
+        className="place-popup",
+        style={"color": "red"},
+        children=content,
+    )
+
+    serialized = popup.to_plotly_json()
+    layout = dol.Map(children=popup)
+
+    assert serialized["namespace"] == "dash_openlayers"
+    assert serialized["type"] == "Popup"
+    assert serialized["props"] == {
+        "id": "place-popup",
+        "children": content,
+        "position": [10, 20],
+        "positioning": "bottom-center",
+        "offset": [0, -8],
+        "autoPan": True,
+        "className": "place-popup",
+        "style": {"color": "red"},
+    }
+    assert layout.children is popup
+
+
+@pytest.mark.parametrize(
+    "children",
+    [
+        {"not": "a component"},
+        object(),
+        [dol.TileLayer(source="OSM"), object()],
+    ],
+)
+def test_map_rejects_invalid_children(children):
+    with pytest.raises(TypeError, match=r"Map\.children.*found .* at children"):
+        dol.Map(children=children)
 
 
 def test_modify_interaction_result_prop_serializes():

@@ -3,6 +3,7 @@ import DrawInteraction from './lib/components/DrawInteraction.react';
 import ImageWMS from './lib/components/ImageWMS.react';
 import LayerControl from './lib/components/LayerControl.react';
 import ModifyInteraction from './lib/components/ModifyInteraction.react';
+import Popup from './lib/components/Popup.react';
 import SelectInteraction from './lib/components/SelectInteraction.react';
 import TileLayer from './lib/components/TileLayer.react';
 import TileWMS from './lib/components/TileWMS.react';
@@ -19,6 +20,7 @@ export {
   ImageWMS,
   LayerControl,
   ModifyInteraction,
+  Popup,
   SelectInteraction,
   TileLayer,
   TileWMS,

@@ -53,6 +53,60 @@ def test_simple_map_starts(dash_duo):
     assert dash_duo.get_logs() == []
 
 
+def test_popup_child_mounts_and_unmounts(dash_duo):
+    app = dash.Dash(__name__)
+    app.layout = dash.html.Div(
+        [
+            dash.dcc.Checklist(
+                id="show-popup",
+                options=[{"label": "Show popup", "value": "show"}],
+                value=["show"],
+            ),
+            dol.Map(
+                id="map",
+                center=[0, 0],
+                zoom=2,
+                children=[
+                    dol.Popup(
+                        id="popup",
+                        position=[0, 0],
+                        className="place-popup",
+                        children=html.Div("Popup body"),
+                    ),
+                ],
+                style={"height": "300px"},
+            ),
+        ]
+    )
+
+    @app.callback(
+        dash.Output("map", "children"),
+        dash.Input("show-popup", "value"),
+    )
+    def show_popup(values):
+        if "show" in (values or []):
+            return [
+                dol.Popup(
+                    id="popup",
+                    position=[0, 0],
+                    className="place-popup",
+                    children=html.Div("Popup body"),
+                )
+            ]
+        return []
+
+    dash_duo.start_server(app)
+    dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
+    dash_duo.wait_for_element("#popup", timeout=15)
+    assert dash_duo.find_element("#popup").text == "Popup body"
+
+    dash_duo.find_element("#show-popup input").click()
+    WebDriverWait(dash_duo.driver, 15).until(
+        lambda driver: not driver.find_elements(By.CSS_SELECTOR, "#popup")
+    )
+    assert dash_duo.get_logs() == []
+
+
 def test_tile_layer_sources_attach_and_cleanup(dash_duo):
     app = dash.Dash(__name__)
     app.layout = dash.html.Div(

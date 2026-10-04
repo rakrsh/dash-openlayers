@@ -9,6 +9,7 @@ import TileWMSLayer from '../../src/lib/components/TileWMS.react';
 import ImageWMSLayer from '../../src/lib/components/ImageWMS.react';
 import DrawInteraction from '../../src/lib/components/DrawInteraction.react';
 import ModifyInteraction from '../../src/lib/components/ModifyInteraction.react';
+import Popup from '../../src/lib/components/Popup.react';
 import SelectInteraction from '../../src/lib/components/SelectInteraction.react';
 import WFSLayer from '../../src/lib/components/WFSLayer.react';
 import { OLContext, useMap } from '../../src/lib/context/OLContext';
@@ -16,6 +17,7 @@ import { getEditHistory } from '../../src/lib/utils/editHistory';
 import { exportFeature, exportFeatures, readFeatures } from '../../src/lib/utils/featureFormats';
 import Snap from 'ol/interaction/Snap';
 import Map from 'ol/Map';
+import Overlay from 'ol/Overlay';
 import View from 'ol/View';
 import { toLonLat } from 'ol/proj';
 import { registerProjections } from '../../src/lib/utils/projection';
@@ -61,7 +63,19 @@ jest.mock('ol/Map', () => ({
     this.setTarget = jest.fn();
     this.addLayer = jest.fn();
     this.removeLayer = jest.fn();
+    this.addOverlay = jest.fn();
+    this.removeOverlay = jest.fn();
     this.getView = jest.fn(() => options.view);
+  }),
+}));
+
+jest.mock('ol/Overlay', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockOverlay(options) {
+    this.options = options;
+    this.setOffset = jest.fn();
+    this.setPosition = jest.fn();
+    this.setPositioning = jest.fn();
   }),
 }));
 
@@ -375,6 +389,8 @@ describe('feature format helpers', () => {
 const makeMap = () => ({
   addLayer: jest.fn(),
   removeLayer: jest.fn(),
+  addOverlay: jest.fn(),
+  removeOverlay: jest.fn(),
   addInteraction: jest.fn(),
   removeInteraction: jest.fn(),
   getLayers: jest.fn(() => ({ getArray: () => [] })),
@@ -450,6 +466,64 @@ describe('Map', () => {
 
     rerender(renderMap(1, 1));
     expect(command.redo).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Popup', () => {
+  it('renders children in an overlay, updates its position, and removes it on unmount', () => {
+    const map = makeMap();
+    const { rerender, unmount } = render(
+      <OLContext.Provider value={map}>
+        <Popup
+          id="place-popup"
+          position={[10, 20]}
+          positioning="bottom-center"
+          offset={[0, -8]}
+          autoPan
+          className="place-popup"
+          style={{ color: 'red' }}
+        >
+          <span>Place details</span>
+        </Popup>
+      </OLContext.Provider>,
+    );
+    const overlay = Overlay.mock.instances[0];
+
+    expect(map.addOverlay).toHaveBeenCalledWith(overlay);
+    expect(overlay.options).toMatchObject({
+      element: expect.any(HTMLDivElement),
+      autoPan: true,
+    });
+    expect(overlay.options.element).toHaveTextContent('Place details');
+    expect(overlay.options.element.firstChild).toMatchObject({
+      id: 'place-popup',
+      className: 'place-popup',
+    });
+    expect(overlay.options.element.firstChild.style.color).toBe('red');
+    expect(overlay.setOffset).toHaveBeenLastCalledWith([0, -8]);
+    expect(overlay.setPositioning).toHaveBeenLastCalledWith('bottom-center');
+    expect(overlay.setPosition).toHaveBeenLastCalledWith([10, 20]);
+
+    rerender(
+      <OLContext.Provider value={map}>
+        <Popup
+          position={[30, 40]}
+          positioning="bottom-center"
+          offset={[0, -8]}
+          autoPan
+          className="place-popup"
+          style={{ color: 'red' }}
+        >
+          <span>Updated details</span>
+        </Popup>
+      </OLContext.Provider>,
+    );
+
+    expect(overlay.setPosition).toHaveBeenLastCalledWith([30, 40]);
+    expect(overlay.options.element).toHaveTextContent('Updated details');
+
+    unmount();
+    expect(map.removeOverlay).toHaveBeenCalledWith(overlay);
   });
 });
 
