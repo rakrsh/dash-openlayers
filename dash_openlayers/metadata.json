@@ -309,6 +309,144 @@
       }
     }
   },
+  "src/lib/components/Popup.react.js": {
+    "description": "Render Dash content in an OpenLayers overlay anchored to a map coordinate.",
+    "displayName": "Popup",
+    "methods": [],
+    "props": {
+      "id": {
+        "type": {
+          "name": "string"
+        },
+        "required": false,
+        "description": "The ID used to identify this component in Dash callbacks."
+      },
+      "children": {
+        "type": {
+          "name": "node"
+        },
+        "required": false,
+        "description": "Dash children rendered inside the overlay element."
+      },
+      "position": {
+        "type": {
+          "name": "arrayOf",
+          "value": {
+            "name": "number"
+          }
+        },
+        "required": false,
+        "description": "Overlay position as [x, y] in the map view projection; null hides the popup.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "positioning": {
+        "type": {
+          "name": "enum",
+          "value": [
+            {
+              "value": "'bottom-left'",
+              "computed": false
+            },
+            {
+              "value": "'bottom-center'",
+              "computed": false
+            },
+            {
+              "value": "'bottom-right'",
+              "computed": false
+            },
+            {
+              "value": "'center-left'",
+              "computed": false
+            },
+            {
+              "value": "'center-center'",
+              "computed": false
+            },
+            {
+              "value": "'center-right'",
+              "computed": false
+            },
+            {
+              "value": "'top-left'",
+              "computed": false
+            },
+            {
+              "value": "'top-center'",
+              "computed": false
+            },
+            {
+              "value": "'top-right'",
+              "computed": false
+            }
+          ]
+        },
+        "required": false,
+        "description": "Overlay alignment relative to its position coordinate.",
+        "defaultValue": {
+          "value": "'bottom-center'",
+          "computed": false
+        }
+      },
+      "offset": {
+        "type": {
+          "name": "arrayOf",
+          "value": {
+            "name": "number"
+          }
+        },
+        "required": false,
+        "description": "Pixel offset [x, y] applied to the overlay.",
+        "defaultValue": {
+          "value": "[0, 0]",
+          "computed": false
+        }
+      },
+      "autoPan": {
+        "type": {
+          "name": "bool"
+        },
+        "required": false,
+        "description": "Pan the map when positioning the overlay would place it outside the viewport.",
+        "defaultValue": {
+          "value": "false",
+          "computed": false
+        }
+      },
+      "className": {
+        "type": {
+          "name": "string"
+        },
+        "required": false,
+        "description": "CSS class applied to the popup content element.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "style": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Inline CSS style applied to the popup content element.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "setProps": {
+        "type": {
+          "name": "func"
+        },
+        "required": false,
+        "description": "Dash-supplied prop setter; internal, do not set from Python."
+      }
+    }
+  },
   "src/lib/components/ModifyInteraction.react.js": {
     "description": "Allow editing vertices in a VectorLayer and report the updated features.",
     "displayName": "ModifyInteraction",
@@ -468,12 +606,31 @@
         "required": false,
         "description": "Dash component ID; also used by ModifyInteraction to target this vector layer."
       },
+      "data": {
+        "type": {
+          "name": "union",
+          "value": [
+            {
+              "name": "string"
+            },
+            {
+              "name": "object"
+            }
+          ]
+        },
+        "required": false,
+        "description": "GeoJSON Feature or FeatureCollection as an object or JSON string; embedded CRS metadata is honored, otherwise coordinates default to EPSG:4326. Takes precedence over geojson.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
       "geojson": {
         "type": {
           "name": "object"
         },
         "required": false,
-        "description": "GeoJSON Feature or FeatureCollection with coordinates in [longitude, latitude] order; updates are rendered in the map projection.",
+        "description": "Backward-compatible GeoJSON Feature or FeatureCollection object alias for data.",
         "defaultValue": {
           "value": "null",
           "computed": false
@@ -484,7 +641,7 @@
           "name": "string"
         },
         "required": false,
-        "description": "WKT geometry in [x, y] order; takes precedence over geojson when non-empty.",
+        "description": "WKT geometry in [x, y] order; takes precedence over data and geojson when non-empty.",
         "defaultValue": {
           "value": "null",
           "computed": false
@@ -796,6 +953,68 @@
       }
     }
   },
+  "src/lib/components/WebGLPointsLayer.react.js": {
+    "description": "Render large GeoJSON point datasets with the OpenLayers WebGL renderer.",
+    "displayName": "WebGLPointsLayer",
+    "methods": [],
+    "props": {
+      "id": {
+        "type": {
+          "name": "string"
+        },
+        "required": false,
+        "description": "Component ID used to identify this layer in the Dash layout."
+      },
+      "data": {
+        "type": {
+          "name": "union",
+          "value": [
+            {
+              "name": "string"
+            },
+            {
+              "name": "object"
+            }
+          ]
+        },
+        "required": false,
+        "description": "GeoJSON Point or MultiPoint FeatureCollection as an object or JSON string; embedded CRS metadata is honored, otherwise coordinates default to EPSG:4326.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "style": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "OpenLayers WebGL style object; expressions such as get, match, and interpolate style feature properties. Changing the style recreates the layer; the default style is blue circles.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "disableHitDetection": {
+        "type": {
+          "name": "bool"
+        },
+        "required": false,
+        "description": "Disable WebGL feature hit detection for a small rendering performance gain.",
+        "defaultValue": {
+          "value": "false",
+          "computed": false
+        }
+      },
+      "setProps": {
+        "type": {
+          "name": "func"
+        },
+        "required": false,
+        "description": "Dash-supplied callback used to write component state back to the layout."
+      }
+    }
+  },
   "src/lib/components/WFSLayer.react.js": {
     "description": "Load WFS GeoJSON features into an editable vector layer.",
     "displayName": "WFSLayer",
@@ -926,6 +1145,13 @@
         },
         "required": false,
         "description": "Read-only: current selection as a GeoJSON FeatureCollection in EPSG:4326."
+      },
+      "selectedFeature": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Read-only: first selected GeoJSON Feature in EPSG:4326, or null when nothing is selected."
       },
       "setProps": {
         "type": {

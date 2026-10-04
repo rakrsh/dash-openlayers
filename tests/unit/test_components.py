@@ -1,5 +1,8 @@
 import importlib
 
+import pytest
+from dash import html
+
 import dash_openlayers as dol
 
 
@@ -15,6 +18,7 @@ def test_components_exported():
     assert hasattr(mod, "TileWMS")
     assert hasattr(mod, "VectorLayer")
     assert hasattr(mod, "VectorTileLayer")
+    assert hasattr(mod, "WebGLPointsLayer")
     assert hasattr(mod, "WFSLayer")
     assert hasattr(mod, "WMTSLayer")
     assert hasattr(mod, "__version__")
@@ -26,6 +30,11 @@ def test_component_props_serialize():
         "type": "Feature",
         "geometry": {"type": "Point", "coordinates": [1, 2]},
         "properties": {},
+    }
+    selected_feature = {
+        "type": "Feature",
+        "geometry": {"type": "Point", "coordinates": [1, 2]},
+        "properties": {"name": "Station A"},
     }
     components = [
         (
@@ -230,11 +239,13 @@ def test_component_props_serialize():
             dol.SelectInteraction(
                 id="select",
                 layerId="vectors",
+                selectedFeature=selected_feature,
                 selectedGeoJSON={"type": "FeatureCollection", "features": []},
             ),
             {
                 "id": "select",
                 "layerId": "vectors",
+                "selectedFeature": selected_feature,
                 "selectedGeoJSON": {"type": "FeatureCollection", "features": []},
             },
             "SelectInteraction",
@@ -277,6 +288,95 @@ def test_tile_layer_source_props_serialize():
         "id": "custom",
         "url": "https://tiles.example.com/{z}/{x}/{y}.png",
     }
+
+
+def test_map_accepts_nested_component_children():
+    children = [dol.TileLayer(id="tiles", source="OSM"), dol.VectorLayer(id="vectors")]
+
+    layout = dol.Map(children=children)
+
+    assert layout.children == children
+
+
+def test_popup_serializes_as_nested_map_child():
+    content = html.Div("Place details")
+    popup = dol.Popup(
+        id="place-popup",
+        position=[10, 20],
+        positioning="bottom-center",
+        offset=[0, -8],
+        autoPan=True,
+        className="place-popup",
+        style={"color": "red"},
+        children=content,
+    )
+
+    serialized = popup.to_plotly_json()
+    layout = dol.Map(children=popup)
+
+    assert serialized["namespace"] == "dash_openlayers"
+    assert serialized["type"] == "Popup"
+    assert serialized["props"] == {
+        "id": "place-popup",
+        "children": content,
+        "position": [10, 20],
+        "positioning": "bottom-center",
+        "offset": [0, -8],
+        "autoPan": True,
+        "className": "place-popup",
+        "style": {"color": "red"},
+    }
+    assert layout.children is popup
+
+
+@pytest.mark.parametrize(
+    "data",
+    [
+        {"type": "FeatureCollection", "features": []},
+        '{"type":"FeatureCollection","features":[]}',
+    ],
+)
+def test_vector_layer_serializes_geojson_data(data):
+    component = dol.VectorLayer(data=data, style={"circle-radius": 5})
+
+    assert component.to_plotly_json()["props"] == {
+        "data": data,
+        "style": {"circle-radius": 5},
+    }
+
+
+def test_webgl_points_layer_serializes_data_style_and_hit_detection():
+    data = '{"type":"FeatureCollection","features":[]}'
+    style = {
+        "circle-radius": ["interpolate", ["linear"], ["get", "magnitude"], 0, 3, 10, 12],
+        "circle-fill-color": ["match", ["get", "kind"], "station", "#d66f41", "#1f6a5e"],
+    }
+    component = dol.WebGLPointsLayer(
+        id="large-points",
+        data=data,
+        style=style,
+        disableHitDetection=True,
+    )
+
+    assert component.to_plotly_json()["props"] == {
+        "id": "large-points",
+        "data": data,
+        "style": style,
+        "disableHitDetection": True,
+    }
+
+
+@pytest.mark.parametrize(
+    "children",
+    [
+        {"not": "a component"},
+        object(),
+        [dol.TileLayer(source="OSM"), object()],
+    ],
+)
+def test_map_rejects_invalid_children(children):
+    with pytest.raises(TypeError, match=r"Map\.children.*found .* at children"):
+        dol.Map(children=children)
 
 
 def test_modify_interaction_result_prop_serializes():

@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useRef, useState, useEffect } from 'react';
+import React$1, { createContext, useContext, useRef, useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
+import { createPortal } from 'react-dom';
 
 function _arrayLikeToArray(r, a) {
   (null == a || a > r.length) && (a = r.length);
@@ -1425,7 +1426,7 @@ var CollectionEventType = {
  * @enum {string}
  * @private
  */
-const Property$2 = {
+const Property$3 = {
   LENGTH: 'length',
 };
 
@@ -1602,7 +1603,7 @@ class Collection extends BaseObject {
    * @api
    */
   getLength() {
-    return this.get(Property$2.LENGTH);
+    return this.get(Property$3.LENGTH);
   }
 
   /**
@@ -1724,7 +1725,7 @@ class Collection extends BaseObject {
    * @private
    */
   updateLength_() {
-    this.set(Property$2.LENGTH, this.array_.length);
+    this.set(Property$3.LENGTH, this.array_.length);
   }
 
   /**
@@ -5191,7 +5192,7 @@ const tmp_ = new Array(6);
  * Create an identity transform.
  * @return {!Transform} Identity transform.
  */
-function create() {
+function create$2() {
   return [1, 0, 0, 1, 0, 0];
 }
 
@@ -5567,7 +5568,7 @@ function translate(
 /**
  * @type {import("../transform.js").Transform}
  */
-const tmpTransform$1 = create();
+const tmpTransform$1 = create$2();
 
 /**
  * @classdesc
@@ -14716,7 +14717,8 @@ const SAFARI = ua.includes('safari') && !ua.includes('chrom');
  * https://bugs.webkit.org/show_bug.cgi?id=237906
  * @type {boolean}
  */
-SAFARI &&
+const SAFARI_BUG_237906 =
+  SAFARI &&
   (ua.includes('version/15.4') ||
     /cpu (os|iphone os) 15_4 like mac os x/.test(ua));
 
@@ -14840,11 +14842,41 @@ function getSharedCanvasContext2D() {
  * See https://pqina.nl/blog/total-canvas-memory-use-exceeds-the-maximum-limit/
  * @param {CanvasRenderingContext2D} context Context.
  */
-function releaseCanvas(context) {
+function releaseCanvas$1(context) {
   const canvas = context.canvas;
   canvas.width = 1;
   canvas.height = 1;
   context.clearRect(0, 0, 1, 1);
+}
+
+/**
+ * Get the current computed width for the given element including margin,
+ * padding and border.
+ * Equivalent to jQuery's `$(el).outerWidth(true)`.
+ * @param {!HTMLElement} element Element.
+ * @return {number} The width.
+ */
+function outerWidth(element) {
+  let width = element.offsetWidth;
+  const style = getComputedStyle(element);
+  width += parseInt(style.marginLeft, 10) + parseInt(style.marginRight, 10);
+
+  return width;
+}
+
+/**
+ * Get the current computed height for the given element including margin,
+ * padding and border.
+ * Equivalent to jQuery's `$(el).outerHeight(true)`.
+ * @param {!HTMLElement} element Element.
+ * @return {number} The height.
+ */
+function outerHeight(element) {
+  let height = element.offsetHeight;
+  const style = getComputedStyle(element);
+  height += parseInt(style.marginTop, 10) + parseInt(style.marginBottom, 10);
+
+  return height;
 }
 
 /**
@@ -15848,6 +15880,14 @@ function asCanvasPattern(pattern) {
  * @type {string}
  */
 const CLASS_HIDDEN = 'ol-hidden';
+
+/**
+ * The CSS class that we'll give the DOM elements to have them selectable.
+ *
+ * @const
+ * @type {string}
+ */
+const CLASS_SELECTABLE = 'ol-selectable';
 
 /**
  * The CSS class that we'll give the DOM elements to have them unselectable.
@@ -17909,7 +17949,7 @@ let defaultStyles = null;
  * @param {number} resolution Resolution.
  * @return {Array<Style>} Style.
  */
-function createDefaultStyle(feature, resolution) {
+function createDefaultStyle$1(feature, resolution) {
   // We don't use an immediately-invoked function
   // and a closure so we don't get an error at script evaluation time in
   // browsers that do not support Canvas. (import("./Circle.js").CircleStyle does
@@ -20454,7 +20494,7 @@ function newEvaluationContext() {
  * @param {import('./expression.js').ParsingContext} context The parsing context.
  * @return {ExpressionEvaluator} The expression evaluator.
  */
-function buildExpression(encoded, type, context) {
+function buildExpression$1(encoded, type, context) {
   const expression = parse$2(encoded, context);
   if (!overlapsType(type, expression.type)) {
     const expected = typeName(type);
@@ -21152,7 +21192,7 @@ function buildRuleSet(rules, context) {
     const rule = rules[i];
     const filter =
       'filter' in rule
-        ? buildExpression(rule.filter, BooleanType, context)
+        ? buildExpression$1(rule.filter, BooleanType, context)
         : always$1;
 
     /**
@@ -21927,7 +21967,7 @@ function numberEvaluator(flatStyle, name, context) {
   if (!(name in flatStyle)) {
     return undefined;
   }
-  const evaluator = buildExpression(flatStyle[name], NumberType, context);
+  const evaluator = buildExpression$1(flatStyle[name], NumberType, context);
   return function (context) {
     return requireNumber(evaluator(context), name);
   };
@@ -21943,7 +21983,7 @@ function stringEvaluator(flatStyle, name, context) {
   if (!(name in flatStyle)) {
     return null;
   }
-  const evaluator = buildExpression(flatStyle[name], StringType, context);
+  const evaluator = buildExpression$1(flatStyle[name], StringType, context);
   return function (context) {
     return requireString(evaluator(context), name);
   };
@@ -21990,7 +22030,7 @@ function booleanEvaluator(flatStyle, name, context) {
   if (!(name in flatStyle)) {
     return null;
   }
-  const evaluator = buildExpression(flatStyle[name], BooleanType, context);
+  const evaluator = buildExpression$1(flatStyle[name], BooleanType, context);
   return function (context) {
     const value = evaluator(context);
     if (typeof value !== 'boolean') {
@@ -22010,7 +22050,7 @@ function colorLikeEvaluator(flatStyle, name, context) {
   if (!(name in flatStyle)) {
     return null;
   }
-  const evaluator = buildExpression(
+  const evaluator = buildExpression$1(
     flatStyle[name],
     ColorType | StringType,
     context,
@@ -22030,7 +22070,7 @@ function numberArrayEvaluator(flatStyle, name, context) {
   if (!(name in flatStyle)) {
     return null;
   }
-  const evaluator = buildExpression(flatStyle[name], NumberArrayType, context);
+  const evaluator = buildExpression$1(flatStyle[name], NumberArrayType, context);
   return function (context) {
     return requireNumberArray(evaluator(context), name);
   };
@@ -22046,7 +22086,7 @@ function coordinateEvaluator(flatStyle, name, context) {
   if (!(name in flatStyle)) {
     return null;
   }
-  const evaluator = buildExpression(flatStyle[name], NumberArrayType, context);
+  const evaluator = buildExpression$1(flatStyle[name], NumberArrayType, context);
   return function (context) {
     const array = requireNumberArray(evaluator(context), name);
     if (array.length !== 2) {
@@ -22066,7 +22106,7 @@ function sizeEvaluator(flatStyle, name, context) {
   if (!(name in flatStyle)) {
     return null;
   }
-  const evaluator = buildExpression(flatStyle[name], NumberArrayType, context);
+  const evaluator = buildExpression$1(flatStyle[name], NumberArrayType, context);
   return function (context) {
     return requireSize(evaluator(context), name);
   };
@@ -22082,7 +22122,7 @@ function sizeLikeEvaluator(flatStyle, name, context) {
   if (!(name in flatStyle)) {
     return null;
   }
-  const evaluator = buildExpression(
+  const evaluator = buildExpression$1(
     flatStyle[name],
     NumberArrayType | NumberType,
     context,
@@ -22376,7 +22416,7 @@ function requireSizeLike(value, property) {
  * @enum {string}
  * @private
  */
-const Property$1 = {
+const Property$2 = {
   RENDER_ORDER: 'renderOrder',
 };
 
@@ -22493,7 +22533,7 @@ class BaseVectorLayer extends Layer {
    */
   getRenderOrder() {
     return /** @type {import("../render.js").OrderFunction|null|undefined} */ (
-      this.get(Property$1.RENDER_ORDER)
+      this.get(Property$2.RENDER_ORDER)
     );
   }
 
@@ -22550,7 +22590,7 @@ class BaseVectorLayer extends Layer {
    *     Render order.
    */
   setRenderOrder(renderOrder) {
-    this.set(Property$1.RENDER_ORDER, renderOrder);
+    this.set(Property$2.RENDER_ORDER, renderOrder);
   }
 
   /**
@@ -22575,7 +22615,7 @@ class BaseVectorLayer extends Layer {
    * @api
    */
   setStyle(style) {
-    this.style_ = style === undefined ? createDefaultStyle : style;
+    this.style_ = style === undefined ? createDefaultStyle$1 : style;
     const styleLike = toStyleLike(style);
     this.styleFunction_ =
       style === null ? undefined : toFunction(styleLike);
@@ -22592,7 +22632,7 @@ class BaseVectorLayer extends Layer {
  */
 function toStyleLike(style) {
   if (style === undefined) {
-    return createDefaultStyle;
+    return createDefaultStyle$1;
   }
   if (!style) {
     return null;
@@ -23156,7 +23196,7 @@ class GroupEvent extends BaseEvent {
  * @enum {string}
  * @private
  */
-const Property = {
+const Property$1 = {
   LAYERS: 'layers',
 };
 
@@ -23208,7 +23248,7 @@ class LayerGroup extends BaseLayer {
      */
     this.listenerKeys_ = {};
 
-    this.addChangeListener(Property.LAYERS, this.handleLayersChanged_);
+    this.addChangeListener(Property$1.LAYERS, this.handleLayersChanged_);
 
     if (layers) {
       if (Array.isArray(layers)) {
@@ -23337,7 +23377,7 @@ class LayerGroup extends BaseLayer {
    */
   getLayers() {
     return /** @type {!Collection<import("./Base.js").default>} */ (
-      this.get(Property.LAYERS)
+      this.get(Property$1.LAYERS)
     );
   }
 
@@ -23358,7 +23398,7 @@ class LayerGroup extends BaseLayer {
       }
     }
 
-    this.set(Property.LAYERS, layers);
+    this.set(Property$1.LAYERS, layers);
   }
 
   /**
@@ -28277,13 +28317,13 @@ let Map$1 = class Map extends BaseObject {
      * @private
      * @type {import("./transform.js").Transform}
      */
-    this.coordinateToPixelTransform_ = create();
+    this.coordinateToPixelTransform_ = create$2();
 
     /**
      * @private
      * @type {import("./transform.js").Transform}
      */
-    this.pixelToCoordinateTransform_ = create();
+    this.pixelToCoordinateTransform_ = create$2();
 
     /**
      * @private
@@ -40774,9 +40814,9 @@ var MapComponent = _ref => {
     undoCommandRef.current = undo;
     redoCommandRef.current = redo;
   }, [map, redo, undo]);
-  return /*#__PURE__*/React.createElement(OLContext.Provider, {
+  return /*#__PURE__*/React$1.createElement(OLContext.Provider, {
     value: map
-  }, /*#__PURE__*/React.createElement("div", {
+  }, /*#__PURE__*/React$1.createElement("div", {
     id: id,
     ref: mapElement,
     style: style || {
@@ -46022,7 +46062,7 @@ class CanvasLayerRenderer extends LayerRenderer {
      * @protected
      * @type {import("../../transform.js").Transform}
      */
-    this.tempTransform = create();
+    this.tempTransform = create$2();
 
     /**
      * The transform for rendered pixels to viewport CSS pixels.  This transform must
@@ -46030,7 +46070,7 @@ class CanvasLayerRenderer extends LayerRenderer {
      * @protected
      * @type {import("../../transform.js").Transform}
      */
-    this.pixelTransform = create();
+    this.pixelTransform = create$2();
 
     /**
      * The transform for viewport CSS pixels to rendered pixels.  This transform must
@@ -46038,7 +46078,7 @@ class CanvasLayerRenderer extends LayerRenderer {
      * @protected
      * @type {import("../../transform.js").Transform}
      */
-    this.inversePixelTransform = create();
+    this.inversePixelTransform = create$2();
 
     /**
      * @type {CanvasRenderingContext2D}
@@ -46690,7 +46730,7 @@ class Executor {
      * @private
      * @type {!import("../../transform.js").Transform}
      */
-    this.renderedTransform_ = create();
+    this.renderedTransform_ = create$2();
 
     /**
      * @protected
@@ -46969,7 +47009,7 @@ class Executor {
     let transform;
     if (rotation !== 0) {
       transform = compose(
-        create(),
+        create$2(),
         centerX,
         centerY,
         1,
@@ -47914,7 +47954,7 @@ class ExecutorGroup {
      * @private
      * @type {import("../../transform.js").Transform}
      */
-    this.hitDetectionTransform_ = create();
+    this.hitDetectionTransform_ = create$2();
 
     /**
      * @private
@@ -48568,7 +48608,7 @@ class CanvasImmediateRenderer extends VectorContext {
      * @private
      * @type {import("../../transform.js").Transform}
      */
-    this.tmpLocalTransform_ = create();
+    this.tmpLocalTransform_ = create$2();
   }
 
   /**
@@ -50330,7 +50370,7 @@ class CanvasVectorLayerRenderer extends CanvasLayerRenderer {
       this.targetContext_.globalAlpha = this.opacity_;
       this.targetContext_.drawImage(this.context.canvas, 0, 0);
       this.targetContext_.globalAlpha = alpha;
-      releaseCanvas(this.context);
+      releaseCanvas$1(this.context);
       canvasPool$2.push(this.context.canvas);
       this.context = this.targetContext_;
       this.targetContext_ = null;
@@ -51176,7 +51216,7 @@ class RBush {
 /**
  * @type {import("../transform.js").Transform}
  */
-const tmpTransform = create();
+const tmpTransform = create$2();
 
 /**
  * Lightweight, read-only, {@link module:ol/Feature~Feature} and {@link module:ol/geom/Geometry~Geometry} like
@@ -61195,7 +61235,7 @@ var DrawInteraction = _ref => {
     snapToEdge,
     snapTolerance
   }), [map, id, geometryType, snapToVertex, snapToEdge, snapTolerance]);
-  return /*#__PURE__*/React.createElement("div", {
+  return /*#__PURE__*/React$1.createElement("div", {
     style: {
       display: 'none'
     }
@@ -62126,7 +62166,7 @@ function isBrokenDiagonalRendering() {
       verifyBrokenDiagonalRendering(data, 0) ||
       verifyBrokenDiagonalRendering(data, 4) ||
       verifyBrokenDiagonalRendering(data, 8);
-    releaseCanvas(ctx);
+    releaseCanvas$1(ctx);
     canvasPool$1.push(ctx.canvas);
   }
 
@@ -62491,7 +62531,7 @@ function render(
   });
 
   if (stitchContext) {
-    releaseCanvas(stitchContext);
+    releaseCanvas$1(stitchContext);
     canvasPool$1.push(stitchContext.canvas);
   }
 
@@ -65705,6 +65745,663 @@ ModifyInteraction.propTypes = {
 };
 
 /**
+ * @module ol/Overlay
+ */
+
+/**
+ * @typedef {'bottom-left' | 'bottom-center' | 'bottom-right' | 'center-left' | 'center-center' | 'center-right' | 'top-left' | 'top-center' | 'top-right'} Positioning
+ * The overlay position: `'bottom-left'`, `'bottom-center'`,  `'bottom-right'`,
+ * `'center-left'`, `'center-center'`, `'center-right'`, `'top-left'`,
+ * `'top-center'`, or `'top-right'`.
+ */
+
+/**
+ * @typedef {Object} Options
+ * @property {number|string} [id] Set the overlay id. The overlay id can be used
+ * with the {@link module:ol/Map~Map#getOverlayById} method.
+ * @property {HTMLElement} [element] The overlay element.
+ * @property {Array<number>} [offset=[0, 0]] Offsets in pixels used when positioning
+ * the overlay. The first element in the
+ * array is the horizontal offset. A positive value shifts the overlay right.
+ * The second element in the array is the vertical offset. A positive value
+ * shifts the overlay down.
+ * @property {import("./coordinate.js").Coordinate} [position] The overlay position
+ * in map projection.
+ * @property {Positioning} [positioning='top-left'] Defines how
+ * the overlay is actually positioned with respect to its `position` property.
+ * Possible values are `'bottom-left'`, `'bottom-center'`, `'bottom-right'`,
+ * `'center-left'`, `'center-center'`, `'center-right'`, `'top-left'`,
+ * `'top-center'`, and `'top-right'`.
+ * @property {boolean} [stopEvent=true] Whether event propagation to the map
+ * viewport should be stopped. If `true` the overlay is placed in the same
+ * container as that of the controls (CSS class name
+ * `ol-overlaycontainer-stopevent`); if `false` it is placed in the container
+ * with CSS class name specified by the `className` property.
+ * @property {boolean} [insertFirst=true] Whether the overlay is inserted first
+ * in the overlay container, or appended. If the overlay is placed in the same
+ * container as that of the controls (see the `stopEvent` option) you will
+ * probably set `insertFirst` to `true` so the overlay is displayed below the
+ * controls.
+ * @property {PanIntoViewOptions|boolean} [autoPan=false] Pan the map when calling
+ * `setPosition`, so that the overlay is entirely visible in the current viewport.
+ * @property {string} [className='ol-overlay-container ol-selectable'] CSS class
+ * name.
+ */
+
+/**
+ * @typedef {Object} PanOptions
+ * @property {number} [duration=1000] The duration of the animation in
+ * milliseconds.
+ * @property {function(number):number} [easing] The easing function to use. Can
+ * be one from {@link module:ol/easing} or a custom function.
+ * Default is {@link module:ol/easing.inAndOut}.
+ */
+
+/**
+ * @typedef {Object} PanIntoViewOptions
+ * @property {PanOptions} [animation={}] The animation parameters for the pan
+ * @property {number} [margin=20] The margin (in pixels) between the
+ * overlay and the borders of the map when panning into view.
+ */
+
+/**
+ * @enum {string}
+ * @protected
+ */
+const Property = {
+  ELEMENT: 'element',
+  MAP: 'map',
+  OFFSET: 'offset',
+  POSITION: 'position',
+  POSITIONING: 'positioning',
+};
+
+/**
+ * @typedef {import("./ObjectEventType").Types|'change:element'|'change:map'|'change:offset'|'change:position'|
+ *   'change:positioning'} OverlayObjectEventTypes
+ */
+
+/***
+ * @template Return
+ * @typedef {import("./Observable").OnSignature<import("./Observable").EventTypes, import("./events/Event.js").default, Return> &
+ *   import("./Observable").OnSignature<OverlayObjectEventTypes, import("./Object").ObjectEvent, Return> &
+ *   import("./Observable").CombinedOnSignature<import("./Observable").EventTypes|OverlayObjectEventTypes, Return>} OverlayOnSignature
+ */
+
+/**
+ * @classdesc
+ * An element to be displayed over the map and attached to a single map
+ * location.  Like {@link module:ol/control/Control~Control}, Overlays are
+ * visible widgets. Unlike Controls, they are not in a fixed position on the
+ * screen, but are tied to a geographical coordinate, so panning the map will
+ * move an Overlay but not a Control.
+ *
+ * Example:
+ *
+ *     import Overlay from 'ol/Overlay.js';
+ *
+ *     // ...
+ *     const popup = new Overlay({
+ *       element: document.getElementById('popup'),
+ *     });
+ *     popup.setPosition(coordinate);
+ *     map.addOverlay(popup);
+ *
+ * @api
+ */
+class Overlay extends BaseObject {
+  /**
+   * @param {Options} options Overlay options.
+   */
+  constructor(options) {
+    super();
+
+    /***
+     * @type {OverlayOnSignature<import("./events").EventsKey>}
+     */
+    this.on;
+
+    /***
+     * @type {OverlayOnSignature<import("./events").EventsKey>}
+     */
+    this.once;
+
+    /***
+     * @type {OverlayOnSignature<void>}
+     */
+    this.un;
+
+    /**
+     * @protected
+     * @type {Options}
+     */
+    this.options = options;
+
+    /**
+     * @protected
+     * @type {number|string|undefined}
+     */
+    this.id = options.id;
+
+    /**
+     * @protected
+     * @type {boolean}
+     */
+    this.insertFirst =
+      options.insertFirst !== undefined ? options.insertFirst : true;
+
+    /**
+     * @protected
+     * @type {boolean}
+     */
+    this.stopEvent = options.stopEvent !== undefined ? options.stopEvent : true;
+
+    /**
+     * @protected
+     * @type {HTMLElement}
+     */
+    this.element = document.createElement('div');
+    this.element.className =
+      options.className !== undefined
+        ? options.className
+        : 'ol-overlay-container ' + CLASS_SELECTABLE;
+    this.element.style.position = 'absolute';
+    this.element.style.pointerEvents = 'auto';
+
+    /**
+     * @protected
+     * @type {PanIntoViewOptions|undefined}
+     */
+    this.autoPan = options.autoPan === true ? {} : options.autoPan || undefined;
+
+    /**
+     * @protected
+     * @type {{transform_: string,
+     *         visible: boolean}}
+     */
+    this.rendered = {
+      transform_: '',
+      visible: true,
+    };
+
+    /**
+     * @protected
+     * @type {?import("./events.js").EventsKey}
+     */
+    this.mapPostrenderListenerKey = null;
+
+    this.addChangeListener(Property.ELEMENT, this.handleElementChanged);
+    this.addChangeListener(Property.MAP, this.handleMapChanged);
+    this.addChangeListener(Property.OFFSET, this.handleOffsetChanged);
+    this.addChangeListener(Property.POSITION, this.handlePositionChanged);
+    this.addChangeListener(Property.POSITIONING, this.handlePositioningChanged);
+
+    if (options.element !== undefined) {
+      this.setElement(options.element);
+    }
+
+    this.setOffset(options.offset !== undefined ? options.offset : [0, 0]);
+
+    this.setPositioning(options.positioning || 'top-left');
+
+    if (options.position !== undefined) {
+      this.setPosition(options.position);
+    }
+  }
+
+  /**
+   * Get the DOM element of this overlay.
+   * @return {HTMLElement|undefined} The Element containing the overlay.
+   * @observable
+   * @api
+   */
+  getElement() {
+    return /** @type {HTMLElement|undefined} */ (this.get(Property.ELEMENT));
+  }
+
+  /**
+   * Get the overlay identifier which is set on constructor.
+   * @return {number|string|undefined} Id.
+   * @api
+   */
+  getId() {
+    return this.id;
+  }
+
+  /**
+   * Get the map associated with this overlay.
+   * @return {import("./Map.js").default|null} The map that the
+   * overlay is part of.
+   * @observable
+   * @api
+   */
+  getMap() {
+    return /** @type {import("./Map.js").default|null} */ (
+      this.get(Property.MAP) || null
+    );
+  }
+
+  /**
+   * Get the offset of this overlay.
+   * @return {Array<number>} The offset.
+   * @observable
+   * @api
+   */
+  getOffset() {
+    return /** @type {Array<number>} */ (this.get(Property.OFFSET));
+  }
+
+  /**
+   * Get the current position of this overlay.
+   * @return {import("./coordinate.js").Coordinate|undefined} The spatial point that the overlay is
+   *     anchored at.
+   * @observable
+   * @api
+   */
+  getPosition() {
+    return /** @type {import("./coordinate.js").Coordinate|undefined} */ (
+      this.get(Property.POSITION)
+    );
+  }
+
+  /**
+   * Get the current positioning of this overlay.
+   * @return {Positioning} How the overlay is positioned
+   *     relative to its point on the map.
+   * @observable
+   * @api
+   */
+  getPositioning() {
+    return /** @type {Positioning} */ (this.get(Property.POSITIONING));
+  }
+
+  /**
+   * @protected
+   */
+  handleElementChanged() {
+    removeChildren(this.element);
+    const element = this.getElement();
+    if (element) {
+      this.element.appendChild(element);
+    }
+  }
+
+  /**
+   * @protected
+   */
+  handleMapChanged() {
+    if (this.mapPostrenderListenerKey) {
+      removeNode(this.element);
+      unlistenByKey(this.mapPostrenderListenerKey);
+      this.mapPostrenderListenerKey = null;
+    }
+    const map = this.getMap();
+    if (map) {
+      this.mapPostrenderListenerKey = listen(
+        map,
+        MapEventType.POSTRENDER,
+        this.render,
+        this,
+      );
+      this.updatePixelPosition();
+      const container = this.stopEvent
+        ? map.getOverlayContainerStopEvent()
+        : map.getOverlayContainer();
+      if (this.insertFirst) {
+        container.insertBefore(this.element, container.childNodes[0] || null);
+      } else {
+        container.appendChild(this.element);
+      }
+      this.performAutoPan();
+    }
+  }
+
+  /**
+   * @protected
+   */
+  render() {
+    this.updatePixelPosition();
+  }
+
+  /**
+   * @protected
+   */
+  handleOffsetChanged() {
+    this.updatePixelPosition();
+  }
+
+  /**
+   * @protected
+   */
+  handlePositionChanged() {
+    this.updatePixelPosition();
+    this.performAutoPan();
+  }
+
+  /**
+   * @protected
+   */
+  handlePositioningChanged() {
+    this.updatePixelPosition();
+  }
+
+  /**
+   * Set the DOM element to be associated with this overlay.
+   * @param {HTMLElement|undefined} element The Element containing the overlay.
+   * @observable
+   * @api
+   */
+  setElement(element) {
+    this.set(Property.ELEMENT, element);
+  }
+
+  /**
+   * Set the map to be associated with this overlay.
+   * @param {import("./Map.js").default|null} map The map that the
+   * overlay is part of. Pass `null` to just remove the overlay from the current map.
+   * @observable
+   * @api
+   */
+  setMap(map) {
+    this.set(Property.MAP, map);
+  }
+
+  /**
+   * Set the offset for this overlay.
+   * @param {Array<number>} offset Offset.
+   * @observable
+   * @api
+   */
+  setOffset(offset) {
+    this.set(Property.OFFSET, offset);
+  }
+
+  /**
+   * Set the position for this overlay. If the position is `undefined` the
+   * overlay is hidden.
+   * @param {import("./coordinate.js").Coordinate|undefined} position The spatial point that the overlay
+   *     is anchored at.
+   * @observable
+   * @api
+   */
+  setPosition(position) {
+    this.set(Property.POSITION, position);
+  }
+
+  /**
+   * Pan the map so that the overlay is entirely visible in the current viewport
+   * (if necessary) using the configured autoPan parameters
+   * @protected
+   */
+  performAutoPan() {
+    if (this.autoPan) {
+      this.panIntoView(this.autoPan);
+    }
+  }
+
+  /**
+   * Pan the map so that the overlay is entirely visible in the current viewport
+   * (if necessary).
+   * @param {PanIntoViewOptions} [panIntoViewOptions] Options for the pan action
+   * @api
+   */
+  panIntoView(panIntoViewOptions) {
+    const map = this.getMap();
+
+    if (!map || !map.getTargetElement() || !this.get(Property.POSITION)) {
+      return;
+    }
+
+    const mapRect = this.getRect(map.getTargetElement(), map.getSize());
+    const element = this.getElement();
+    const overlayRect = this.getRect(element, [
+      outerWidth(element),
+      outerHeight(element),
+    ]);
+
+    panIntoViewOptions = panIntoViewOptions || {};
+
+    const myMargin =
+      panIntoViewOptions.margin === undefined ? 20 : panIntoViewOptions.margin;
+    if (!containsExtent(mapRect, overlayRect)) {
+      // the overlay is not completely inside the viewport, so pan the map
+      const offsetLeft = overlayRect[0] - mapRect[0];
+      const offsetRight = mapRect[2] - overlayRect[2];
+      const offsetTop = overlayRect[1] - mapRect[1];
+      const offsetBottom = mapRect[3] - overlayRect[3];
+
+      const delta = [0, 0];
+      if (offsetLeft < 0) {
+        // move map to the left
+        delta[0] = offsetLeft - myMargin;
+      } else if (offsetRight < 0) {
+        // move map to the right
+        delta[0] = Math.abs(offsetRight) + myMargin;
+      }
+      if (offsetTop < 0) {
+        // move map up
+        delta[1] = offsetTop - myMargin;
+      } else if (offsetBottom < 0) {
+        // move map down
+        delta[1] = Math.abs(offsetBottom) + myMargin;
+      }
+
+      if (delta[0] !== 0 || delta[1] !== 0) {
+        const center = /** @type {import("./coordinate.js").Coordinate} */ (
+          map.getView().getCenterInternal()
+        );
+        const centerPx = map.getPixelFromCoordinateInternal(center);
+        if (!centerPx) {
+          return;
+        }
+        const newCenterPx = [centerPx[0] + delta[0], centerPx[1] + delta[1]];
+
+        const panOptions = panIntoViewOptions.animation || {};
+        map.getView().animateInternal({
+          center: map.getCoordinateFromPixelInternal(newCenterPx),
+          duration: panOptions.duration,
+          easing: panOptions.easing,
+        });
+      }
+    }
+  }
+
+  /**
+   * Get the extent of an element relative to the document
+   * @param {HTMLElement} element The element.
+   * @param {import("./size.js").Size} size The size of the element.
+   * @return {import("./extent.js").Extent} The extent.
+   * @protected
+   */
+  getRect(element, size) {
+    const box = element.getBoundingClientRect();
+    const offsetX = box.left + window.pageXOffset;
+    const offsetY = box.top + window.pageYOffset;
+    return [offsetX, offsetY, offsetX + size[0], offsetY + size[1]];
+  }
+
+  /**
+   * Set the positioning for this overlay.
+   * @param {Positioning} positioning how the overlay is
+   *     positioned relative to its point on the map.
+   * @observable
+   * @api
+   */
+  setPositioning(positioning) {
+    this.set(Property.POSITIONING, positioning);
+  }
+
+  /**
+   * Modify the visibility of the element.
+   * @param {boolean} visible Element visibility.
+   * @protected
+   */
+  setVisible(visible) {
+    if (this.rendered.visible !== visible) {
+      this.element.style.display = visible ? '' : 'none';
+      this.rendered.visible = visible;
+    }
+  }
+
+  /**
+   * Update pixel position.
+   * @protected
+   */
+  updatePixelPosition() {
+    const map = this.getMap();
+    const position = this.getPosition();
+    if (!map || !map.isRendered() || !position) {
+      this.setVisible(false);
+      return;
+    }
+
+    const pixel = map.getPixelFromCoordinate(position);
+    const mapSize = map.getSize();
+    this.updateRenderedPosition(pixel, mapSize);
+  }
+
+  /**
+   * @param {import("./pixel.js").Pixel} pixel The pixel location.
+   * @param {import("./size.js").Size|undefined} mapSize The map size.
+   * @protected
+   */
+  updateRenderedPosition(pixel, mapSize) {
+    const style = this.element.style;
+    const offset = this.getOffset();
+
+    const positioning = this.getPositioning();
+
+    this.setVisible(true);
+
+    const x = Math.round(pixel[0] + offset[0]) + 'px';
+    const y = Math.round(pixel[1] + offset[1]) + 'px';
+    let posX = '0%';
+    let posY = '0%';
+    if (
+      positioning == 'bottom-right' ||
+      positioning == 'center-right' ||
+      positioning == 'top-right'
+    ) {
+      posX = '-100%';
+    } else if (
+      positioning == 'bottom-center' ||
+      positioning == 'center-center' ||
+      positioning == 'top-center'
+    ) {
+      posX = '-50%';
+    }
+    if (
+      positioning == 'bottom-left' ||
+      positioning == 'bottom-center' ||
+      positioning == 'bottom-right'
+    ) {
+      posY = '-100%';
+    } else if (
+      positioning == 'center-left' ||
+      positioning == 'center-center' ||
+      positioning == 'center-right'
+    ) {
+      posY = '-50%';
+    }
+    const transform = `translate(${posX}, ${posY}) translate(${x}, ${y})`;
+    if (this.rendered.transform_ != transform) {
+      this.rendered.transform_ = transform;
+      style.transform = transform;
+    }
+  }
+
+  /**
+   * returns the options this Overlay has been created with
+   * @return {Options} overlay options
+   */
+  getOptions() {
+    return this.options;
+  }
+}
+
+/** Render React children in an OpenLayers overlay anchored to a map coordinate. */
+var Popup = _ref => {
+  var id = _ref.id,
+    children = _ref.children,
+    position = _ref.position,
+    positioning = _ref.positioning,
+    offset = _ref.offset,
+    autoPan = _ref.autoPan,
+    className = _ref.className,
+    style = _ref.style;
+  var map = useMap();
+  var overlayRef = useRef(null);
+  var portalElementRef = useRef(null);
+  var _useState = useState(null),
+    _useState2 = _slicedToArray(_useState, 2),
+    portalElement = _useState2[0],
+    setPortalElement = _useState2[1];
+  var initializePortal = useCallback(host => {
+    if (!host || portalElementRef.current) return;
+    var element = document.createElement('div');
+    portalElementRef.current = element;
+    setPortalElement(element);
+  }, []);
+  useEffect(() => {
+    if (!portalElement) return undefined;
+    var overlay = new Overlay({
+      element: portalElement,
+      autoPan
+    });
+    overlayRef.current = overlay;
+    map.addOverlay(overlay);
+    return () => {
+      map.removeOverlay(overlay);
+      if (overlayRef.current === overlay) overlayRef.current = null;
+    };
+  }, [autoPan, map, portalElement]);
+  useEffect(() => {
+    var overlay = overlayRef.current;
+    if (!overlay) return;
+    overlay.setOffset(offset);
+    overlay.setPositioning(positioning);
+    overlay.setPosition(position || undefined);
+  }, [autoPan, map, offset, position, positioning, portalElement]);
+  if (!portalElement) return /*#__PURE__*/React.createElement("span", {
+    hidden: true,
+    ref: initializePortal
+  });
+  return createPortal(/*#__PURE__*/React.createElement("div", {
+    id: typeof id === 'string' ? id : undefined,
+    className: className || undefined,
+    style: style || undefined
+  }, children), portalElement);
+};
+Popup.defaultProps = {
+  position: null,
+  positioning: 'bottom-center',
+  offset: [0, 0],
+  autoPan: false,
+  className: null,
+  style: null
+};
+Popup.propTypes = {
+  /** The ID used to identify this component in Dash callbacks. */
+  id: PropTypes.string,
+  /** Dash children rendered inside the overlay element. */
+  children: PropTypes.node,
+  /** Overlay position as [x, y] in the map view projection; null hides the popup. */
+  position: PropTypes.arrayOf(PropTypes.number),
+  /** Overlay alignment relative to its position coordinate. */
+  positioning: PropTypes.oneOf(['bottom-left', 'bottom-center', 'bottom-right', 'center-left', 'center-center', 'center-right', 'top-left', 'top-center', 'top-right']),
+  /** Pixel offset [x, y] applied to the overlay. */
+  offset: PropTypes.arrayOf(PropTypes.number),
+  /** Pan the map when positioning the overlay would place it outside the viewport. */
+  autoPan: PropTypes.bool,
+  /** CSS class applied to the popup content element. */
+  className: PropTypes.string,
+  /** Inline CSS style applied to the popup content element. */
+  style: PropTypes.object,
+  /** Dash-supplied prop setter; internal, do not set from Python. */
+  setProps: PropTypes.func
+};
+
+/**
  * @module ol/interaction/Select
  */
 
@@ -66293,12 +66990,14 @@ var SelectInteraction = _ref => {
     });
     var listenerKey = select.on('select', () => {
       if (setProps) {
+        var _selectedGeoJSON$feat;
         var selectedGeoJSON = new GeoJSON().writeFeaturesObject(select.getFeatures().getArray(), {
           featureProjection: map.getView().getProjection(),
           dataProjection: 'EPSG:4326'
         });
         setProps({
-          selectedGeoJSON
+          selectedGeoJSON,
+          selectedFeature: (_selectedGeoJSON$feat = selectedGeoJSON.features[0]) !== null && _selectedGeoJSON$feat !== void 0 ? _selectedGeoJSON$feat : null
         });
       }
     });
@@ -66321,6 +67020,8 @@ SelectInteraction.propTypes = {
   layerId: PropTypes.string,
   /** Read-only: current selection as a GeoJSON FeatureCollection in EPSG:4326. */
   selectedGeoJSON: PropTypes.object,
+  /** Read-only: first selected GeoJSON Feature in EPSG:4326, or null when nothing is selected. */
+  selectedFeature: PropTypes.object,
   /** Dash-supplied prop setter; internal, do not set from Python. */
   setProps: PropTypes.func
 };
@@ -67372,7 +68073,7 @@ class ReprojTile extends Tile {
    */
   release() {
     if (this.canvas_) {
-      releaseCanvas(this.canvas_.getContext('2d'));
+      releaseCanvas$1(this.canvas_.getContext('2d'));
       canvasPool$1.push(this.canvas_);
       this.canvas_ = null;
     }
@@ -71932,6 +72633,7 @@ class Cluster extends VectorSource {
 /** Render GeoJSON features in a canvas-backed OpenLayers vector layer. */
 var VectorLayerComponent = _ref => {
   var id = _ref.id,
+    data = _ref.data,
     geojson = _ref.geojson,
     wkt = _ref.wkt,
     style = _ref.style,
@@ -72037,18 +72739,21 @@ var VectorLayerComponent = _ref => {
     if (!source) return;
     source.clear();
     var useWKT = typeof wkt === 'string' && wkt.trim().length > 0;
-    var data = useWKT ? wkt : geojson;
-    if (!data) return;
-    var features = readFeatures(data, {
-      format: useWKT ? 'WKT' : 'GeoJSON',
-      dataProjection: 'EPSG:4326',
+    var featureData = useWKT ? wkt : data !== null && data !== void 0 ? data : geojson;
+    if (!featureData) return;
+    var readOptions = {
       featureProjection: map.getView().getProjection()
-    });
+    };
+    if (useWKT) readOptions.dataProjection = 'EPSG:4326';
+    var features = readFeatures(featureData, _objectSpread2({
+      format: useWKT ? 'WKT' : 'GeoJSON'
+    }, readOptions));
     source.addFeatures(features);
-  }, [geojson, id, map, wkt]);
+  }, [data, geojson, id, map, wkt]);
   return null;
 };
 VectorLayerComponent.defaultProps = {
+  data: null,
   geojson: null,
   wkt: null,
   style: null,
@@ -72059,9 +72764,11 @@ VectorLayerComponent.defaultProps = {
 VectorLayerComponent.propTypes = {
   /** Dash component ID; also used by ModifyInteraction to target this vector layer. */
   id: PropTypes.string,
-  /** GeoJSON Feature or FeatureCollection with coordinates in [longitude, latitude] order; updates are rendered in the map projection. */
+  /** GeoJSON Feature or FeatureCollection as an object or JSON string; embedded CRS metadata is honored, otherwise coordinates default to EPSG:4326. Takes precedence over `geojson`. */
+  data: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+  /** Backward-compatible GeoJSON Feature or FeatureCollection object alias for `data`. */
   geojson: PropTypes.object,
-  /** WKT geometry string in [x, y] order; takes precedence over `geojson` when non-empty. */
+  /** WKT geometry string in [x, y] order; takes precedence over `data` and `geojson` when non-empty. */
   wkt: PropTypes.string,
   /** OpenLayers flat style object or rule array; supports icon, fill, stroke, feature filters, and resolution expressions. */
   style: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
@@ -73313,7 +74020,7 @@ class CanvasVectorTileLayerRenderer extends CanvasTileLayerRenderer {
      * @private
      * @type {import("../../transform.js").Transform}
      */
-    this.tmpTransform_ = create();
+    this.tmpTransform_ = create$2();
 
     /**
      * @private
@@ -74657,7 +75364,7 @@ class VectorRenderTile extends Tile {
   release() {
     for (const key in this.context_) {
       const context = this.context_[key];
-      releaseCanvas(context);
+      releaseCanvas$1(context);
       canvasPool.push(context.canvas);
       delete this.context_[key];
     }
@@ -75225,6 +75932,6679 @@ VectorTileLayer.propTypes = {
   attributions: PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)]),
   /** OpenLayers flat-style object used to style MVT features. */
   style: PropTypes.object,
+  /** Dash-supplied callback used to write component state back to the layout. */
+  setProps: PropTypes.func
+};
+
+/**
+ * @module ol/webgl
+ */
+
+
+/**
+ * Constants taken from goog.webgl
+ */
+
+/**
+ * Used by {@link module:ol/webgl/Helper~WebGLHelper} for buffers containing vertices data, such as
+ * position, color, texture coordinate, etc. These vertices are then referenced by an index buffer
+ * to be drawn on screen (see {@link module:ol/webgl.ELEMENT_ARRAY_BUFFER}).
+ * @const
+ * @type {number}
+ * @api
+ */
+const ARRAY_BUFFER = 0x8892;
+
+/**
+ * Used by {@link module:ol/webgl/Helper~WebGLHelper} for buffers containing indices data.
+ * Index buffers are essentially lists of references to vertices defined in a vertex buffer
+ * (see {@link module:ol/webgl.ARRAY_BUFFER}), and define the primitives (triangles) to be drawn.
+ * @const
+ * @type {number}
+ * @api
+ */
+const ELEMENT_ARRAY_BUFFER = 0x8893;
+
+/**
+ * Used by {link module:ol/webgl/Buffer~WebGLArrayBuffer}.
+ * @const
+ * @type {number}
+ * @api
+ */
+const STATIC_DRAW = 0x88e4;
+
+/**
+ * Used by {link module:ol/webgl/Buffer~WebGLArrayBuffer}.
+ * @const
+ * @type {number}
+ * @api
+ */
+const DYNAMIC_DRAW = 0x88e8;
+
+/**
+ * @const
+ * @type {number}
+ */
+const UNSIGNED_BYTE = 0x1401;
+
+/**
+ * @const
+ * @type {number}
+ */
+const UNSIGNED_SHORT = 0x1403;
+
+/**
+ * @const
+ * @type {number}
+ */
+const UNSIGNED_INT = 0x1405;
+
+/**
+ * @const
+ * @type {number}
+ */
+const FLOAT = 0x1406;
+
+/** end of goog.webgl constants
+ */
+
+/**
+ * @const
+ * @type {Array<string>}
+ */
+const CONTEXT_IDS = ['experimental-webgl', 'webgl', 'webkit-3d', 'moz-webgl'];
+
+/**
+ * @param {HTMLCanvasElement} canvas Canvas.
+ * @param {Object} [attributes] Attributes.
+ * @return {WebGLRenderingContext|null} WebGL rendering context.
+ */
+function getContext(canvas, attributes) {
+  attributes = Object.assign(
+    {
+      preserveDrawingBuffer: true,
+      antialias: SAFARI_BUG_237906 ? false : true, // https://bugs.webkit.org/show_bug.cgi?id=237906
+    },
+    attributes,
+  );
+  const ii = CONTEXT_IDS.length;
+  for (let i = 0; i < ii; ++i) {
+    try {
+      const context = canvas.getContext(CONTEXT_IDS[i], attributes);
+      if (context) {
+        return /** @type {!WebGLRenderingContext} */ (context);
+      }
+    } catch (e) {
+      // pass
+    }
+  }
+  return null;
+}
+
+/**
+ * @module ol/webgl/Buffer
+ */
+
+/**
+ * Used to describe the intended usage for the data: `STATIC_DRAW`, `STREAM_DRAW`
+ * or `DYNAMIC_DRAW`.
+ * @enum {number}
+ */
+const BufferUsage = {
+  STATIC_DRAW: STATIC_DRAW};
+
+/**
+ * @classdesc
+ * Object used to store an array of data as well as usage information for that data.
+ * Stores typed arrays internally, either Float32Array or Uint16/32Array depending on
+ * the buffer type (ARRAY_BUFFER or ELEMENT_ARRAY_BUFFER) and available extensions.
+ *
+ * To populate the array, you can either use:
+ * * A size using `#ofSize(buffer)`
+ * * An `ArrayBuffer` object using `#fromArrayBuffer(buffer)`
+ * * A plain array using `#fromArray(array)`
+ *
+ * Note:
+ * See the documentation of [WebGLRenderingContext.bufferData](https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/bufferData)
+ * for more info on buffer usage.
+ */
+class WebGLArrayBuffer {
+  /**
+   * @param {number} type Buffer type, either ARRAY_BUFFER or ELEMENT_ARRAY_BUFFER.
+   * @param {number} [usage] Intended usage, either `STATIC_DRAW`, `STREAM_DRAW` or `DYNAMIC_DRAW`.
+   * Default is `DYNAMIC_DRAW`.
+   */
+  constructor(type, usage) {
+    /**
+     * @private
+     * @type {Float32Array|Uint32Array|null}
+     */
+    this.array_ = null;
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.type_ = type;
+
+    assert(
+      type === ARRAY_BUFFER || type === ELEMENT_ARRAY_BUFFER,
+      'A `WebGLArrayBuffer` must either be of type `ELEMENT_ARRAY_BUFFER` or `ARRAY_BUFFER`',
+    );
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.usage_ = usage !== undefined ? usage : BufferUsage.STATIC_DRAW;
+  }
+
+  /**
+   * Populates the buffer with an array of the given size (all values will be zeroes).
+   * @param {number} size Array size
+   * @return {WebGLArrayBuffer} This
+   */
+  ofSize(size) {
+    this.array_ = new (getArrayClassForType(this.type_))(size);
+    return this;
+  }
+
+  /**
+   * Populates the buffer with an array of the given size.
+   * @param {Array<number>} array Numerical array
+   * @return {WebGLArrayBuffer} This
+   */
+  fromArray(array) {
+    this.array_ = getArrayClassForType(this.type_).from(array);
+    return this;
+  }
+
+  /**
+   * Populates the buffer with a raw binary array buffer.
+   * @param {ArrayBuffer} buffer Raw binary buffer to populate the array with. Note that this buffer must have been
+   * initialized for the same typed array class.
+   * @return {WebGLArrayBuffer} This
+   */
+  fromArrayBuffer(buffer) {
+    this.array_ = new (getArrayClassForType(this.type_))(buffer);
+    return this;
+  }
+
+  /**
+   * @return {number} Buffer type.
+   */
+  getType() {
+    return this.type_;
+  }
+
+  /**
+   * Will return null if the buffer was not initialized
+   * @return {Float32Array|Uint32Array|null} Array.
+   */
+  getArray() {
+    return this.array_;
+  }
+
+  /**
+   * @return {number} Usage.
+   */
+  getUsage() {
+    return this.usage_;
+  }
+
+  /**
+   * Will return 0 if the buffer is not initialized
+   * @return {number} Array size
+   */
+  getSize() {
+    return this.array_ ? this.array_.length : 0;
+  }
+}
+
+/**
+ * Returns a typed array constructor based on the given buffer type
+ * @param {number} type Buffer type, either ARRAY_BUFFER or ELEMENT_ARRAY_BUFFER.
+ * @return {Float32ArrayConstructor|Uint32ArrayConstructor} The typed array class to use for this buffer.
+ */
+function getArrayClassForType(type) {
+  switch (type) {
+    case ARRAY_BUFFER:
+      return Float32Array;
+    case ELEMENT_ARRAY_BUFFER:
+      return Uint32Array;
+    default:
+      return Float32Array;
+  }
+}
+
+/**
+ * @module ol/webgl/ContextEventType
+ */
+
+/**
+ * @enum {string}
+ */
+var ContextEventType = {
+  LOST: 'webglcontextlost',
+  RESTORED: 'webglcontextrestored',
+};
+
+/**
+ * @module ol/webgl/PostProcessingPass
+ */
+
+
+const DEFAULT_VERTEX_SHADER = `
+  precision mediump float;
+  
+  attribute vec2 a_position;
+  varying vec2 v_texCoord;
+  varying vec2 v_screenCoord;
+  
+  uniform vec2 u_screenSize;
+   
+  void main() {
+    v_texCoord = a_position * 0.5 + 0.5;
+    v_screenCoord = v_texCoord * u_screenSize;
+    gl_Position = vec4(a_position, 0.0, 1.0);
+  }
+`;
+
+const DEFAULT_FRAGMENT_SHADER = `
+  precision mediump float;
+   
+  uniform sampler2D u_image;
+  uniform float u_opacity;
+   
+  varying vec2 v_texCoord;
+   
+  void main() {
+    gl_FragColor = texture2D(u_image, v_texCoord) * u_opacity;
+  }
+`;
+
+/**
+ * @typedef {Object} Options
+ * @property {WebGLRenderingContext} webGlContext WebGL context; mandatory.
+ * @property {number} [scaleRatio] Scale ratio; if < 1, the post process will render to a texture smaller than
+ * the main canvas that will then be sampled up (useful for saving resource on blur steps).
+ * @property {string} [vertexShader] Vertex shader source
+ * @property {string} [fragmentShader] Fragment shader source
+ * @property {Object<string,import("./Helper").UniformValue>} [uniforms] Uniform definitions for the post process step
+ */
+
+/**
+ * @typedef {Object} UniformInternalDescription
+ * @property {import("./Helper").UniformValue} value Value
+ * @property {WebGLUniformLocation} location Location
+ * @property {WebGLTexture} [texture] Texture
+ * @private
+ */
+
+/**
+ * @classdesc
+ * This class is used to define Post Processing passes with custom shaders and uniforms.
+ * This is used internally by {@link module:ol/webgl/Helper~WebGLHelper}.
+ *
+ * Please note that the final output on the DOM canvas is expected to have premultiplied alpha, which means that
+ * a pixel which is 100% red with an opacity of 50% must have a color of (r=0.5, g=0, b=0, a=0.5).
+ * Failing to provide pixel colors with premultiplied alpha will result in render anomalies.
+ *
+ * The default post-processing pass does *not* multiply color values with alpha value, it expects color values to be
+ * premultiplied.
+ *
+ * Default shaders are shown hereafter:
+ *
+ * * Vertex shader:
+ *
+ *   ```
+ *   precision mediump float;
+ *
+ *   attribute vec2 a_position;
+ *   varying vec2 v_texCoord;
+ *   varying vec2 v_screenCoord;
+ *
+ *   uniform vec2 u_screenSize;
+ *
+ *   void main() {
+ *     v_texCoord = a_position * 0.5 + 0.5;
+ *     v_screenCoord = v_texCoord * u_screenSize;
+ *     gl_Position = vec4(a_position, 0.0, 1.0);
+ *   }
+ *   ```
+ *
+ * * Fragment shader:
+ *
+ *   ```
+ *   precision mediump float;
+ *
+ *   uniform sampler2D u_image;
+ *   uniform float u_opacity;
+ *
+ *   varying vec2 v_texCoord;
+ *
+ *   void main() {
+ *     gl_FragColor = texture2D(u_image, v_texCoord) * u_opacity;
+ *   }
+ *   ```
+ */
+class WebGLPostProcessingPass {
+  /**
+   * @param {Options} options Options.
+   */
+  constructor(options) {
+    this.gl_ = options.webGlContext;
+    const gl = this.gl_;
+
+    this.scaleRatio_ = options.scaleRatio || 1;
+
+    this.renderTargetTexture_ = gl.createTexture();
+    this.renderTargetTextureSize_ = null;
+
+    this.frameBuffer_ = gl.createFramebuffer();
+    this.depthBuffer_ = gl.createRenderbuffer();
+
+    // compile the program for the frame buffer
+    // TODO: make compilation errors show up
+    const vertexShader = gl.createShader(gl.VERTEX_SHADER);
+    gl.shaderSource(
+      vertexShader,
+      options.vertexShader || DEFAULT_VERTEX_SHADER,
+    );
+    gl.compileShader(vertexShader);
+    const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER);
+    gl.shaderSource(
+      fragmentShader,
+      options.fragmentShader || DEFAULT_FRAGMENT_SHADER,
+    );
+    gl.compileShader(fragmentShader);
+    this.renderTargetProgram_ = gl.createProgram();
+    gl.attachShader(this.renderTargetProgram_, vertexShader);
+    gl.attachShader(this.renderTargetProgram_, fragmentShader);
+    gl.linkProgram(this.renderTargetProgram_);
+
+    // bind the vertices buffer for the frame buffer
+    this.renderTargetVerticesBuffer_ = gl.createBuffer();
+    const verticesArray = [-1, -1, 1, -1, -1, 1, 1, -1, 1, 1, -1, 1];
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.renderTargetVerticesBuffer_);
+    gl.bufferData(
+      gl.ARRAY_BUFFER,
+      new Float32Array(verticesArray),
+      gl.STATIC_DRAW,
+    );
+
+    this.renderTargetAttribLocation_ = gl.getAttribLocation(
+      this.renderTargetProgram_,
+      'a_position',
+    );
+    this.renderTargetUniformLocation_ = gl.getUniformLocation(
+      this.renderTargetProgram_,
+      'u_screenSize',
+    );
+    this.renderTargetOpacityLocation_ = gl.getUniformLocation(
+      this.renderTargetProgram_,
+      'u_opacity',
+    );
+    this.renderTargetTextureLocation_ = gl.getUniformLocation(
+      this.renderTargetProgram_,
+      'u_image',
+    );
+
+    /**
+     * Holds info about custom uniforms used in the post processing pass
+     * @type {Array<UniformInternalDescription>}
+     * @private
+     */
+    this.uniforms_ = [];
+    options.uniforms &&
+      Object.keys(options.uniforms).forEach((name) => {
+        this.uniforms_.push({
+          value: options.uniforms[name],
+          location: gl.getUniformLocation(this.renderTargetProgram_, name),
+        });
+      });
+  }
+
+  /**
+   * Get the WebGL rendering context
+   * @return {WebGLRenderingContext} The rendering context.
+   */
+  getGL() {
+    return this.gl_;
+  }
+
+  /**
+   * Initialize the render target texture of the post process, make sure it is at the
+   * right size and bind it as a render target for the next draw calls.
+   * The last step to be initialized will be the one where the primitives are rendered.
+   * @param {import("../Map.js").FrameState} frameState current frame state
+   */
+  init(frameState) {
+    const gl = this.getGL();
+    const textureSize = [
+      gl.drawingBufferWidth * this.scaleRatio_,
+      gl.drawingBufferHeight * this.scaleRatio_,
+    ];
+
+    // rendering goes to my buffer
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.getFrameBuffer());
+    gl.bindRenderbuffer(gl.RENDERBUFFER, this.getDepthBuffer());
+    gl.viewport(0, 0, textureSize[0], textureSize[1]);
+
+    // if size has changed: adjust canvas & render target texture
+    if (
+      !this.renderTargetTextureSize_ ||
+      this.renderTargetTextureSize_[0] !== textureSize[0] ||
+      this.renderTargetTextureSize_[1] !== textureSize[1]
+    ) {
+      this.renderTargetTextureSize_ = textureSize;
+
+      // create a new texture
+      const level = 0;
+      const internalFormat = gl.RGBA;
+      const border = 0;
+      const format = gl.RGBA;
+      const type = gl.UNSIGNED_BYTE;
+      const data = null;
+      gl.bindTexture(gl.TEXTURE_2D, this.renderTargetTexture_);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        level,
+        internalFormat,
+        textureSize[0],
+        textureSize[1],
+        border,
+        format,
+        type,
+        data,
+      );
+
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+      // bind the texture to the framebuffer
+      gl.framebufferTexture2D(
+        gl.FRAMEBUFFER,
+        gl.COLOR_ATTACHMENT0,
+        gl.TEXTURE_2D,
+        this.renderTargetTexture_,
+        0,
+      );
+
+      gl.renderbufferStorage(
+        gl.RENDERBUFFER,
+        gl.DEPTH_COMPONENT16,
+        textureSize[0],
+        textureSize[1],
+      );
+      gl.framebufferRenderbuffer(
+        gl.FRAMEBUFFER,
+        gl.DEPTH_ATTACHMENT,
+        gl.RENDERBUFFER,
+        this.depthBuffer_,
+      );
+    }
+  }
+
+  /**
+   * Render to the next postprocessing pass (or to the canvas if final pass).
+   * @param {import("../Map.js").FrameState} frameState current frame state
+   * @param {WebGLPostProcessingPass} [nextPass] Next pass, optional
+   * @param {function(WebGLRenderingContext, import("../Map.js").FrameState):void} [preCompose] Called before composing.
+   * @param {function(WebGLRenderingContext, import("../Map.js").FrameState):void} [postCompose] Called before composing.
+   */
+  apply(frameState, nextPass, preCompose, postCompose) {
+    const gl = this.getGL();
+    const size = frameState.size;
+
+    gl.bindFramebuffer(
+      gl.FRAMEBUFFER,
+      nextPass ? nextPass.getFrameBuffer() : null,
+    );
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.renderTargetTexture_);
+
+    if (!nextPass) {
+      // clear the canvas if we are the first to render to it
+      // and preserveDrawingBuffer is true
+      const canvasId = getUid(gl.canvas);
+      if (!frameState.renderTargets[canvasId]) {
+        const attributes = gl.getContextAttributes();
+        if (attributes && attributes.preserveDrawingBuffer) {
+          gl.clearColor(0.0, 0.0, 0.0, 0.0);
+          gl.clearDepth(1.0);
+          gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        }
+
+        frameState.renderTargets[canvasId] = true;
+      }
+    }
+
+    gl.disable(gl.DEPTH_TEST);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+    gl.viewport(0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.renderTargetVerticesBuffer_);
+
+    gl.useProgram(this.renderTargetProgram_);
+    gl.enableVertexAttribArray(this.renderTargetAttribLocation_);
+    gl.vertexAttribPointer(
+      this.renderTargetAttribLocation_,
+      2,
+      gl.FLOAT,
+      false,
+      0,
+      0,
+    );
+    gl.uniform2f(this.renderTargetUniformLocation_, size[0], size[1]);
+    gl.uniform1i(this.renderTargetTextureLocation_, 0);
+
+    const opacity = frameState.layerStatesArray[frameState.layerIndex].opacity;
+    gl.uniform1f(this.renderTargetOpacityLocation_, opacity);
+
+    this.applyUniforms(frameState);
+
+    if (preCompose) {
+      preCompose(gl, frameState);
+    }
+    gl.drawArrays(gl.TRIANGLES, 0, 6);
+    if (postCompose) {
+      postCompose(gl, frameState);
+    }
+  }
+
+  /**
+   * @return {WebGLFramebuffer} Frame buffer
+   */
+  getFrameBuffer() {
+    return this.frameBuffer_;
+  }
+
+  /**
+   * @return {WebGLRenderbuffer} Depth buffer
+   */
+  getDepthBuffer() {
+    return this.depthBuffer_;
+  }
+
+  /**
+   * Sets the custom uniforms based on what was given in the constructor.
+   * @param {import("../Map.js").FrameState} frameState Frame state.
+   * @private
+   */
+  applyUniforms(frameState) {
+    const gl = this.getGL();
+
+    let value;
+    let textureSlot = 1;
+    this.uniforms_.forEach(function (uniform) {
+      value =
+        typeof uniform.value === 'function'
+          ? uniform.value(frameState)
+          : uniform.value;
+
+      // apply value based on type
+      if (value instanceof HTMLCanvasElement || value instanceof ImageData) {
+        // create a texture & put data
+        if (!uniform.texture) {
+          uniform.texture = gl.createTexture();
+        }
+        gl.activeTexture(gl[`TEXTURE${textureSlot}`]);
+        gl.bindTexture(gl.TEXTURE_2D, uniform.texture);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        if (value instanceof ImageData) {
+          gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RGBA,
+            gl.RGBA,
+            value.width,
+            value.height,
+            0,
+            gl.UNSIGNED_BYTE,
+            new Uint8Array(value.data),
+          );
+        } else {
+          gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RGBA,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            value,
+          );
+        }
+
+        // fill texture slots
+        gl.uniform1i(uniform.location, textureSlot++);
+      } else if (Array.isArray(value)) {
+        switch (value.length) {
+          case 2:
+            gl.uniform2f(uniform.location, value[0], value[1]);
+            return;
+          case 3:
+            gl.uniform3f(uniform.location, value[0], value[1], value[2]);
+            return;
+          case 4:
+            gl.uniform4f(
+              uniform.location,
+              value[0],
+              value[1],
+              value[2],
+              value[3],
+            );
+            return;
+          default:
+            return;
+        }
+      } else if (typeof value === 'number') {
+        gl.uniform1f(uniform.location, value);
+      }
+    });
+  }
+}
+
+/**
+ * @module ol/vec/mat4
+ */
+
+/**
+ * @return {Array<number>} "4x4 matrix representing a 3D identity transform."
+ */
+function create$1() {
+  return [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
+}
+
+/**
+ * @param {Array<number>} mat4 Flattened 4x4 matrix receiving the result.
+ * @param {import("../transform.js").Transform} transform Transformation matrix.
+ * @return {Array<number>} "2D transformation matrix as flattened 4x4 matrix."
+ */
+function fromTransform(mat4, transform) {
+  mat4[0] = transform[0];
+  mat4[1] = transform[1];
+  mat4[4] = transform[2];
+  mat4[5] = transform[3];
+  mat4[12] = transform[4];
+  mat4[13] = transform[5];
+  return mat4;
+}
+
+/**
+ * @module ol/webgl/Helper
+ */
+
+/**
+ * Names of uniforms made available to all shaders.
+ * Please note: changing these *will* break custom shaders!
+ * @enum {string}
+ */
+const DefaultUniform = {
+  PROJECTION_MATRIX: 'u_projectionMatrix',
+  TIME: 'u_time',
+  ZOOM: 'u_zoom',
+  RESOLUTION: 'u_resolution',
+  ROTATION: 'u_rotation',
+  VIEWPORT_SIZE_PX: 'u_viewportSizePx',
+  PIXEL_RATIO: 'u_pixelRatio',
+  HIT_DETECTION: 'u_hitDetection',
+};
+
+/**
+ * Attribute types, either `UNSIGNED_BYTE`, `UNSIGNED_SHORT`, `UNSIGNED_INT` or `FLOAT`
+ * Note: an attribute stored in a `Float32Array` should be of type `FLOAT`.
+ * @enum {number}
+ */
+const AttributeType = {
+  UNSIGNED_BYTE: UNSIGNED_BYTE,
+  UNSIGNED_SHORT: UNSIGNED_SHORT,
+  UNSIGNED_INT: UNSIGNED_INT,
+  FLOAT: FLOAT,
+};
+
+/**
+ * Description of an attribute in a buffer
+ * @typedef {Object} AttributeDescription
+ * @property {string} name Attribute name to use in shaders
+ * @property {number} size Number of components per attributes
+ * @property {AttributeType} [type] Attribute type, i.e. number of bytes used to store the value. This is
+ * determined by the class of typed array which the buffer uses (eg. `Float32Array` for a `FLOAT` attribute).
+ * Default is `FLOAT`.
+ */
+
+/**
+ * @typedef {number|Array<number>|HTMLCanvasElement|HTMLImageElement|ImageData|WebGLTexture|import("../transform").Transform} UniformLiteralValue
+ */
+
+/**
+ * Uniform value can be a number, array of numbers (2 to 4), canvas element or a callback returning
+ * one of the previous types.
+ * @typedef {UniformLiteralValue|function(import("../Map.js").FrameState):UniformLiteralValue} UniformValue
+ */
+
+/**
+ * @typedef {Object} PostProcessesOptions
+ * @property {number} [scaleRatio] Scale ratio; if < 1, the post process will render to a texture smaller than
+ * the main canvas which will then be sampled up (useful for saving resource on blur steps).
+ * @property {string} [vertexShader] Vertex shader source
+ * @property {string} [fragmentShader] Fragment shader source
+ * @property {Object<string,UniformValue>} [uniforms] Uniform definitions for the post process step
+ */
+
+/**
+ * @typedef {Object} Options
+ * @property {Object<string,UniformValue>} [uniforms] Uniform definitions; property names must match the uniform
+ * names in the provided or default shaders.
+ * @property {Array<PostProcessesOptions>} [postProcesses] Post-processes definitions
+ * @property {string} [canvasCacheKey] The cache key for the canvas.
+ */
+
+/**
+ * @typedef {Object} UniformInternalDescription
+ * @property {string} name Name
+ * @property {UniformValue} [value] Value
+ * @property {UniformValue} [prevValue] The previous value.
+ * @property {WebGLTexture} [texture] Texture
+ * @private
+ */
+
+/**
+ * @typedef {Object} CanvasCacheItem
+ * @property {WebGLRenderingContext} context The context of this canvas.
+ * @property {number} users The count of users of this canvas.
+ */
+
+/**
+ * @type {Object<string,CanvasCacheItem>}
+ */
+const canvasCache = {};
+
+/**
+ * @param {string} key The cache key for the canvas.
+ * @return {string} The shared cache key.
+ */
+function getSharedCanvasCacheKey(key) {
+  return 'shared/' + key;
+}
+
+let uniqueCanvasCacheKeyCount = 0;
+
+/**
+ * @return {string} The unique cache key.
+ */
+function getUniqueCanvasCacheKey() {
+  const key = 'unique/' + uniqueCanvasCacheKeyCount;
+  uniqueCanvasCacheKeyCount += 1;
+  return key;
+}
+
+/**
+ * @param {string} key The cache key for the canvas.
+ * @return {WebGLRenderingContext} The canvas.
+ */
+function getOrCreateContext(key) {
+  let cacheItem = canvasCache[key];
+  if (!cacheItem) {
+    const canvas = document.createElement('canvas');
+    canvas.width = 1;
+    canvas.height = 1;
+    canvas.style.position = 'absolute';
+    canvas.style.left = '0';
+    const context = getContext(canvas);
+    cacheItem = {users: 0, context};
+    canvasCache[key] = cacheItem;
+  }
+
+  cacheItem.users += 1;
+  return cacheItem.context;
+}
+
+/**
+ * @param {string} key The cache key for the canvas.
+ */
+function releaseCanvas(key) {
+  const cacheItem = canvasCache[key];
+  if (!cacheItem) {
+    return;
+  }
+
+  cacheItem.users -= 1;
+  if (cacheItem.users > 0) {
+    return;
+  }
+
+  const gl = cacheItem.context;
+  const extension = gl.getExtension('WEBGL_lose_context');
+  if (extension) {
+    extension.loseContext();
+  }
+  const canvas = gl.canvas;
+  canvas.width = 1;
+  canvas.height = 1;
+
+  delete canvasCache[key];
+}
+
+/**
+ * @classdesc
+ * This class is intended to provide low-level functions related to WebGL rendering, so that accessing
+ * directly the WebGL API should not be required anymore.
+ *
+ * Several operations are handled by the `WebGLHelper` class:
+ *
+ * ### Define custom shaders and uniforms
+ *
+ *   *Shaders* are low-level programs executed on the GPU and written in GLSL. There are two types of shaders:
+ *
+ *   Vertex shaders are used to manipulate the position and attribute of *vertices* of rendered primitives (ie. corners of a square).
+ *   Outputs are:
+ *
+ *   * `gl_Position`: position of the vertex in screen space
+ *
+ *   * Varyings usually prefixed with `v_` are passed on to the fragment shader
+ *
+ *   Fragment shaders are used to control the actual color of the pixels drawn on screen. Their only output is `gl_FragColor`.
+ *
+ *   Both shaders can take *uniforms* or *attributes* as input. Attributes are explained later. Uniforms are common, read-only values that
+ *   can be changed at every frame and can be of type float, arrays of float or images.
+ *
+ *   Shaders must be compiled and assembled into a program like so:
+ *   ```js
+ *   // here we simply create two shaders and assemble them in a program which is then used
+ *   // for subsequent rendering calls; note how a frameState is required to set up a program,
+ *   // as several default uniforms are computed from it (projection matrix, zoom level, etc.)
+ *   const vertexShader = new WebGLVertex(VERTEX_SHADER);
+ *   const fragmentShader = new WebGLFragment(FRAGMENT_SHADER);
+ *   const program = this.context.getProgram(fragmentShader, vertexShader);
+ *   helper.useProgram(this.program, frameState);
+ *   ```
+ *
+ *   Uniforms are defined using the `uniforms` option and can either be explicit values or callbacks taking the frame state as argument.
+ *   You can also change their value along the way like so:
+ *   ```js
+ *   helper.setUniformFloatValue('u_value', valueAsNumber);
+ *   ```
+ *
+ * ### Defining post processing passes
+ *
+ *   *Post processing* describes the act of rendering primitives to a texture, and then rendering this texture to the final canvas
+ *   while applying special effects in screen space.
+ *   Typical uses are: blurring, color manipulation, depth of field, filtering...
+ *
+ *   The `WebGLHelper` class offers the possibility to define post processes at creation time using the `postProcesses` option.
+ *   A post process step accepts the following options:
+ *
+ *   * `fragmentShader` and `vertexShader`: text literals in GLSL language that will be compiled and used in the post processing step.
+ *   * `uniforms`: uniforms can be defined for the post processing steps just like for the main render.
+ *   * `scaleRatio`: allows using an intermediate texture smaller or higher than the final canvas in the post processing step.
+ *     This is typically used in blur steps to reduce the performance overhead by using an already downsampled texture as input.
+ *
+ *   The {@link module:ol/webgl/PostProcessingPass~WebGLPostProcessingPass} class is used internally, refer to its documentation for more info.
+ *
+ * ### Binding WebGL buffers and flushing data into them
+ *
+ *   Data that must be passed to the GPU has to be transferred using {@link module:ol/webgl/Buffer~WebGLArrayBuffer} objects.
+ *   A buffer has to be created only once, but must be bound every time the buffer content will be used for rendering.
+ *   This is done using {@link bindBuffer}.
+ *   When the buffer's array content has changed, the new data has to be flushed to the GPU memory; this is done using
+ *   {@link flushBufferData}. Note: this operation is expensive and should be done as infrequently as possible.
+ *
+ *   When binding an array buffer, a `target` parameter must be given: it should be either {@link module:ol/webgl.ARRAY_BUFFER}
+ *   (if the buffer contains vertices data) or {@link module:ol/webgl.ELEMENT_ARRAY_BUFFER} (if the buffer contains indices data).
+ *
+ *   Examples below:
+ *   ```js
+ *   // at initialization phase
+ *   const verticesBuffer = new WebGLArrayBuffer([], DYNAMIC_DRAW);
+ *   const indicesBuffer = new WebGLArrayBuffer([], DYNAMIC_DRAW);
+ *
+ *   // when array values have changed
+ *   helper.flushBufferData(ARRAY_BUFFER, this.verticesBuffer);
+ *   helper.flushBufferData(ELEMENT_ARRAY_BUFFER, this.indicesBuffer);
+ *
+ *   // at rendering phase
+ *   helper.bindBuffer(ARRAY_BUFFER, this.verticesBuffer);
+ *   helper.bindBuffer(ELEMENT_ARRAY_BUFFER, this.indicesBuffer);
+ *   ```
+ *
+ * ### Specifying attributes
+ *
+ *   The GPU only receives the data as arrays of numbers. These numbers must be handled differently depending on what it describes (position, texture coordinate...).
+ *   Attributes are used to specify these uses. Specify the attribute names with
+ *   {@link module:ol/webgl/Helper~WebGLHelper#enableAttributes} (see code snippet below).
+ *
+ *   Please note that you will have to specify the type and offset of the attributes in the data array. You can refer to the documentation of [WebGLRenderingContext.vertexAttribPointer](https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/vertexAttribPointer) for more explanation.
+ *   ```js
+ *   // here we indicate that the data array has the following structure:
+ *   // [posX, posY, offsetX, offsetY, texCoordU, texCoordV, posX, posY, ...]
+ *   helper.enableAttributes([
+ *     {
+ *        name: 'a_position',
+ *        size: 2
+ *     },
+ *     {
+ *       name: 'a_offset',
+ *       size: 2
+ *     },
+ *     {
+ *       name: 'a_texCoord',
+ *       size: 2
+ *     }
+ *   ])
+ *   ```
+ *
+ * ### Rendering primitives
+ *
+ *   Once all the steps above have been achieved, rendering primitives to the screen is done using {@link prepareDraw}, {@link drawElements} and {@link finalizeDraw}.
+ *   ```js
+ *   // frame preparation step
+ *   helper.prepareDraw(frameState);
+ *
+ *   // call this for every data array that has to be rendered on screen
+ *   helper.drawElements(0, this.indicesBuffer.getArray().length);
+ *
+ *   // finalize the rendering by applying post processes
+ *   helper.finalizeDraw(frameState);
+ *   ```
+ *
+ * For an example usage of this class, refer to {@link module:ol/renderer/webgl/PointsLayer~WebGLPointsLayerRenderer}.
+ */
+class WebGLHelper extends Disposable {
+  /**
+   * @param {Options} [options] Options.
+   */
+  constructor(options) {
+    super();
+    options = options || {};
+
+    /** @private */
+    this.boundHandleWebGLContextLost_ = this.handleWebGLContextLost.bind(this);
+
+    /** @private */
+    this.boundHandleWebGLContextRestored_ =
+      this.handleWebGLContextRestored.bind(this);
+
+    /**
+     * @private
+     * @type {string}
+     */
+    this.canvasCacheKey_ = options.canvasCacheKey
+      ? getSharedCanvasCacheKey(options.canvasCacheKey)
+      : getUniqueCanvasCacheKey();
+
+    /**
+     * @private
+     * @type {WebGLRenderingContext}
+     */
+    this.gl_ = getOrCreateContext(this.canvasCacheKey_);
+
+    /**
+     * @private
+     * @type {!Object<string, BufferCacheEntry>}
+     */
+    this.bufferCache_ = {};
+
+    /**
+     * @private
+     * @type {Object<string, Object>}
+     */
+    this.extensionCache_ = {};
+
+    /**
+     * @private
+     * @type {WebGLProgram}
+     */
+    this.currentProgram_ = null;
+
+    /**
+     * @private
+     * @type boolean
+     */
+    this.needsToBeRecreated_ = false;
+
+    const canvas = this.gl_.canvas;
+
+    canvas.addEventListener(
+      ContextEventType.LOST,
+      this.boundHandleWebGLContextLost_,
+    );
+    canvas.addEventListener(
+      ContextEventType.RESTORED,
+      this.boundHandleWebGLContextRestored_,
+    );
+
+    /**
+     * @private
+     * @type {import("../transform.js").Transform}
+     */
+    this.offsetRotateMatrix_ = create$2();
+
+    /**
+     * @private
+     * @type {import("../transform.js").Transform}
+     */
+    this.offsetScaleMatrix_ = create$2();
+
+    /**
+     * @private
+     * @type {Array<number>}
+     */
+    this.tmpMat4_ = create$1();
+
+    /**
+     * @private
+     * @type {Object<string, Object<string, WebGLUniformLocation>>}
+     */
+    this.uniformLocationsByProgram_ = {};
+
+    /**
+     * @private
+     * @type {Object<string, Object<string, number>>}
+     */
+    this.attribLocationsByProgram_ = {};
+
+    /**
+     * Holds info about custom uniforms used in the post processing pass.
+     * If the uniform is a texture, the WebGL Texture object will be stored here.
+     * @type {Array<UniformInternalDescription>}
+     * @private
+     */
+    this.uniforms_ = [];
+    if (options.uniforms) {
+      this.setUniforms(options.uniforms);
+    }
+
+    /**
+     * An array of PostProcessingPass objects is kept in this variable, built from the steps provided in the
+     * options. If no post process was given, a default one is used (so as not to have to make an exception to
+     * the frame buffer logic).
+     * @type {Array<WebGLPostProcessingPass>}
+     * @private
+     */
+    this.postProcessPasses_ = options.postProcesses
+      ? options.postProcesses.map(
+          (options) =>
+            new WebGLPostProcessingPass({
+              webGlContext: this.gl_,
+              scaleRatio: options.scaleRatio,
+              vertexShader: options.vertexShader,
+              fragmentShader: options.fragmentShader,
+              uniforms: options.uniforms,
+            }),
+        )
+      : [new WebGLPostProcessingPass({webGlContext: this.gl_})];
+
+    /**
+     * @type {string|null}
+     * @private
+     */
+    this.shaderCompileErrors_ = null;
+
+    /**
+     * @type {number}
+     * @private
+     */
+    this.startTime_ = Date.now();
+  }
+
+  /**
+   * @param {Object<string, UniformValue>} uniforms Uniform definitions.
+   */
+  setUniforms(uniforms) {
+    this.uniforms_ = [];
+    this.addUniforms(uniforms);
+  }
+
+  /**
+   * @param {Object<string, UniformValue>} uniforms Uniform definitions.
+   */
+  addUniforms(uniforms) {
+    for (const name in uniforms) {
+      this.uniforms_.push({
+        name: name,
+        value: uniforms[name],
+      });
+    }
+  }
+
+  /**
+   * @param {string} canvasCacheKey The canvas cache key.
+   * @return {boolean} The provided key matches the one this helper was constructed with.
+   */
+  canvasCacheKeyMatches(canvasCacheKey) {
+    return this.canvasCacheKey_ === getSharedCanvasCacheKey(canvasCacheKey);
+  }
+
+  /**
+   * Get a WebGL extension.  If the extension is not supported, null is returned.
+   * Extensions are cached after they are enabled for the first time.
+   * @param {string} name The extension name.
+   * @return {Object|null} The extension or null if not supported.
+   */
+  getExtension(name) {
+    if (name in this.extensionCache_) {
+      return this.extensionCache_[name];
+    }
+    const extension = this.gl_.getExtension(name);
+    this.extensionCache_[name] = extension;
+    return extension;
+  }
+
+  /**
+   * Just bind the buffer if it's in the cache. Otherwise create
+   * the WebGL buffer, bind it, populate it, and add an entry to
+   * the cache.
+   * @param {import("./Buffer").default} buffer Buffer.
+   */
+  bindBuffer(buffer) {
+    const gl = this.gl_;
+    const bufferKey = getUid(buffer);
+    let bufferCache = this.bufferCache_[bufferKey];
+    if (!bufferCache) {
+      const webGlBuffer = gl.createBuffer();
+      bufferCache = {
+        buffer: buffer,
+        webGlBuffer: webGlBuffer,
+      };
+      this.bufferCache_[bufferKey] = bufferCache;
+    }
+    gl.bindBuffer(buffer.getType(), bufferCache.webGlBuffer);
+  }
+
+  /**
+   * Update the data contained in the buffer array; this is required for the
+   * new data to be rendered
+   * @param {import("./Buffer").default} buffer Buffer.
+   */
+  flushBufferData(buffer) {
+    const gl = this.gl_;
+    this.bindBuffer(buffer);
+    gl.bufferData(buffer.getType(), buffer.getArray(), buffer.getUsage());
+  }
+
+  /**
+   * @param {import("./Buffer.js").default} buf Buffer.
+   */
+  deleteBuffer(buf) {
+    const gl = this.gl_;
+    const bufferKey = getUid(buf);
+    const bufferCacheEntry = this.bufferCache_[bufferKey];
+    if (bufferCacheEntry && !gl.isContextLost()) {
+      gl.deleteBuffer(bufferCacheEntry.webGlBuffer);
+    }
+    delete this.bufferCache_[bufferKey];
+  }
+
+  /**
+   * Clean up.
+   */
+  disposeInternal() {
+    const canvas = this.gl_.canvas;
+    canvas.removeEventListener(
+      ContextEventType.LOST,
+      this.boundHandleWebGLContextLost_,
+    );
+    canvas.removeEventListener(
+      ContextEventType.RESTORED,
+      this.boundHandleWebGLContextRestored_,
+    );
+
+    releaseCanvas(this.canvasCacheKey_);
+
+    delete this.gl_;
+  }
+
+  /**
+   * Clear the buffer & set the viewport to draw.
+   * Post process passes will be initialized here, the first one being bound as a render target for
+   * subsequent draw calls.
+   * @param {import("../Map.js").FrameState} frameState current frame state
+   * @param {boolean} [disableAlphaBlend] If true, no alpha blending will happen.
+   * @param {boolean} [enableDepth] If true, enables depth testing.
+   */
+  prepareDraw(frameState, disableAlphaBlend, enableDepth) {
+    const gl = this.gl_;
+    const canvas = this.getCanvas();
+    const size = frameState.size;
+    const pixelRatio = frameState.pixelRatio;
+
+    if (
+      canvas.width !== size[0] * pixelRatio ||
+      canvas.height !== size[1] * pixelRatio
+    ) {
+      canvas.width = size[0] * pixelRatio;
+      canvas.height = size[1] * pixelRatio;
+      canvas.style.width = size[0] + 'px';
+      canvas.style.height = size[1] + 'px';
+    }
+
+    // loop backwards in post processes list
+    for (let i = this.postProcessPasses_.length - 1; i >= 0; i--) {
+      this.postProcessPasses_[i].init(frameState);
+    }
+
+    gl.bindTexture(gl.TEXTURE_2D, null);
+
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.depthRange(0.0, 1.0);
+    gl.clearDepth(1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, disableAlphaBlend ? gl.ZERO : gl.ONE_MINUS_SRC_ALPHA);
+    if (enableDepth) {
+      gl.enable(gl.DEPTH_TEST);
+      gl.depthFunc(gl.LEQUAL);
+    } else {
+      gl.disable(gl.DEPTH_TEST);
+    }
+  }
+
+  /**
+   * Prepare a program to use a texture.
+   * @param {WebGLTexture} texture The texture.
+   * @param {number} slot The texture slot.
+   * @param {string} uniformName The corresponding uniform name.
+   */
+  bindTexture(texture, slot, uniformName) {
+    const gl = this.gl_;
+    gl.activeTexture(gl.TEXTURE0 + slot);
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    gl.uniform1i(this.getUniformLocation(uniformName), slot);
+  }
+
+  /**
+   * Clear the render target & bind it for future draw operations.
+   * This is similar to `prepareDraw`, only post processes will not be applied.
+   * Note: the whole viewport will be drawn to the render target, regardless of its size.
+   * @param {import("../Map.js").FrameState} frameState current frame state
+   * @param {import("./RenderTarget.js").default} renderTarget Render target to draw to
+   * @param {boolean} [disableAlphaBlend] If true, no alpha blending will happen.
+   * @param {boolean} [enableDepth] If true, enables depth testing.
+   */
+  prepareDrawToRenderTarget(
+    frameState,
+    renderTarget,
+    disableAlphaBlend,
+    enableDepth,
+  ) {
+    const gl = this.gl_;
+    const size = renderTarget.getSize();
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, renderTarget.getFramebuffer());
+    gl.bindRenderbuffer(gl.RENDERBUFFER, renderTarget.getDepthbuffer());
+    gl.viewport(0, 0, size[0], size[1]);
+    gl.bindTexture(gl.TEXTURE_2D, renderTarget.getTexture());
+    gl.clearColor(0.0, 0.0, 0.0, 0.0);
+    gl.depthRange(0.0, 1.0);
+    gl.clearDepth(1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.ONE, disableAlphaBlend ? gl.ZERO : gl.ONE_MINUS_SRC_ALPHA);
+    if (enableDepth) {
+      gl.enable(gl.DEPTH_TEST);
+      gl.depthFunc(gl.LEQUAL);
+    } else {
+      gl.disable(gl.DEPTH_TEST);
+    }
+  }
+
+  /**
+   * Execute a draw call based on the currently bound program, texture, buffers, attributes.
+   * @param {number} start Start index.
+   * @param {number} end End index.
+   */
+  drawElements(start, end) {
+    const gl = this.gl_;
+    this.getExtension('OES_element_index_uint');
+
+    const elementType = gl.UNSIGNED_INT;
+    const elementSize = 4;
+
+    const numItems = end - start;
+    const offsetInBytes = start * elementSize;
+    gl.drawElements(gl.TRIANGLES, numItems, elementType, offsetInBytes);
+  }
+
+  /**
+   * Apply the successive post process passes which will eventually render to the actual canvas.
+   * @param {import("../Map.js").FrameState} frameState current frame state
+   * @param {function(WebGLRenderingContext, import("../Map.js").FrameState):void} [preCompose] Called before composing.
+   * @param {function(WebGLRenderingContext, import("../Map.js").FrameState):void} [postCompose] Called before composing.
+   */
+  finalizeDraw(frameState, preCompose, postCompose) {
+    // apply post processes using the next one as target
+    for (let i = 0, ii = this.postProcessPasses_.length; i < ii; i++) {
+      if (i === ii - 1) {
+        this.postProcessPasses_[i].apply(
+          frameState,
+          null,
+          preCompose,
+          postCompose,
+        );
+      } else {
+        this.postProcessPasses_[i].apply(
+          frameState,
+          this.postProcessPasses_[i + 1],
+        );
+      }
+    }
+  }
+
+  /**
+   * @return {HTMLCanvasElement} Canvas.
+   */
+  getCanvas() {
+    return /** @type {HTMLCanvasElement} */ (this.gl_.canvas);
+  }
+
+  /**
+   * Get the WebGL rendering context
+   * @return {WebGLRenderingContext} The rendering context.
+   */
+  getGL() {
+    return this.gl_;
+  }
+
+  /**
+   * Sets the default matrix uniforms for a given frame state. This is called internally in `prepareDraw`.
+   * @param {import("../Map.js").FrameState} frameState Frame state.
+   */
+  applyFrameState(frameState) {
+    const size = frameState.size;
+    const rotation = frameState.viewState.rotation;
+    const pixelRatio = frameState.pixelRatio;
+
+    this.setUniformFloatValue(
+      DefaultUniform.TIME,
+      (Date.now() - this.startTime_) * 0.001,
+    );
+    this.setUniformFloatValue(DefaultUniform.ZOOM, frameState.viewState.zoom);
+    this.setUniformFloatValue(
+      DefaultUniform.RESOLUTION,
+      frameState.viewState.resolution,
+    );
+    this.setUniformFloatValue(DefaultUniform.PIXEL_RATIO, pixelRatio);
+    this.setUniformFloatVec2(DefaultUniform.VIEWPORT_SIZE_PX, [
+      size[0],
+      size[1],
+    ]);
+    this.setUniformFloatValue(DefaultUniform.ROTATION, rotation);
+  }
+
+  /**
+   * Sets the `u_hitDetection` uniform.
+   * @param {boolean} enabled Whether to enable the hit detection code path
+   */
+  applyHitDetectionUniform(enabled) {
+    const loc = this.getUniformLocation(DefaultUniform.HIT_DETECTION);
+    this.getGL().uniform1i(loc, enabled ? 1 : 0);
+
+    // hit detection uses a fixed pixel ratio
+    if (enabled) {
+      this.setUniformFloatValue(DefaultUniform.PIXEL_RATIO, 0.5);
+    }
+  }
+
+  /**
+   * Sets the custom uniforms based on what was given in the constructor. This is called internally in `prepareDraw`.
+   * @param {import("../Map.js").FrameState} frameState Frame state.
+   */
+  applyUniforms(frameState) {
+    const gl = this.gl_;
+
+    let value;
+    let textureSlot = 0;
+    this.uniforms_.forEach((uniform) => {
+      value =
+        typeof uniform.value === 'function'
+          ? uniform.value(frameState)
+          : uniform.value;
+
+      // apply value based on type
+      if (
+        value instanceof HTMLCanvasElement ||
+        value instanceof HTMLImageElement ||
+        value instanceof ImageData ||
+        value instanceof WebGLTexture
+      ) {
+        // create a texture & put data
+        if (value instanceof WebGLTexture && !uniform.texture) {
+          uniform.prevValue = undefined;
+          uniform.texture = value;
+        } else if (!uniform.texture) {
+          uniform.prevValue = undefined;
+          uniform.texture = gl.createTexture();
+        }
+        this.bindTexture(uniform.texture, textureSlot, uniform.name);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        const imageReady =
+          !(value instanceof HTMLImageElement) ||
+          /** @type {HTMLImageElement} */ (value).complete;
+        if (
+          !(value instanceof WebGLTexture) &&
+          imageReady &&
+          uniform.prevValue !== value
+        ) {
+          uniform.prevValue = value;
+          gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RGBA,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            value,
+          );
+        }
+        textureSlot++;
+      } else if (Array.isArray(value) && value.length === 6) {
+        this.setUniformMatrixValue(
+          uniform.name,
+          fromTransform(this.tmpMat4_, value),
+        );
+      } else if (Array.isArray(value) && value.length <= 4) {
+        switch (value.length) {
+          case 2:
+            gl.uniform2f(
+              this.getUniformLocation(uniform.name),
+              value[0],
+              value[1],
+            );
+            return;
+          case 3:
+            gl.uniform3f(
+              this.getUniformLocation(uniform.name),
+              value[0],
+              value[1],
+              value[2],
+            );
+            return;
+          case 4:
+            gl.uniform4f(
+              this.getUniformLocation(uniform.name),
+              value[0],
+              value[1],
+              value[2],
+              value[3],
+            );
+            return;
+          default:
+            return;
+        }
+      } else if (typeof value === 'number') {
+        gl.uniform1f(this.getUniformLocation(uniform.name), value);
+      }
+    });
+  }
+
+  /**
+   * Set up a program for use. The program will be set as the current one. Then, the uniforms used
+   * in the program will be set based on the current frame state and the helper configuration.
+   * @param {WebGLProgram} program Program.
+   * @param {import("../Map.js").FrameState} frameState Frame state.
+   */
+  useProgram(program, frameState) {
+    const gl = this.gl_;
+    gl.useProgram(program);
+    this.currentProgram_ = program;
+    this.applyFrameState(frameState);
+    this.applyUniforms(frameState);
+  }
+
+  /**
+   * Will attempt to compile a vertex or fragment shader based on source
+   * On error, the shader will be returned but
+   * `gl.getShaderParameter(shader, gl.COMPILE_STATUS)` will return `true`
+   * Use `gl.getShaderInfoLog(shader)` to have details
+   * @param {string} source Shader source
+   * @param {ShaderType} type VERTEX_SHADER or FRAGMENT_SHADER
+   * @return {WebGLShader} Shader object
+   */
+  compileShader(source, type) {
+    const gl = this.gl_;
+    const shader = gl.createShader(type);
+    gl.shaderSource(shader, source);
+    gl.compileShader(shader);
+    return shader;
+  }
+
+  /**
+   * Create a program for a vertex and fragment shader.  Throws if shader compilation fails.
+   * @param {string} fragmentShaderSource Fragment shader source.
+   * @param {string} vertexShaderSource Vertex shader source.
+   * @return {WebGLProgram} Program
+   */
+  getProgram(fragmentShaderSource, vertexShaderSource) {
+    const gl = this.gl_;
+
+    const fragmentShader = this.compileShader(
+      fragmentShaderSource,
+      gl.FRAGMENT_SHADER,
+    );
+
+    const vertexShader = this.compileShader(
+      vertexShaderSource,
+      gl.VERTEX_SHADER,
+    );
+
+    const program = gl.createProgram();
+    gl.attachShader(program, fragmentShader);
+    gl.attachShader(program, vertexShader);
+    gl.linkProgram(program);
+
+    if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+      const message = `Fragment shader compilation failed: ${gl.getShaderInfoLog(
+        fragmentShader,
+      )}`;
+      throw new Error(message);
+    }
+    gl.deleteShader(fragmentShader);
+
+    if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+      const message = `Vertex shader compilation failed: ${gl.getShaderInfoLog(
+        vertexShader,
+      )}`;
+      throw new Error(message);
+    }
+    gl.deleteShader(vertexShader);
+
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      const message = `GL program linking failed: ${gl.getProgramInfoLog(
+        program,
+      )}`;
+      throw new Error(message);
+    }
+
+    return program;
+  }
+
+  /**
+   * Will get the location from the shader or the cache
+   * @param {string} name Uniform name
+   * @return {WebGLUniformLocation} uniformLocation
+   */
+  getUniformLocation(name) {
+    const programUid = getUid(this.currentProgram_);
+    if (this.uniformLocationsByProgram_[programUid] === undefined) {
+      this.uniformLocationsByProgram_[programUid] = {};
+    }
+    if (this.uniformLocationsByProgram_[programUid][name] === undefined) {
+      this.uniformLocationsByProgram_[programUid][name] =
+        this.gl_.getUniformLocation(this.currentProgram_, name);
+    }
+    return this.uniformLocationsByProgram_[programUid][name];
+  }
+
+  /**
+   * Will get the location from the shader or the cache
+   * @param {string} name Attribute name
+   * @return {number} attribLocation
+   */
+  getAttributeLocation(name) {
+    const programUid = getUid(this.currentProgram_);
+    if (this.attribLocationsByProgram_[programUid] === undefined) {
+      this.attribLocationsByProgram_[programUid] = {};
+    }
+    if (this.attribLocationsByProgram_[programUid][name] === undefined) {
+      this.attribLocationsByProgram_[programUid][name] =
+        this.gl_.getAttribLocation(this.currentProgram_, name);
+    }
+    return this.attribLocationsByProgram_[programUid][name];
+  }
+
+  /**
+   * Sets the given transform to apply the rotation/translation/scaling of the given frame state.
+   * The resulting transform can be used to convert world space coordinates to view coordinates in the [-1, 1] range.
+   * @param {import("../Map.js").FrameState} frameState Frame state.
+   * @param {import("../transform").Transform} transform Transform to update.
+   * @return {import("../transform").Transform} The updated transform object.
+   */
+  makeProjectionTransform(frameState, transform) {
+    const size = frameState.size;
+    const rotation = frameState.viewState.rotation;
+    const resolution = frameState.viewState.resolution;
+    const center = frameState.viewState.center;
+    compose(
+      transform,
+      0,
+      0,
+      2 / (resolution * size[0]),
+      2 / (resolution * size[1]),
+      -rotation,
+      -center[0],
+      -center[1],
+    );
+    return transform;
+  }
+
+  /**
+   * Give a value for a standard float uniform
+   * @param {string} uniform Uniform name
+   * @param {number} value Value
+   */
+  setUniformFloatValue(uniform, value) {
+    this.gl_.uniform1f(this.getUniformLocation(uniform), value);
+  }
+
+  /**
+   * Give a value for a vec2 uniform
+   * @param {string} uniform Uniform name
+   * @param {Array<number>} value Array of length 4.
+   */
+  setUniformFloatVec2(uniform, value) {
+    this.gl_.uniform2fv(this.getUniformLocation(uniform), value);
+  }
+
+  /**
+   * Give a value for a vec4 uniform
+   * @param {string} uniform Uniform name
+   * @param {Array<number>} value Array of length 4.
+   */
+  setUniformFloatVec4(uniform, value) {
+    this.gl_.uniform4fv(this.getUniformLocation(uniform), value);
+  }
+
+  /**
+   * Give a value for a standard matrix4 uniform
+   * @param {string} uniform Uniform name
+   * @param {Array<number>} value Matrix value
+   */
+  setUniformMatrixValue(uniform, value) {
+    this.gl_.uniformMatrix4fv(this.getUniformLocation(uniform), false, value);
+  }
+
+  /**
+   * Will set the currently bound buffer to an attribute of the shader program. Used by `#enableAttributes`
+   * internally.
+   * @param {string} attribName Attribute name
+   * @param {number} size Number of components per attributes
+   * @param {number} type UNSIGNED_INT, UNSIGNED_BYTE, UNSIGNED_SHORT or FLOAT
+   * @param {number} stride Stride in bytes (0 means attribs are packed)
+   * @param {number} offset Offset in bytes
+   * @private
+   */
+  enableAttributeArray_(attribName, size, type, stride, offset) {
+    const location = this.getAttributeLocation(attribName);
+    // the attribute has not been found in the shaders or is not used; do not enable it
+    if (location < 0) {
+      return;
+    }
+    this.gl_.enableVertexAttribArray(location);
+    this.gl_.vertexAttribPointer(location, size, type, false, stride, offset);
+  }
+
+  /**
+   * Will enable the following attributes to be read from the currently bound buffer,
+   * i.e. tell the GPU where to read the different attributes in the buffer. An error in the
+   * size/type/order of attributes will most likely break the rendering and throw a WebGL exception.
+   * @param {Array<AttributeDescription>} attributes Ordered list of attributes to read from the buffer
+   */
+  enableAttributes(attributes) {
+    const stride = computeAttributesStride(attributes);
+    let offset = 0;
+    for (let i = 0; i < attributes.length; i++) {
+      const attr = attributes[i];
+      this.enableAttributeArray_(
+        attr.name,
+        attr.size,
+        attr.type || FLOAT,
+        stride,
+        offset,
+      );
+      offset += attr.size * getByteSizeFromType(attr.type);
+    }
+  }
+
+  /**
+   * WebGL context was lost
+   * @param {WebGLContextEvent} event The context loss event.
+   * @private
+   */
+  handleWebGLContextLost(event) {
+    clear(this.bufferCache_);
+    this.currentProgram_ = null;
+
+    event.preventDefault();
+  }
+
+  /**
+   * WebGL context was restored
+   * @private
+   */
+  handleWebGLContextRestored() {
+    this.needsToBeRecreated_ = true;
+  }
+
+  /**
+   * Returns whether this helper needs to be recreated, as the context was lost and then restored.
+   * @return {boolean} Whether this helper needs to be recreated.
+   */
+  needsToBeRecreated() {
+    return this.needsToBeRecreated_;
+  }
+
+  /**
+   * Will create or reuse a given webgl texture and apply the given size. If no image data
+   * specified, the texture will be empty, otherwise image data will be used and the `size`
+   * parameter will be ignored.
+   * Note: wrap parameters are set to clamp to edge, min filter is set to linear.
+   * @param {Array<number>} size Expected size of the texture
+   * @param {ImageData|HTMLImageElement|HTMLCanvasElement} [data] Image data/object to bind to the texture
+   * @param {WebGLTexture} [texture] Existing texture to reuse
+   * @return {WebGLTexture} The generated texture
+   */
+  createTexture(size, data, texture) {
+    const gl = this.gl_;
+    texture = texture || gl.createTexture();
+
+    // set params & size
+    const level = 0;
+    const internalFormat = gl.RGBA;
+    const border = 0;
+    const format = gl.RGBA;
+    const type = gl.UNSIGNED_BYTE;
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+    if (data) {
+      gl.texImage2D(gl.TEXTURE_2D, level, internalFormat, format, type, data);
+    } else {
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        level,
+        internalFormat,
+        size[0],
+        size[1],
+        border,
+        format,
+        type,
+        null,
+      );
+    }
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    return texture;
+  }
+}
+
+/**
+ * Compute a stride in bytes based on a list of attributes
+ * @param {Array<AttributeDescription>} attributes Ordered list of attributes
+ * @return {number} Stride, ie amount of values for each vertex in the vertex buffer
+ */
+function computeAttributesStride(attributes) {
+  let stride = 0;
+  for (let i = 0; i < attributes.length; i++) {
+    const attr = attributes[i];
+    stride += attr.size * getByteSizeFromType(attr.type);
+  }
+  return stride;
+}
+
+/**
+ * Computes the size in byte of an attribute type.
+ * @param {AttributeType} type Attribute type
+ * @return {number} The size in bytes
+ */
+function getByteSizeFromType(type) {
+  switch (type) {
+    case AttributeType.UNSIGNED_BYTE:
+      return Uint8Array.BYTES_PER_ELEMENT;
+    case AttributeType.UNSIGNED_SHORT:
+      return Uint16Array.BYTES_PER_ELEMENT;
+    case AttributeType.UNSIGNED_INT:
+      return Uint32Array.BYTES_PER_ELEMENT;
+    case AttributeType.FLOAT:
+    default:
+      return Float32Array.BYTES_PER_ELEMENT;
+  }
+}
+
+/**
+ * @module ol/renderer/webgl/Layer
+ */
+
+/**
+ * @typedef {Object} PostProcessesOptions
+ * @property {number} [scaleRatio] Scale ratio; if < 1, the post process will render to a texture smaller than
+ * the main canvas that will then be sampled up (useful for saving resource on blur steps).
+ * @property {string} [vertexShader] Vertex shader source
+ * @property {string} [fragmentShader] Fragment shader source
+ * @property {Object<string,import("../../webgl/Helper").UniformValue>} [uniforms] Uniform definitions for the post process step
+ */
+
+/**
+ * @typedef {Object} Options
+ * @property {Object<string,import("../../webgl/Helper").UniformValue>} [uniforms] Uniform definitions for the post process steps
+ * @property {Array<PostProcessesOptions>} [postProcesses] Post-processes definitions
+ */
+
+/**
+ * @classdesc
+ * Base WebGL renderer class.
+ * Holds all logic related to data manipulation & some common rendering logic
+ * @template {import("../../layer/Layer.js").default} LayerType
+ * @extends {LayerRenderer<LayerType>}
+ */
+class WebGLLayerRenderer extends LayerRenderer {
+  /**
+   * @param {LayerType} layer Layer.
+   * @param {Options} [options] Options.
+   */
+  constructor(layer, options) {
+    super(layer);
+
+    options = options || {};
+
+    /**
+     * The transform for viewport CSS pixels to rendered pixels.  This transform is only
+     * set before dispatching rendering events.
+     * @private
+     * @type {import("../../transform.js").Transform}
+     */
+    this.inversePixelTransform_ = create$2();
+
+    /**
+     * @private
+     * @type {CanvasRenderingContext2D}
+     */
+    this.pixelContext_ = null;
+
+    /**
+     * @private
+     */
+    this.postProcesses_ = options.postProcesses;
+
+    /**
+     * @private
+     */
+    this.uniforms_ = options.uniforms;
+
+    /**
+     * @type {WebGLHelper}
+     * @protected
+     */
+    this.helper;
+
+    layer.addChangeListener(LayerProperty.MAP, this.removeHelper.bind(this));
+
+    this.dispatchPreComposeEvent = this.dispatchPreComposeEvent.bind(this);
+    this.dispatchPostComposeEvent = this.dispatchPostComposeEvent.bind(this);
+  }
+
+  /**
+   * @param {WebGLRenderingContext} context The WebGL rendering context.
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   * @protected
+   */
+  dispatchPreComposeEvent(context, frameState) {
+    const layer = this.getLayer();
+    if (layer.hasListener(RenderEventType.PRECOMPOSE)) {
+      const event = new RenderEvent(
+        RenderEventType.PRECOMPOSE,
+        undefined,
+        frameState,
+        context,
+      );
+      layer.dispatchEvent(event);
+    }
+  }
+
+  /**
+   * @param {WebGLRenderingContext} context The WebGL rendering context.
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   * @protected
+   */
+  dispatchPostComposeEvent(context, frameState) {
+    const layer = this.getLayer();
+    if (layer.hasListener(RenderEventType.POSTCOMPOSE)) {
+      const event = new RenderEvent(
+        RenderEventType.POSTCOMPOSE,
+        undefined,
+        frameState,
+        context,
+      );
+      layer.dispatchEvent(event);
+    }
+  }
+
+  /**
+   * Reset options (only handles uniforms).
+   * @param {Options} options Options.
+   */
+  reset(options) {
+    this.uniforms_ = options.uniforms;
+    if (this.helper) {
+      this.helper.setUniforms(this.uniforms_);
+    }
+  }
+
+  /**
+   * @protected
+   */
+  removeHelper() {
+    if (this.helper) {
+      this.helper.dispose();
+      delete this.helper;
+    }
+  }
+
+  /**
+   * Determine whether renderFrame should be called.
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   * @return {boolean} Layer is ready to be rendered.
+   */
+  prepareFrame(frameState) {
+    if (this.getLayer().getRenderSource()) {
+      let incrementGroup = true;
+      let groupNumber = -1;
+      let className;
+      for (let i = 0, ii = frameState.layerStatesArray.length; i < ii; i++) {
+        const layer = frameState.layerStatesArray[i].layer;
+        const renderer = layer.getRenderer();
+        if (!(renderer instanceof WebGLLayerRenderer)) {
+          incrementGroup = true;
+          continue;
+        }
+        const layerClassName = layer.getClassName();
+        if (incrementGroup || layerClassName !== className) {
+          groupNumber += 1;
+          incrementGroup = false;
+        }
+        className = layerClassName;
+        if (renderer === this) {
+          break;
+        }
+      }
+
+      const canvasCacheKey =
+        'map/' + frameState.mapId + '/group/' + groupNumber;
+
+      if (
+        !this.helper ||
+        !this.helper.canvasCacheKeyMatches(canvasCacheKey) ||
+        this.helper.needsToBeRecreated()
+      ) {
+        this.removeHelper();
+
+        this.helper = new WebGLHelper({
+          postProcesses: this.postProcesses_,
+          uniforms: this.uniforms_,
+          canvasCacheKey: canvasCacheKey,
+        });
+
+        if (className) {
+          this.helper.getCanvas().className = className;
+        }
+
+        this.afterHelperCreated();
+      }
+    }
+
+    return this.prepareFrameInternal(frameState);
+  }
+
+  /**
+   * @protected
+   */
+  afterHelperCreated() {}
+
+  /**
+   * Determine whether renderFrame should be called.
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   * @return {boolean} Layer is ready to be rendered.
+   * @protected
+   */
+  prepareFrameInternal(frameState) {
+    return true;
+  }
+
+  /**
+   * Clean up.
+   */
+  disposeInternal() {
+    this.removeHelper();
+    super.disposeInternal();
+  }
+
+  /**
+   * @param {import("../../render/EventType.js").default} type Event type.
+   * @param {WebGLRenderingContext} context The rendering context.
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   * @private
+   */
+  dispatchRenderEvent_(type, context, frameState) {
+    const layer = this.getLayer();
+    if (layer.hasListener(type)) {
+      compose(
+        this.inversePixelTransform_,
+        0,
+        0,
+        frameState.pixelRatio,
+        -frameState.pixelRatio,
+        0,
+        0,
+        -frameState.size[1],
+      );
+
+      const event = new RenderEvent(
+        type,
+        this.inversePixelTransform_,
+        frameState,
+        context,
+      );
+      layer.dispatchEvent(event);
+    }
+  }
+
+  /**
+   * @param {WebGLRenderingContext} context The rendering context.
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   * @protected
+   */
+  preRender(context, frameState) {
+    this.dispatchRenderEvent_(RenderEventType.PRERENDER, context, frameState);
+  }
+
+  /**
+   * @param {WebGLRenderingContext} context The rendering context.
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   * @protected
+   */
+  postRender(context, frameState) {
+    this.dispatchRenderEvent_(RenderEventType.POSTRENDER, context, frameState);
+  }
+}
+
+/**
+ * A wrapper class to simplify rendering to a texture instead of the final canvas
+ * @module ol/webgl/RenderTarget
+ */
+
+// for pixel color reading
+const tmpArray4 = new Uint8Array(4);
+
+/**
+ * @classdesc
+ * This class is a wrapper around the association of both a `WebGLTexture` and a `WebGLFramebuffer` instances,
+ * simplifying initialization and binding for rendering.
+ */
+class WebGLRenderTarget {
+  /**
+   * @param {import("./Helper.js").default} helper WebGL helper; mandatory.
+   * @param {Array<number>} [size] Expected size of the render target texture; note: this can be changed later on.
+   */
+  constructor(helper, size) {
+    /**
+     * @private
+     * @type {import("./Helper.js").default}
+     */
+    this.helper_ = helper;
+    const gl = helper.getGL();
+
+    /**
+     * @private
+     * @type {WebGLTexture}
+     */
+    this.texture_ = gl.createTexture();
+
+    /**
+     * @private
+     * @type {WebGLFramebuffer}
+     */
+    this.framebuffer_ = gl.createFramebuffer();
+
+    /**
+     * @private
+     * @type {WebGLRenderbuffer}
+     */
+    this.depthbuffer_ = gl.createRenderbuffer();
+
+    /**
+     * @type {Array<number>}
+     * @private
+     */
+    this.size_ = size || [1, 1];
+
+    /**
+     * @type {Uint8Array}
+     * @private
+     */
+    this.data_ = new Uint8Array(0);
+
+    /**
+     * @type {boolean}
+     * @private
+     */
+    this.dataCacheDirty_ = true;
+
+    this.updateSize_();
+  }
+
+  /**
+   * Changes the size of the render target texture. Note: will do nothing if the size
+   * is already the same.
+   * @param {Array<number>} size Expected size of the render target texture
+   */
+  setSize(size) {
+    if (equals$3(size, this.size_)) {
+      return;
+    }
+    this.size_[0] = size[0];
+    this.size_[1] = size[1];
+    this.updateSize_();
+  }
+
+  /**
+   * Returns the size of the render target texture
+   * @return {Array<number>} Size of the render target texture
+   */
+  getSize() {
+    return this.size_;
+  }
+
+  /**
+   * This will cause following calls to `#readAll` or `#readPixel` to download the content of the
+   * render target into memory, which is an expensive operation.
+   * This content will be kept in cache but should be cleared after each new render.
+   */
+  clearCachedData() {
+    this.dataCacheDirty_ = true;
+  }
+
+  /**
+   * Returns the full content of the frame buffer as a series of r, g, b, a components
+   * in the 0-255 range (unsigned byte).
+   * @return {Uint8Array} Integer array of color values
+   */
+  readAll() {
+    if (this.dataCacheDirty_) {
+      const size = this.size_;
+      const gl = this.helper_.getGL();
+
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer_);
+      gl.readPixels(
+        0,
+        0,
+        size[0],
+        size[1],
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        this.data_,
+      );
+      this.dataCacheDirty_ = false;
+    }
+    return this.data_;
+  }
+
+  /**
+   * Reads one pixel of the frame buffer as an array of r, g, b, a components
+   * in the 0-255 range (unsigned byte).
+   * If x and/or y are outside of existing data, an array filled with 0 is returned.
+   * @param {number} x Pixel coordinate
+   * @param {number} y Pixel coordinate
+   * @return {Uint8Array} Integer array with one color value (4 components)
+   */
+  readPixel(x, y) {
+    if (x < 0 || y < 0 || x > this.size_[0] || y >= this.size_[1]) {
+      tmpArray4[0] = 0;
+      tmpArray4[1] = 0;
+      tmpArray4[2] = 0;
+      tmpArray4[3] = 0;
+      return tmpArray4;
+    }
+
+    this.readAll();
+    const index =
+      Math.floor(x) + (this.size_[1] - Math.floor(y) - 1) * this.size_[0];
+    tmpArray4[0] = this.data_[index * 4];
+    tmpArray4[1] = this.data_[index * 4 + 1];
+    tmpArray4[2] = this.data_[index * 4 + 2];
+    tmpArray4[3] = this.data_[index * 4 + 3];
+    return tmpArray4;
+  }
+
+  /**
+   * @return {WebGLTexture} Texture to render to
+   */
+  getTexture() {
+    return this.texture_;
+  }
+
+  /**
+   * @return {WebGLFramebuffer} Frame buffer of the render target
+   */
+  getFramebuffer() {
+    return this.framebuffer_;
+  }
+
+  /**
+   * @return {WebGLRenderbuffer} Depth buffer of the render target
+   */
+  getDepthbuffer() {
+    return this.depthbuffer_;
+  }
+
+  /**
+   * @private
+   */
+  updateSize_() {
+    const size = this.size_;
+    const gl = this.helper_.getGL();
+
+    this.texture_ = this.helper_.createTexture(size, null, this.texture_);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer_);
+    gl.viewport(0, 0, size[0], size[1]);
+    gl.framebufferTexture2D(
+      gl.FRAMEBUFFER,
+      gl.COLOR_ATTACHMENT0,
+      gl.TEXTURE_2D,
+      this.texture_,
+      0,
+    );
+
+    gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthbuffer_);
+    gl.renderbufferStorage(
+      gl.RENDERBUFFER,
+      gl.DEPTH_COMPONENT16,
+      size[0],
+      size[1],
+    );
+    gl.framebufferRenderbuffer(
+      gl.FRAMEBUFFER,
+      gl.DEPTH_ATTACHMENT,
+      gl.RENDERBUFFER,
+      this.depthbuffer_,
+    );
+
+    this.data_ = new Uint8Array(size[0] * size[1] * 4);
+  }
+}
+
+/**
+ * @module ol/render/webgl/constants
+ */
+
+/**
+ * @enum {string}
+ */
+const WebGLWorkerMessageType = {
+  GENERATE_POINT_BUFFERS: 'GENERATE_POINT_BUFFERS'};
+
+/**
+ * @typedef {Object} WebGLWorkerGenerateBuffersMessage
+ * This message will trigger the generation of a vertex and an index buffer based on the given render instructions.
+ * When the buffers are generated, the worked will send a message of the same type to the main thread, with
+ * the generated buffers in it.
+ * Note that any addition properties present in the message *will* be sent back to the main thread.
+ * @property {number} id Message id; will be used both in request and response as a means of identification
+ * @property {WebGLWorkerMessageType} type Message type
+ * @property {ArrayBuffer} renderInstructions render instructions raw binary buffer.
+ * @property {number} [customAttributesSize] Amount of hit detection + custom attributes count in the render instructions.
+ * @property {ArrayBuffer} [vertexBuffer] Vertices array raw binary buffer (sent by the worker).
+ * @property {ArrayBuffer} [indexBuffer] Indices array raw binary buffer (sent by the worker).
+ * @property {import("../../transform").Transform} [renderInstructionsTransform] Transformation matrix used to project the instructions coordinates
+ */
+
+var earcut = {exports: {}};
+
+var hasRequiredEarcut;
+
+function requireEarcut () {
+	if (hasRequiredEarcut) return earcut.exports;
+	hasRequiredEarcut = 1;
+
+	earcut.exports = earcut$1;
+	earcut.exports.default = earcut$1;
+
+	function earcut$1(data, holeIndices, dim) {
+
+	    dim = dim || 2;
+
+	    var hasHoles = holeIndices && holeIndices.length,
+	        outerLen = hasHoles ? holeIndices[0] * dim : data.length,
+	        outerNode = linkedList(data, 0, outerLen, dim, true),
+	        triangles = [];
+
+	    if (!outerNode || outerNode.next === outerNode.prev) return triangles;
+
+	    var minX, minY, maxX, maxY, x, y, invSize;
+
+	    if (hasHoles) outerNode = eliminateHoles(data, holeIndices, outerNode, dim);
+
+	    // if the shape is not too simple, we'll use z-order curve hash later; calculate polygon bbox
+	    if (data.length > 80 * dim) {
+	        minX = maxX = data[0];
+	        minY = maxY = data[1];
+
+	        for (var i = dim; i < outerLen; i += dim) {
+	            x = data[i];
+	            y = data[i + 1];
+	            if (x < minX) minX = x;
+	            if (y < minY) minY = y;
+	            if (x > maxX) maxX = x;
+	            if (y > maxY) maxY = y;
+	        }
+
+	        // minX, minY and invSize are later used to transform coords into integers for z-order calculation
+	        invSize = Math.max(maxX - minX, maxY - minY);
+	        invSize = invSize !== 0 ? 32767 / invSize : 0;
+	    }
+
+	    earcutLinked(outerNode, triangles, dim, minX, minY, invSize, 0);
+
+	    return triangles;
+	}
+
+	// create a circular doubly linked list from polygon points in the specified winding order
+	function linkedList(data, start, end, dim, clockwise) {
+	    var i, last;
+
+	    if (clockwise === (signedArea(data, start, end, dim) > 0)) {
+	        for (i = start; i < end; i += dim) last = insertNode(i, data[i], data[i + 1], last);
+	    } else {
+	        for (i = end - dim; i >= start; i -= dim) last = insertNode(i, data[i], data[i + 1], last);
+	    }
+
+	    if (last && equals(last, last.next)) {
+	        removeNode(last);
+	        last = last.next;
+	    }
+
+	    return last;
+	}
+
+	// eliminate colinear or duplicate points
+	function filterPoints(start, end) {
+	    if (!start) return start;
+	    if (!end) end = start;
+
+	    var p = start,
+	        again;
+	    do {
+	        again = false;
+
+	        if (!p.steiner && (equals(p, p.next) || area(p.prev, p, p.next) === 0)) {
+	            removeNode(p);
+	            p = end = p.prev;
+	            if (p === p.next) break;
+	            again = true;
+
+	        } else {
+	            p = p.next;
+	        }
+	    } while (again || p !== end);
+
+	    return end;
+	}
+
+	// main ear slicing loop which triangulates a polygon (given as a linked list)
+	function earcutLinked(ear, triangles, dim, minX, minY, invSize, pass) {
+	    if (!ear) return;
+
+	    // interlink polygon nodes in z-order
+	    if (!pass && invSize) indexCurve(ear, minX, minY, invSize);
+
+	    var stop = ear,
+	        prev, next;
+
+	    // iterate through ears, slicing them one by one
+	    while (ear.prev !== ear.next) {
+	        prev = ear.prev;
+	        next = ear.next;
+
+	        if (invSize ? isEarHashed(ear, minX, minY, invSize) : isEar(ear)) {
+	            // cut off the triangle
+	            triangles.push(prev.i / dim | 0);
+	            triangles.push(ear.i / dim | 0);
+	            triangles.push(next.i / dim | 0);
+
+	            removeNode(ear);
+
+	            // skipping the next vertex leads to less sliver triangles
+	            ear = next.next;
+	            stop = next.next;
+
+	            continue;
+	        }
+
+	        ear = next;
+
+	        // if we looped through the whole remaining polygon and can't find any more ears
+	        if (ear === stop) {
+	            // try filtering points and slicing again
+	            if (!pass) {
+	                earcutLinked(filterPoints(ear), triangles, dim, minX, minY, invSize, 1);
+
+	            // if this didn't work, try curing all small self-intersections locally
+	            } else if (pass === 1) {
+	                ear = cureLocalIntersections(filterPoints(ear), triangles, dim);
+	                earcutLinked(ear, triangles, dim, minX, minY, invSize, 2);
+
+	            // as a last resort, try splitting the remaining polygon into two
+	            } else if (pass === 2) {
+	                splitEarcut(ear, triangles, dim, minX, minY, invSize);
+	            }
+
+	            break;
+	        }
+	    }
+	}
+
+	// check whether a polygon node forms a valid ear with adjacent nodes
+	function isEar(ear) {
+	    var a = ear.prev,
+	        b = ear,
+	        c = ear.next;
+
+	    if (area(a, b, c) >= 0) return false; // reflex, can't be an ear
+
+	    // now make sure we don't have other points inside the potential ear
+	    var ax = a.x, bx = b.x, cx = c.x, ay = a.y, by = b.y, cy = c.y;
+
+	    // triangle bbox; min & max are calculated like this for speed
+	    var x0 = ax < bx ? (ax < cx ? ax : cx) : (bx < cx ? bx : cx),
+	        y0 = ay < by ? (ay < cy ? ay : cy) : (by < cy ? by : cy),
+	        x1 = ax > bx ? (ax > cx ? ax : cx) : (bx > cx ? bx : cx),
+	        y1 = ay > by ? (ay > cy ? ay : cy) : (by > cy ? by : cy);
+
+	    var p = c.next;
+	    while (p !== a) {
+	        if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 &&
+	            pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y) &&
+	            area(p.prev, p, p.next) >= 0) return false;
+	        p = p.next;
+	    }
+
+	    return true;
+	}
+
+	function isEarHashed(ear, minX, minY, invSize) {
+	    var a = ear.prev,
+	        b = ear,
+	        c = ear.next;
+
+	    if (area(a, b, c) >= 0) return false; // reflex, can't be an ear
+
+	    var ax = a.x, bx = b.x, cx = c.x, ay = a.y, by = b.y, cy = c.y;
+
+	    // triangle bbox; min & max are calculated like this for speed
+	    var x0 = ax < bx ? (ax < cx ? ax : cx) : (bx < cx ? bx : cx),
+	        y0 = ay < by ? (ay < cy ? ay : cy) : (by < cy ? by : cy),
+	        x1 = ax > bx ? (ax > cx ? ax : cx) : (bx > cx ? bx : cx),
+	        y1 = ay > by ? (ay > cy ? ay : cy) : (by > cy ? by : cy);
+
+	    // z-order range for the current triangle bbox;
+	    var minZ = zOrder(x0, y0, minX, minY, invSize),
+	        maxZ = zOrder(x1, y1, minX, minY, invSize);
+
+	    var p = ear.prevZ,
+	        n = ear.nextZ;
+
+	    // look for points inside the triangle in both directions
+	    while (p && p.z >= minZ && n && n.z <= maxZ) {
+	        if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && p !== a && p !== c &&
+	            pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y) && area(p.prev, p, p.next) >= 0) return false;
+	        p = p.prevZ;
+
+	        if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && n !== a && n !== c &&
+	            pointInTriangle(ax, ay, bx, by, cx, cy, n.x, n.y) && area(n.prev, n, n.next) >= 0) return false;
+	        n = n.nextZ;
+	    }
+
+	    // look for remaining points in decreasing z-order
+	    while (p && p.z >= minZ) {
+	        if (p.x >= x0 && p.x <= x1 && p.y >= y0 && p.y <= y1 && p !== a && p !== c &&
+	            pointInTriangle(ax, ay, bx, by, cx, cy, p.x, p.y) && area(p.prev, p, p.next) >= 0) return false;
+	        p = p.prevZ;
+	    }
+
+	    // look for remaining points in increasing z-order
+	    while (n && n.z <= maxZ) {
+	        if (n.x >= x0 && n.x <= x1 && n.y >= y0 && n.y <= y1 && n !== a && n !== c &&
+	            pointInTriangle(ax, ay, bx, by, cx, cy, n.x, n.y) && area(n.prev, n, n.next) >= 0) return false;
+	        n = n.nextZ;
+	    }
+
+	    return true;
+	}
+
+	// go through all polygon nodes and cure small local self-intersections
+	function cureLocalIntersections(start, triangles, dim) {
+	    var p = start;
+	    do {
+	        var a = p.prev,
+	            b = p.next.next;
+
+	        if (!equals(a, b) && intersects(a, p, p.next, b) && locallyInside(a, b) && locallyInside(b, a)) {
+
+	            triangles.push(a.i / dim | 0);
+	            triangles.push(p.i / dim | 0);
+	            triangles.push(b.i / dim | 0);
+
+	            // remove two nodes involved
+	            removeNode(p);
+	            removeNode(p.next);
+
+	            p = start = b;
+	        }
+	        p = p.next;
+	    } while (p !== start);
+
+	    return filterPoints(p);
+	}
+
+	// try splitting polygon into two and triangulate them independently
+	function splitEarcut(start, triangles, dim, minX, minY, invSize) {
+	    // look for a valid diagonal that divides the polygon into two
+	    var a = start;
+	    do {
+	        var b = a.next.next;
+	        while (b !== a.prev) {
+	            if (a.i !== b.i && isValidDiagonal(a, b)) {
+	                // split the polygon in two by the diagonal
+	                var c = splitPolygon(a, b);
+
+	                // filter colinear points around the cuts
+	                a = filterPoints(a, a.next);
+	                c = filterPoints(c, c.next);
+
+	                // run earcut on each half
+	                earcutLinked(a, triangles, dim, minX, minY, invSize, 0);
+	                earcutLinked(c, triangles, dim, minX, minY, invSize, 0);
+	                return;
+	            }
+	            b = b.next;
+	        }
+	        a = a.next;
+	    } while (a !== start);
+	}
+
+	// link every hole into the outer loop, producing a single-ring polygon without holes
+	function eliminateHoles(data, holeIndices, outerNode, dim) {
+	    var queue = [],
+	        i, len, start, end, list;
+
+	    for (i = 0, len = holeIndices.length; i < len; i++) {
+	        start = holeIndices[i] * dim;
+	        end = i < len - 1 ? holeIndices[i + 1] * dim : data.length;
+	        list = linkedList(data, start, end, dim, false);
+	        if (list === list.next) list.steiner = true;
+	        queue.push(getLeftmost(list));
+	    }
+
+	    queue.sort(compareX);
+
+	    // process holes from left to right
+	    for (i = 0; i < queue.length; i++) {
+	        outerNode = eliminateHole(queue[i], outerNode);
+	    }
+
+	    return outerNode;
+	}
+
+	function compareX(a, b) {
+	    return a.x - b.x;
+	}
+
+	// find a bridge between vertices that connects hole with an outer ring and and link it
+	function eliminateHole(hole, outerNode) {
+	    var bridge = findHoleBridge(hole, outerNode);
+	    if (!bridge) {
+	        return outerNode;
+	    }
+
+	    var bridgeReverse = splitPolygon(bridge, hole);
+
+	    // filter collinear points around the cuts
+	    filterPoints(bridgeReverse, bridgeReverse.next);
+	    return filterPoints(bridge, bridge.next);
+	}
+
+	// David Eberly's algorithm for finding a bridge between hole and outer polygon
+	function findHoleBridge(hole, outerNode) {
+	    var p = outerNode,
+	        hx = hole.x,
+	        hy = hole.y,
+	        qx = -Infinity,
+	        m;
+
+	    // find a segment intersected by a ray from the hole's leftmost point to the left;
+	    // segment's endpoint with lesser x will be potential connection point
+	    do {
+	        if (hy <= p.y && hy >= p.next.y && p.next.y !== p.y) {
+	            var x = p.x + (hy - p.y) * (p.next.x - p.x) / (p.next.y - p.y);
+	            if (x <= hx && x > qx) {
+	                qx = x;
+	                m = p.x < p.next.x ? p : p.next;
+	                if (x === hx) return m; // hole touches outer segment; pick leftmost endpoint
+	            }
+	        }
+	        p = p.next;
+	    } while (p !== outerNode);
+
+	    if (!m) return null;
+
+	    // look for points inside the triangle of hole point, segment intersection and endpoint;
+	    // if there are no points found, we have a valid connection;
+	    // otherwise choose the point of the minimum angle with the ray as connection point
+
+	    var stop = m,
+	        mx = m.x,
+	        my = m.y,
+	        tanMin = Infinity,
+	        tan;
+
+	    p = m;
+
+	    do {
+	        if (hx >= p.x && p.x >= mx && hx !== p.x &&
+	                pointInTriangle(hy < my ? hx : qx, hy, mx, my, hy < my ? qx : hx, hy, p.x, p.y)) {
+
+	            tan = Math.abs(hy - p.y) / (hx - p.x); // tangential
+
+	            if (locallyInside(p, hole) &&
+	                (tan < tanMin || (tan === tanMin && (p.x > m.x || (p.x === m.x && sectorContainsSector(m, p)))))) {
+	                m = p;
+	                tanMin = tan;
+	            }
+	        }
+
+	        p = p.next;
+	    } while (p !== stop);
+
+	    return m;
+	}
+
+	// whether sector in vertex m contains sector in vertex p in the same coordinates
+	function sectorContainsSector(m, p) {
+	    return area(m.prev, m, p.prev) < 0 && area(p.next, m, m.next) < 0;
+	}
+
+	// interlink polygon nodes in z-order
+	function indexCurve(start, minX, minY, invSize) {
+	    var p = start;
+	    do {
+	        if (p.z === 0) p.z = zOrder(p.x, p.y, minX, minY, invSize);
+	        p.prevZ = p.prev;
+	        p.nextZ = p.next;
+	        p = p.next;
+	    } while (p !== start);
+
+	    p.prevZ.nextZ = null;
+	    p.prevZ = null;
+
+	    sortLinked(p);
+	}
+
+	// Simon Tatham's linked list merge sort algorithm
+	// http://www.chiark.greenend.org.uk/~sgtatham/algorithms/listsort.html
+	function sortLinked(list) {
+	    var i, p, q, e, tail, numMerges, pSize, qSize,
+	        inSize = 1;
+
+	    do {
+	        p = list;
+	        list = null;
+	        tail = null;
+	        numMerges = 0;
+
+	        while (p) {
+	            numMerges++;
+	            q = p;
+	            pSize = 0;
+	            for (i = 0; i < inSize; i++) {
+	                pSize++;
+	                q = q.nextZ;
+	                if (!q) break;
+	            }
+	            qSize = inSize;
+
+	            while (pSize > 0 || (qSize > 0 && q)) {
+
+	                if (pSize !== 0 && (qSize === 0 || !q || p.z <= q.z)) {
+	                    e = p;
+	                    p = p.nextZ;
+	                    pSize--;
+	                } else {
+	                    e = q;
+	                    q = q.nextZ;
+	                    qSize--;
+	                }
+
+	                if (tail) tail.nextZ = e;
+	                else list = e;
+
+	                e.prevZ = tail;
+	                tail = e;
+	            }
+
+	            p = q;
+	        }
+
+	        tail.nextZ = null;
+	        inSize *= 2;
+
+	    } while (numMerges > 1);
+
+	    return list;
+	}
+
+	// z-order of a point given coords and inverse of the longer side of data bbox
+	function zOrder(x, y, minX, minY, invSize) {
+	    // coords are transformed into non-negative 15-bit integer range
+	    x = (x - minX) * invSize | 0;
+	    y = (y - minY) * invSize | 0;
+
+	    x = (x | (x << 8)) & 0x00FF00FF;
+	    x = (x | (x << 4)) & 0x0F0F0F0F;
+	    x = (x | (x << 2)) & 0x33333333;
+	    x = (x | (x << 1)) & 0x55555555;
+
+	    y = (y | (y << 8)) & 0x00FF00FF;
+	    y = (y | (y << 4)) & 0x0F0F0F0F;
+	    y = (y | (y << 2)) & 0x33333333;
+	    y = (y | (y << 1)) & 0x55555555;
+
+	    return x | (y << 1);
+	}
+
+	// find the leftmost node of a polygon ring
+	function getLeftmost(start) {
+	    var p = start,
+	        leftmost = start;
+	    do {
+	        if (p.x < leftmost.x || (p.x === leftmost.x && p.y < leftmost.y)) leftmost = p;
+	        p = p.next;
+	    } while (p !== start);
+
+	    return leftmost;
+	}
+
+	// check if a point lies within a convex triangle
+	function pointInTriangle(ax, ay, bx, by, cx, cy, px, py) {
+	    return (cx - px) * (ay - py) >= (ax - px) * (cy - py) &&
+	           (ax - px) * (by - py) >= (bx - px) * (ay - py) &&
+	           (bx - px) * (cy - py) >= (cx - px) * (by - py);
+	}
+
+	// check if a diagonal between two polygon nodes is valid (lies in polygon interior)
+	function isValidDiagonal(a, b) {
+	    return a.next.i !== b.i && a.prev.i !== b.i && !intersectsPolygon(a, b) && // dones't intersect other edges
+	           (locallyInside(a, b) && locallyInside(b, a) && middleInside(a, b) && // locally visible
+	            (area(a.prev, a, b.prev) || area(a, b.prev, b)) || // does not create opposite-facing sectors
+	            equals(a, b) && area(a.prev, a, a.next) > 0 && area(b.prev, b, b.next) > 0); // special zero-length case
+	}
+
+	// signed area of a triangle
+	function area(p, q, r) {
+	    return (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
+	}
+
+	// check if two points are equal
+	function equals(p1, p2) {
+	    return p1.x === p2.x && p1.y === p2.y;
+	}
+
+	// check if two segments intersect
+	function intersects(p1, q1, p2, q2) {
+	    var o1 = sign(area(p1, q1, p2));
+	    var o2 = sign(area(p1, q1, q2));
+	    var o3 = sign(area(p2, q2, p1));
+	    var o4 = sign(area(p2, q2, q1));
+
+	    if (o1 !== o2 && o3 !== o4) return true; // general case
+
+	    if (o1 === 0 && onSegment(p1, p2, q1)) return true; // p1, q1 and p2 are collinear and p2 lies on p1q1
+	    if (o2 === 0 && onSegment(p1, q2, q1)) return true; // p1, q1 and q2 are collinear and q2 lies on p1q1
+	    if (o3 === 0 && onSegment(p2, p1, q2)) return true; // p2, q2 and p1 are collinear and p1 lies on p2q2
+	    if (o4 === 0 && onSegment(p2, q1, q2)) return true; // p2, q2 and q1 are collinear and q1 lies on p2q2
+
+	    return false;
+	}
+
+	// for collinear points p, q, r, check if point q lies on segment pr
+	function onSegment(p, q, r) {
+	    return q.x <= Math.max(p.x, r.x) && q.x >= Math.min(p.x, r.x) && q.y <= Math.max(p.y, r.y) && q.y >= Math.min(p.y, r.y);
+	}
+
+	function sign(num) {
+	    return num > 0 ? 1 : num < 0 ? -1 : 0;
+	}
+
+	// check if a polygon diagonal intersects any polygon segments
+	function intersectsPolygon(a, b) {
+	    var p = a;
+	    do {
+	        if (p.i !== a.i && p.next.i !== a.i && p.i !== b.i && p.next.i !== b.i &&
+	                intersects(p, p.next, a, b)) return true;
+	        p = p.next;
+	    } while (p !== a);
+
+	    return false;
+	}
+
+	// check if a polygon diagonal is locally inside the polygon
+	function locallyInside(a, b) {
+	    return area(a.prev, a, a.next) < 0 ?
+	        area(a, b, a.next) >= 0 && area(a, a.prev, b) >= 0 :
+	        area(a, b, a.prev) < 0 || area(a, a.next, b) < 0;
+	}
+
+	// check if the middle point of a polygon diagonal is inside the polygon
+	function middleInside(a, b) {
+	    var p = a,
+	        inside = false,
+	        px = (a.x + b.x) / 2,
+	        py = (a.y + b.y) / 2;
+	    do {
+	        if (((p.y > py) !== (p.next.y > py)) && p.next.y !== p.y &&
+	                (px < (p.next.x - p.x) * (py - p.y) / (p.next.y - p.y) + p.x))
+	            inside = !inside;
+	        p = p.next;
+	    } while (p !== a);
+
+	    return inside;
+	}
+
+	// link two polygon vertices with a bridge; if the vertices belong to the same ring, it splits polygon into two;
+	// if one belongs to the outer ring and another to a hole, it merges it into a single ring
+	function splitPolygon(a, b) {
+	    var a2 = new Node(a.i, a.x, a.y),
+	        b2 = new Node(b.i, b.x, b.y),
+	        an = a.next,
+	        bp = b.prev;
+
+	    a.next = b;
+	    b.prev = a;
+
+	    a2.next = an;
+	    an.prev = a2;
+
+	    b2.next = a2;
+	    a2.prev = b2;
+
+	    bp.next = b2;
+	    b2.prev = bp;
+
+	    return b2;
+	}
+
+	// create a node and optionally link it with previous one (in a circular doubly linked list)
+	function insertNode(i, x, y, last) {
+	    var p = new Node(i, x, y);
+
+	    if (!last) {
+	        p.prev = p;
+	        p.next = p;
+
+	    } else {
+	        p.next = last.next;
+	        p.prev = last;
+	        last.next.prev = p;
+	        last.next = p;
+	    }
+	    return p;
+	}
+
+	function removeNode(p) {
+	    p.next.prev = p.prev;
+	    p.prev.next = p.next;
+
+	    if (p.prevZ) p.prevZ.nextZ = p.nextZ;
+	    if (p.nextZ) p.nextZ.prevZ = p.prevZ;
+	}
+
+	function Node(i, x, y) {
+	    // vertex index in coordinates array
+	    this.i = i;
+
+	    // vertex coordinates
+	    this.x = x;
+	    this.y = y;
+
+	    // previous and next vertex nodes in a polygon ring
+	    this.prev = null;
+	    this.next = null;
+
+	    // z-order curve value
+	    this.z = 0;
+
+	    // previous and next nodes in z-order
+	    this.prevZ = null;
+	    this.nextZ = null;
+
+	    // indicates whether this is a steiner point
+	    this.steiner = false;
+	}
+
+	// return a percentage difference between the polygon area and its triangulation area;
+	// used to verify correctness of triangulation
+	earcut$1.deviation = function (data, holeIndices, dim, triangles) {
+	    var hasHoles = holeIndices && holeIndices.length;
+	    var outerLen = hasHoles ? holeIndices[0] * dim : data.length;
+
+	    var polygonArea = Math.abs(signedArea(data, 0, outerLen, dim));
+	    if (hasHoles) {
+	        for (var i = 0, len = holeIndices.length; i < len; i++) {
+	            var start = holeIndices[i] * dim;
+	            var end = i < len - 1 ? holeIndices[i + 1] * dim : data.length;
+	            polygonArea -= Math.abs(signedArea(data, start, end, dim));
+	        }
+	    }
+
+	    var trianglesArea = 0;
+	    for (i = 0; i < triangles.length; i += 3) {
+	        var a = triangles[i] * dim;
+	        var b = triangles[i + 1] * dim;
+	        var c = triangles[i + 2] * dim;
+	        trianglesArea += Math.abs(
+	            (data[a] - data[c]) * (data[b + 1] - data[a + 1]) -
+	            (data[a] - data[b]) * (data[c + 1] - data[a + 1]));
+	    }
+
+	    return polygonArea === 0 && trianglesArea === 0 ? 0 :
+	        Math.abs((trianglesArea - polygonArea) / polygonArea);
+	};
+
+	function signedArea(data, start, end, dim) {
+	    var sum = 0;
+	    for (var i = start, j = end - dim; i < end; i += dim) {
+	        sum += (data[j] - data[i]) * (data[i + 1] + data[j + 1]);
+	        j = i;
+	    }
+	    return sum;
+	}
+
+	// turn a polygon in a multi-dimensional array form (e.g. as in GeoJSON) into a form Earcut accepts
+	earcut$1.flatten = function (data) {
+	    var dim = data[0][0].length,
+	        result = {vertices: [], holes: [], dimensions: dim},
+	        holeIndex = 0;
+
+	    for (var i = 0; i < data.length; i++) {
+	        for (var j = 0; j < data[i].length; j++) {
+	            for (var d = 0; d < dim; d++) result.vertices.push(data[i][j][d]);
+	        }
+	        if (i > 0) {
+	            holeIndex += data[i - 1].length;
+	            result.holes.push(holeIndex);
+	        }
+	    }
+	    return result;
+	};
+	return earcut.exports;
+}
+
+requireEarcut();
+
+/**
+ * @module ol/render/webgl/utils
+ */
+
+const LINESTRING_ANGLE_COSINE_CUTOFF = 0.985;
+
+/**
+ * Generates a color array based on a numerical id
+ * Note: the range for each component is 0 to 1 with 256 steps
+ * @param {number} id Id
+ * @param {Array<number>} [array] Reusable array
+ * @return {Array<number>} Color array containing the encoded id
+ */
+function colorEncodeId(id, array) {
+  array = array || [];
+  const radix = 256;
+  const divide = radix - 1;
+  array[0] = Math.floor(id / radix / radix / radix) / divide;
+  array[1] = (Math.floor(id / radix / radix) % radix) / divide;
+  array[2] = (Math.floor(id / radix) % radix) / divide;
+  array[3] = (id % radix) / divide;
+  return array;
+}
+
+/**
+ * Reads an id from a color-encoded array
+ * Note: the expected range for each component is 0 to 1 with 256 steps.
+ * @param {Array<number>} color Color array containing the encoded id
+ * @return {number} Decoded id
+ */
+function colorDecodeId(color) {
+  let id = 0;
+  const radix = 256;
+  const mult = radix - 1;
+  id += Math.round(color[0] * radix * radix * radix * mult);
+  id += Math.round(color[1] * radix * radix * mult);
+  id += Math.round(color[2] * radix * mult);
+  id += Math.round(color[3] * mult);
+  return id;
+}
+
+function create() {
+          const source = "const e=\"GENERATE_POLYGON_BUFFERS\",t=\"GENERATE_POINT_BUFFERS\",n=\"GENERATE_LINE_STRING_BUFFERS\";function r(e,t){const n=t[0],r=t[1];return t[0]=e[0]*n+e[2]*r+e[4],t[1]=e[1]*n+e[3]*r+e[5],t}function x(e,t){const n=(r=t)[0]*r[3]-r[1]*r[2];var r;!function(e,t){if(!e)throw new Error(t)}(0!==n,\"Transformation matrix cannot be inverted\");const x=t[0],i=t[1],u=t[2],o=t[3],f=t[4],s=t[5];return e[0]=o/n,e[1]=-i/n,e[2]=-u/n,e[3]=x/n,e[4]=(u*s-o*f)/n,e[5]=-(x*s-i*f)/n,e}function i(e){return e&&e.__esModule&&Object.prototype.hasOwnProperty.call(e,\"default\")?e.default:e}new Array(6);var u={exports:{}};function o(e,t,n){n=n||2;var r,x,i,u,o,s,l,v=t&&t.length,h=v?t[0]*n:e.length,c=f(e,0,h,n,!0),g=[];if(!c||c.next===c.prev)return g;if(v&&(c=function(e,t,n,r){var x,i,u,o=[];for(x=0,i=t.length;x<i;x++)(u=f(e,t[x]*r,x<i-1?t[x+1]*r:e.length,r,!1))===u.next&&(u.steiner=!0),o.push(d(u));for(o.sort(p),x=0;x<o.length;x++)n=y(o[x],n);return n}(e,t,c,n)),e.length>80*n){r=i=e[0],x=u=e[1];for(var b=n;b<h;b+=n)(o=e[b])<r&&(r=o),(s=e[b+1])<x&&(x=s),o>i&&(i=o),s>u&&(u=s);l=0!==(l=Math.max(i-r,u-x))?32767/l:0}return a(c,g,n,r,x,l,0),g}function f(e,t,n,r,x){var i,u;if(x===O(e,t,n,r)>0)for(i=t;i<n;i+=r)u=P(i,e[i],e[i+1],u);else for(i=n-r;i>=t;i-=r)u=P(i,e[i],e[i+1],u);return u&&m(u,u.next)&&(B(u),u=u.next),u}function s(e,t){if(!e)return e;t||(t=e);var n,r=e;do{if(n=!1,r.steiner||!m(r,r.next)&&0!==w(r.prev,r,r.next))r=r.next;else{if(B(r),(r=t=r.prev)===r.next)break;n=!0}}while(n||r!==t);return t}function a(e,t,n,r,x,i,u){if(e){!u&&i&&function(e,t,n,r){var x=e;do{0===x.z&&(x.z=b(x.x,x.y,t,n,r)),x.prevZ=x.prev,x.nextZ=x.next,x=x.next}while(x!==e);x.prevZ.nextZ=null,x.prevZ=null,function(e){var t,n,r,x,i,u,o,f,s=1;do{for(n=e,e=null,i=null,u=0;n;){for(u++,r=n,o=0,t=0;t<s&&(o++,r=r.nextZ);t++);for(f=s;o>0||f>0&&r;)0!==o&&(0===f||!r||n.z<=r.z)?(x=n,n=n.nextZ,o--):(x=r,r=r.nextZ,f--),i?i.nextZ=x:e=x,x.prevZ=i,i=x;n=r}i.nextZ=null,s*=2}while(u>1)}(x)}(e,r,x,i);for(var o,f,p=e;e.prev!==e.next;)if(o=e.prev,f=e.next,i?v(e,r,x,i):l(e))t.push(o.i/n|0),t.push(e.i/n|0),t.push(f.i/n|0),B(e),e=f.next,p=f.next;else if((e=f)===p){u?1===u?a(e=h(s(e),t,n),t,n,r,x,i,2):2===u&&c(e,t,n,r,x,i):a(s(e),t,n,r,x,i,1);break}}}function l(e){var t=e.prev,n=e,r=e.next;if(w(t,n,r)>=0)return!1;for(var x=t.x,i=n.x,u=r.x,o=t.y,f=n.y,s=r.y,a=x<i?x<u?x:u:i<u?i:u,l=o<f?o<s?o:s:f<s?f:s,v=x>i?x>u?x:u:i>u?i:u,h=o>f?o>s?o:s:f>s?f:s,c=r.next;c!==t;){if(c.x>=a&&c.x<=v&&c.y>=l&&c.y<=h&&M(x,o,i,f,u,s,c.x,c.y)&&w(c.prev,c,c.next)>=0)return!1;c=c.next}return!0}function v(e,t,n,r){var x=e.prev,i=e,u=e.next;if(w(x,i,u)>=0)return!1;for(var o=x.x,f=i.x,s=u.x,a=x.y,l=i.y,v=u.y,h=o<f?o<s?o:s:f<s?f:s,c=a<l?a<v?a:v:l<v?l:v,p=o>f?o>s?o:s:f>s?f:s,y=a>l?a>v?a:v:l>v?l:v,g=b(h,c,t,n,r),d=b(p,y,t,n,r),Z=e.prevZ,m=e.nextZ;Z&&Z.z>=g&&m&&m.z<=d;){if(Z.x>=h&&Z.x<=p&&Z.y>=c&&Z.y<=y&&Z!==x&&Z!==u&&M(o,a,f,l,s,v,Z.x,Z.y)&&w(Z.prev,Z,Z.next)>=0)return!1;if(Z=Z.prevZ,m.x>=h&&m.x<=p&&m.y>=c&&m.y<=y&&m!==x&&m!==u&&M(o,a,f,l,s,v,m.x,m.y)&&w(m.prev,m,m.next)>=0)return!1;m=m.nextZ}for(;Z&&Z.z>=g;){if(Z.x>=h&&Z.x<=p&&Z.y>=c&&Z.y<=y&&Z!==x&&Z!==u&&M(o,a,f,l,s,v,Z.x,Z.y)&&w(Z.prev,Z,Z.next)>=0)return!1;Z=Z.prevZ}for(;m&&m.z<=d;){if(m.x>=h&&m.x<=p&&m.y>=c&&m.y<=y&&m!==x&&m!==u&&M(o,a,f,l,s,v,m.x,m.y)&&w(m.prev,m,m.next)>=0)return!1;m=m.nextZ}return!0}function h(e,t,n){var r=e;do{var x=r.prev,i=r.next.next;!m(x,i)&&A(x,r,r.next,i)&&z(x,i)&&z(i,x)&&(t.push(x.i/n|0),t.push(r.i/n|0),t.push(i.i/n|0),B(r),B(r.next),r=e=i),r=r.next}while(r!==e);return s(r)}function c(e,t,n,r,x,i){var u=e;do{for(var o=u.next.next;o!==u.prev;){if(u.i!==o.i&&Z(u,o)){var f=F(u,o);return u=s(u,u.next),f=s(f,f.next),a(u,t,n,r,x,i,0),void a(f,t,n,r,x,i,0)}o=o.next}u=u.next}while(u!==e)}function p(e,t){return e.x-t.x}function y(e,t){var n=function(e,t){var n,r=t,x=e.x,i=e.y,u=-1/0;do{if(i<=r.y&&i>=r.next.y&&r.next.y!==r.y){var o=r.x+(i-r.y)*(r.next.x-r.x)/(r.next.y-r.y);if(o<=x&&o>u&&(u=o,n=r.x<r.next.x?r:r.next,o===x))return n}r=r.next}while(r!==t);if(!n)return null;var f,s=n,a=n.x,l=n.y,v=1/0;r=n;do{x>=r.x&&r.x>=a&&x!==r.x&&M(i<l?x:u,i,a,l,i<l?u:x,i,r.x,r.y)&&(f=Math.abs(i-r.y)/(x-r.x),z(r,e)&&(f<v||f===v&&(r.x>n.x||r.x===n.x&&g(n,r)))&&(n=r,v=f)),r=r.next}while(r!==s);return n}(e,t);if(!n)return t;var r=F(n,e);return s(r,r.next),s(n,n.next)}function g(e,t){return w(e.prev,e,t.prev)<0&&w(t.next,e,e.next)<0}function b(e,t,n,r,x){return(e=1431655765&((e=858993459&((e=252645135&((e=16711935&((e=(e-n)*x|0)|e<<8))|e<<4))|e<<2))|e<<1))|(t=1431655765&((t=858993459&((t=252645135&((t=16711935&((t=(t-r)*x|0)|t<<8))|t<<4))|t<<2))|t<<1))<<1}function d(e){var t=e,n=e;do{(t.x<n.x||t.x===n.x&&t.y<n.y)&&(n=t),t=t.next}while(t!==e);return n}function M(e,t,n,r,x,i,u,o){return(x-u)*(t-o)>=(e-u)*(i-o)&&(e-u)*(r-o)>=(n-u)*(t-o)&&(n-u)*(i-o)>=(x-u)*(r-o)}function Z(e,t){return e.next.i!==t.i&&e.prev.i!==t.i&&!function(e,t){var n=e;do{if(n.i!==e.i&&n.next.i!==e.i&&n.i!==t.i&&n.next.i!==t.i&&A(n,n.next,e,t))return!0;n=n.next}while(n!==e);return!1}(e,t)&&(z(e,t)&&z(t,e)&&function(e,t){var n=e,r=!1,x=(e.x+t.x)/2,i=(e.y+t.y)/2;do{n.y>i!=n.next.y>i&&n.next.y!==n.y&&x<(n.next.x-n.x)*(i-n.y)/(n.next.y-n.y)+n.x&&(r=!r),n=n.next}while(n!==e);return r}(e,t)&&(w(e.prev,e,t.prev)||w(e,t.prev,t))||m(e,t)&&w(e.prev,e,e.next)>0&&w(t.prev,t,t.next)>0)}function w(e,t,n){return(t.y-e.y)*(n.x-t.x)-(t.x-e.x)*(n.y-t.y)}function m(e,t){return e.x===t.x&&e.y===t.y}function A(e,t,n,r){var x=I(w(e,t,n)),i=I(w(e,t,r)),u=I(w(n,r,e)),o=I(w(n,r,t));return x!==i&&u!==o||(!(0!==x||!E(e,n,t))||(!(0!==i||!E(e,r,t))||(!(0!==u||!E(n,e,r))||!(0!==o||!E(n,t,r)))))}function E(e,t,n){return t.x<=Math.max(e.x,n.x)&&t.x>=Math.min(e.x,n.x)&&t.y<=Math.max(e.y,n.y)&&t.y>=Math.min(e.y,n.y)}function I(e){return e>0?1:e<0?-1:0}function z(e,t){return w(e.prev,e,e.next)<0?w(e,t,e.next)>=0&&w(e,e.prev,t)>=0:w(e,t,e.prev)<0||w(e,e.next,t)<0}function F(e,t){var n=new _(e.i,e.x,e.y),r=new _(t.i,t.x,t.y),x=e.next,i=t.prev;return e.next=t,t.prev=e,n.next=x,x.prev=n,r.next=n,n.prev=r,i.next=r,r.prev=i,r}function P(e,t,n,r){var x=new _(e,t,n);return r?(x.next=r.next,x.prev=r,r.next.prev=x,r.next=x):(x.prev=x,x.next=x),x}function B(e){e.next.prev=e.prev,e.prev.next=e.next,e.prevZ&&(e.prevZ.nextZ=e.nextZ),e.nextZ&&(e.nextZ.prevZ=e.prevZ)}function _(e,t,n){this.i=e,this.x=t,this.y=n,this.prev=null,this.next=null,this.z=0,this.prevZ=null,this.nextZ=null,this.steiner=!1}function O(e,t,n,r){for(var x=0,i=t,u=n-r;i<n;i+=r)x+=(e[u]-e[i])*(e[i+1]+e[u+1]),u=i;return x}u.exports=o,u.exports.default=o,o.deviation=function(e,t,n,r){var x=t&&t.length,i=x?t[0]*n:e.length,u=Math.abs(O(e,0,i,n));if(x)for(var o=0,f=t.length;o<f;o++){var s=t[o]*n,a=o<f-1?t[o+1]*n:e.length;u-=Math.abs(O(e,s,a,n))}var l=0;for(o=0;o<r.length;o+=3){var v=r[o]*n,h=r[o+1]*n,c=r[o+2]*n;l+=Math.abs((e[v]-e[c])*(e[h+1]-e[v+1])-(e[v]-e[h])*(e[c+1]-e[v+1]))}return 0===u&&0===l?0:Math.abs((l-u)/u)},o.flatten=function(e){for(var t=e[0][0].length,n={vertices:[],holes:[],dimensions:t},r=0,x=0;x<e.length;x++){for(var i=0;i<e[x].length;i++)for(var u=0;u<t;u++)n.vertices.push(e[x][i][u]);x>0&&(r+=e[x-1].length,n.holes.push(r))}return n};var N=i(u.exports);const R=[],S={vertexPosition:0,indexPosition:0};function T(e,t,n,r,x){e[t+0]=n,e[t+1]=r,e[t+2]=x}function U(e,t,n,r,x,i){const u=3+x,o=e[t+0],f=e[t+1],s=R;s.length=x;for(let n=0;n<s.length;n++)s[n]=e[t+2+n];let a=i?i.vertexPosition:0,l=i?i.indexPosition:0;const v=a/u;return T(n,a,o,f,0),s.length&&n.set(s,a+3),a+=u,T(n,a,o,f,1),s.length&&n.set(s,a+3),a+=u,T(n,a,o,f,2),s.length&&n.set(s,a+3),a+=u,T(n,a,o,f,3),s.length&&n.set(s,a+3),a+=u,r[l++]=v,r[l++]=v+1,r[l++]=v+3,r[l++]=v+1,r[l++]=v+2,r[l++]=v+3,S.vertexPosition=a,S.indexPosition=l,S}function k(e,t,n,x,i,u,o,f,s,a,l){const v=8+f.length,h=u.length/v,c=[e[t+0],e[t+1]],p=[e[n],e[n+1]],y=r(s,[...c]),g=r(s,[...p]);function b(e,t,n){const r=Math.sqrt((t[0]-e[0])*(t[0]-e[0])+(t[1]-e[1])*(t[1]-e[1])),x=[(t[0]-e[0])/r,(t[1]-e[1])/r],i=[-x[1],x[0]],u=Math.sqrt((n[0]-e[0])*(n[0]-e[0])+(n[1]-e[1])*(n[1]-e[1])),o=[(n[0]-e[0])/u,(n[1]-e[1])/u],f=0===r||0===u?0:Math.acos((s=o[0]*x[0]+o[1]*x[1],a=-1,l=1,Math.min(Math.max(s,a),l)));var s,a,l;return o[0]*i[0]+o[1]*i[1]>0?f:2*Math.PI-f}let d=-1,M=-1,Z=l;const w=null!==i;if(null!==x){d=b(y,g,r(s,[...[e[x],e[x+1]]])),Math.cos(d)<=.985&&(Z+=Math.tan((d-Math.PI)/2))}if(w){M=b(g,y,r(s,[...[e[i],e[i+1]]])),Math.cos(M)<=.985&&(Z+=Math.tan((Math.PI-M)/2))}function m(e,t){return 0===t?1e4*e:Math.sign(t)*(1e4*e+Math.abs(t))}return u.push(c[0],c[1],p[0],p[1],d,M,a,m(0,l)),u.push(...f),u.push(c[0],c[1],p[0],p[1],d,M,a,m(1,l)),u.push(...f),u.push(c[0],c[1],p[0],p[1],d,M,a,m(2,l)),u.push(...f),u.push(c[0],c[1],p[0],p[1],d,M,a,m(3,l)),u.push(...f),o.push(h,h+1,h+2,h+1,h+3,h+2),{length:a+Math.sqrt((g[0]-y[0])*(g[0]-y[0])+(g[1]-y[1])*(g[1]-y[1])),angle:Z}}function G(e,t,n,r,x){const i=2+x;let u=t;const o=e.slice(u,u+x);u+=x;const f=e[u++];let s=0;const a=new Array(f-1);for(let t=0;t<f;t++)s+=e[u++],t<f-1&&(a[t]=s);const l=e.slice(u,u+2*s),v=N(l,a,2);for(let e=0;e<v.length;e++)r.push(v[e]+n.length/i);for(let e=0;e<l.length;e+=2)n.push(l[e],l[e+1],...o);return u+2*s}const j=self;j.onmessage=r=>{const i=r.data;switch(i.type){case t:{const e=3,t=2,n=i.customAttributesSize,r=t+n,x=new Float32Array(i.renderInstructions),u=x.length/r,o=4*u*(n+e),f=new Uint32Array(6*u),s=new Float32Array(o);let a;for(let e=0;e<x.length;e+=r)a=U(x,e,s,f,n,a);const l=Object.assign({vertexBuffer:s.buffer,indexBuffer:f.buffer,renderInstructions:x.buffer},i);j.postMessage(l,[s.buffer,f.buffer,x.buffer]);break}case n:{const e=[],t=[],n=i.customAttributesSize,r=2,u=new Float32Array(i.renderInstructions);let o=0;const f=[1,0,0,1,0,0];let s,a;for(x(f,i.renderInstructionsTransform);o<u.length;){a=Array.from(u.slice(o,o+n)),o+=n,s=u[o++];const x=o,i=o+(s-1)*r,l=u[x]===u[i]&&u[x+1]===u[i+1];let v=0,h=0;for(let n=0;n<s-1;n++){let c=null;n>0?c=o+(n-1)*r:l&&(c=i-r);let p=null;n<s-2?p=o+(n+2)*r:l&&(p=x+r);const y=k(u,o+n*r,o+(n+1)*r,c,p,e,t,a,f,v,h);v=y.length,h=y.angle}o+=s*r}const l=Uint32Array.from(t),v=Float32Array.from(e),h=Object.assign({vertexBuffer:v.buffer,indexBuffer:l.buffer,renderInstructions:u.buffer},i);j.postMessage(h,[v.buffer,l.buffer,u.buffer]);break}case e:{const e=[],t=[],n=i.customAttributesSize,r=new Float32Array(i.renderInstructions);let x=0;for(;x<r.length;)x=G(r,x,e,t,n);const u=Uint32Array.from(t),o=Float32Array.from(e),f=Object.assign({vertexBuffer:o.buffer,indexBuffer:u.buffer,renderInstructions:r.buffer},i);j.postMessage(f,[o.buffer,u.buffer,r.buffer]);break}}};";
+          return new Worker(typeof Blob === 'undefined'
+            ? 'data:application/javascript;base64,' + Buffer.from(source, 'binary').toString('base64')
+            : URL.createObjectURL(new Blob([source], {type: 'application/javascript'})));
+        }
+
+/**
+ * Compute world params
+ * @param {import("../../Map.js").FrameState} frameState Frame state.
+ * @param {any} layer The layer
+ * @return {Array<number>} The world start, end and width.
+ */
+function getWorldParameters(frameState, layer) {
+  const projection = frameState.viewState.projection;
+
+  const vectorSource = layer.getSource();
+  const multiWorld = vectorSource.getWrapX() && projection.canWrapX();
+  const projectionExtent = projection.getExtent();
+
+  const extent = frameState.extent;
+  const worldWidth = multiWorld ? getWidth(projectionExtent) : null;
+  const endWorld = multiWorld
+    ? Math.ceil((extent[2] - projectionExtent[2]) / worldWidth) + 1
+    : 1;
+
+  const startWorld = multiWorld
+    ? Math.floor((extent[0] - projectionExtent[0]) / worldWidth)
+    : 0;
+
+  return [startWorld, endWorld, worldWidth];
+}
+
+/**
+ * @module ol/renderer/webgl/PointsLayer
+ */
+
+/**
+ * @typedef {Object} CustomAttribute A description of a custom attribute to be passed on to the GPU, with a value different
+ * for each feature.
+ * @property {string} name Attribute name.
+ * @property {function(import("../../Feature").default, Object<string, *>):number} callback This callback computes the numerical value of the
+ * attribute for a given feature (properties are available as 2nd arg for quicker access).
+ */
+
+/**
+ * @typedef {Object} FeatureCacheItem Object that holds a reference to a feature, its geometry and properties. Used to optimize
+ * rebuildBuffers by accessing these objects quicker.
+ * @property {import("../../Feature").default} feature Feature
+ * @property {Object<string, *>} properties Feature properties
+ * @property {import("../../geom").Geometry} geometry Feature geometry
+ */
+
+/**
+ * @typedef {Object} Options
+ * @property {string} [className='ol-layer'] A CSS class name to set to the canvas element.
+ * @property {Array<CustomAttribute>} [attributes] These attributes will be read from the features in the source and then
+ * passed to the GPU. The `name` property of each attribute will serve as its identifier:
+ *  * In the vertex shader as an `attribute` by prefixing it with `a_`
+ *  * In the fragment shader as a `varying` by prefixing it with `v_`
+ * Please note that these can only be numerical values.
+ * @property {string} vertexShader Vertex shader source, mandatory.
+ * @property {string} fragmentShader Fragment shader source, mandatory.
+ * @property {boolean} [hitDetectionEnabled] Whether shader is hit detection aware.
+ * @property {Object<string,import("../../webgl/Helper").UniformValue>} [uniforms] Uniform definitions for the post process steps
+ * Please note that `u_texture` is reserved for the main texture slot and `u_opacity` is reserved for the layer opacity.
+ * @property {Array<import("./Layer").PostProcessesOptions>} [postProcesses] Post-processes definitions
+ */
+
+/**
+ * @classdesc
+ * WebGL vector renderer optimized for points.
+ * All features will be rendered as quads (two triangles forming a square). New data will be flushed to the GPU
+ * every time the vector source changes.
+ *
+ * You need to provide vertex and fragment shaders for rendering. This can be done using
+ * {@link module:ol/webgl/ShaderBuilder~ShaderBuilder} utilities. These shaders shall expect a `a_position` attribute
+ * containing the screen-space projected center of the quad, as well as a `a_index` attribute
+ * whose value (0, 1, 2 or 3) indicates which quad vertex is currently getting processed (see structure below).
+ *
+ * To include variable attributes in the shaders, you need to declare them using the `attributes` property of
+ * the options object like so:
+ * ```js
+ * new WebGLPointsLayerRenderer(layer, {
+ *   attributes: [
+ *     {
+ *       name: 'size',
+ *       callback: function(feature) {
+ *         // compute something with the feature
+ *       }
+ *     },
+ *     {
+ *       name: 'weight',
+ *       callback: function(feature) {
+ *         // compute something with the feature
+ *       }
+ *     },
+ *   ],
+ *   vertexShader:
+ *     // shader using attribute a_weight and a_size
+ *   fragmentShader:
+ *     // shader using varying v_weight and v_size
+ * ```
+ *
+ * To enable hit detection, you must as well provide dedicated shaders using the `hitVertexShader`
+ * and `hitFragmentShader` properties. These shall expect the `a_hitColor` attribute to contain
+ * the final color that will have to be output for hit detection to work.
+ *
+ * The following uniform is used for the main texture: `u_texture`.
+ * The following uniform is used for the layer opacity: `u_opacity`.
+ *
+ * Please note that the main shader output should have premultiplied alpha, otherwise visual anomalies may occur.
+ *
+ * Points are rendered as quads with the following structure:
+ *
+ * ```
+ *   (u0, v1)      (u1, v1)
+ *  [3]----------[2]
+ *   |`           |
+ *   |  `         |
+ *   |    `       |
+ *   |      `     |
+ *   |        `   |
+ *   |          ` |
+ *  [0]----------[1]
+ *   (u0, v0)      (u1, v0)
+ *  ```
+ *
+ * This uses {@link module:ol/webgl/Helper~WebGLHelper} internally.
+ *
+ * @api
+ */
+class WebGLPointsLayerRenderer extends WebGLLayerRenderer {
+  /**
+   * @param {import("../../layer/Layer.js").default} layer Layer.
+   * @param {Options} options Options.
+   */
+  constructor(layer, options) {
+    const uniforms = options.uniforms || {};
+    const projectionMatrixTransform = create$2();
+    uniforms[DefaultUniform.PROJECTION_MATRIX] = projectionMatrixTransform;
+
+    super(layer, {
+      uniforms: uniforms,
+      postProcesses: options.postProcesses,
+    });
+
+    this.sourceRevision_ = -1;
+
+    this.verticesBuffer_ = new WebGLArrayBuffer(ARRAY_BUFFER, DYNAMIC_DRAW);
+    this.indicesBuffer_ = new WebGLArrayBuffer(
+      ELEMENT_ARRAY_BUFFER,
+      DYNAMIC_DRAW,
+    );
+
+    /**
+     * @private
+     */
+    this.vertexShader_ = options.vertexShader;
+
+    /**
+     * @private
+     */
+    this.fragmentShader_ = options.fragmentShader;
+
+    /**
+     * @type {WebGLProgram}
+     * @private
+     */
+    this.program_;
+
+    /**
+     * @type {boolean}
+     * @private
+     */
+    this.hitDetectionEnabled_ = options.hitDetectionEnabled ?? true;
+
+    const customAttributes = options.attributes
+      ? options.attributes.map(function (attribute) {
+          return {
+            name: 'a_prop_' + attribute.name,
+            size: 1,
+            type: AttributeType.FLOAT,
+          };
+        })
+      : [];
+
+    /**
+     * A list of attributes used by the renderer. By default only the position and
+     * index of the vertex (0 to 3) are required.
+     * @type {Array<import('../../webgl/Helper.js').AttributeDescription>}
+     */
+    this.attributes = [
+      {
+        name: 'a_position',
+        size: 2,
+        type: AttributeType.FLOAT,
+      },
+      {
+        name: 'a_index',
+        size: 1,
+        type: AttributeType.FLOAT,
+      },
+    ];
+
+    if (this.hitDetectionEnabled_) {
+      this.attributes.push({
+        name: 'a_prop_hitColor',
+        size: 4,
+        type: AttributeType.FLOAT,
+      });
+      this.attributes.push({
+        name: 'a_featureUid',
+        size: 1,
+        type: AttributeType.FLOAT,
+      });
+    }
+    this.attributes.push(...customAttributes);
+
+    this.customAttributes = options.attributes ? options.attributes : [];
+
+    this.previousExtent_ = createEmpty();
+
+    /**
+     * This transform is updated on every frame and is the composition of:
+     * - invert of the world->screen transform that was used when rebuilding buffers (see `this.renderTransform_`)
+     * - current world->screen transform
+     * @type {import("../../transform.js").Transform}
+     * @private
+     */
+    this.currentTransform_ = projectionMatrixTransform;
+
+    /**
+     * This transform is updated when buffers are rebuilt and converts world space coordinates to screen space
+     * @type {import("../../transform.js").Transform}
+     * @private
+     */
+    this.renderTransform_ = create$2();
+
+    /**
+     * @type {import("../../transform.js").Transform}
+     * @private
+     */
+    this.invertRenderTransform_ = create$2();
+
+    /**
+     * @type {Float32Array}
+     * @private
+     */
+    this.renderInstructions_ = new Float32Array(0);
+
+    /**
+     * @type {WebGLRenderTarget}
+     * @private
+     */
+    this.hitRenderTarget_;
+
+    /**
+     * Keep track of latest message sent to worker
+     * @type {number}
+     * @private
+     */
+    this.lastSentId = 0;
+
+    /**
+     * @private
+     */
+    this.worker_ = create();
+
+    this.worker_.addEventListener(
+      'message',
+      /**
+       * @param {*} event Event.
+       */
+      (event) => {
+        const received = event.data;
+        if (received.type === WebGLWorkerMessageType.GENERATE_POINT_BUFFERS) {
+          const projectionTransform = received.projectionTransform;
+          this.verticesBuffer_.fromArrayBuffer(received.vertexBuffer);
+          this.helper.flushBufferData(this.verticesBuffer_);
+          this.indicesBuffer_.fromArrayBuffer(received.indexBuffer);
+          this.helper.flushBufferData(this.indicesBuffer_);
+
+          this.renderTransform_ = projectionTransform;
+          makeInverse(
+            this.invertRenderTransform_,
+            this.renderTransform_,
+          );
+          this.renderInstructions_ = new Float32Array(
+            event.data.renderInstructions,
+          );
+          if (received.id === this.lastSentId) {
+            this.ready = true;
+          }
+          this.getLayer().changed();
+        }
+      },
+    );
+
+    /**
+     * This object will be updated when the source changes. Key is uid.
+     * @type {Object<string, FeatureCacheItem>}
+     * @private
+     */
+    this.featureCache_ = {};
+
+    /**
+     * Amount of features in the cache.
+     * @type {number}
+     * @private
+     */
+    this.featureCount_ = 0;
+
+    const source = this.getLayer().getSource();
+    this.sourceListenKeys_ = [
+      listen(
+        source,
+        VectorEventType.ADDFEATURE,
+        this.handleSourceFeatureAdded_,
+        this,
+      ),
+      listen(
+        source,
+        VectorEventType.CHANGEFEATURE,
+        this.handleSourceFeatureChanged_,
+        this,
+      ),
+      listen(
+        source,
+        VectorEventType.REMOVEFEATURE,
+        this.handleSourceFeatureDelete_,
+        this,
+      ),
+      listen(
+        source,
+        VectorEventType.CLEAR,
+        this.handleSourceFeatureClear_,
+        this,
+      ),
+    ];
+    source.forEachFeature((feature) => {
+      this.featureCache_[getUid(feature)] = {
+        feature: feature,
+        properties: feature.getProperties(),
+        geometry: feature.getGeometry(),
+      };
+      this.featureCount_++;
+    });
+  }
+
+  afterHelperCreated() {
+    this.program_ = this.helper.getProgram(
+      this.fragmentShader_,
+      this.vertexShader_,
+    );
+
+    if (this.hitDetectionEnabled_) {
+      this.hitRenderTarget_ = new WebGLRenderTarget(this.helper);
+    }
+  }
+
+  /**
+   * @param {import("../../source/Vector.js").VectorSourceEvent} event Event.
+   * @private
+   */
+  handleSourceFeatureAdded_(event) {
+    const feature = event.feature;
+    this.featureCache_[getUid(feature)] = {
+      feature: feature,
+      properties: feature.getProperties(),
+      geometry: feature.getGeometry(),
+    };
+    this.featureCount_++;
+  }
+
+  /**
+   * @param {import("../../source/Vector.js").VectorSourceEvent} event Event.
+   * @private
+   */
+  handleSourceFeatureChanged_(event) {
+    const feature = event.feature;
+    this.featureCache_[getUid(feature)] = {
+      feature: feature,
+      properties: feature.getProperties(),
+      geometry: feature.getGeometry(),
+    };
+  }
+
+  /**
+   * @param {import("../../source/Vector.js").VectorSourceEvent} event Event.
+   * @private
+   */
+  handleSourceFeatureDelete_(event) {
+    const feature = event.feature;
+    delete this.featureCache_[getUid(feature)];
+    this.featureCount_--;
+  }
+
+  /**
+   * @private
+   */
+  handleSourceFeatureClear_() {
+    this.featureCache_ = {};
+    this.featureCount_ = 0;
+  }
+
+  /**
+   * Render the layer.
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   * @return {HTMLElement} The rendered element.
+   */
+  renderFrame(frameState) {
+    const gl = this.helper.getGL();
+    this.preRender(gl, frameState);
+    const [startWorld, endWorld, worldWidth] = getWorldParameters(
+      frameState,
+      this.getLayer(),
+    );
+
+    // draw the normal canvas
+    this.renderWorlds(frameState, false, startWorld, endWorld, worldWidth);
+    this.helper.finalizeDraw(
+      frameState,
+      this.dispatchPreComposeEvent,
+      this.dispatchPostComposeEvent,
+    );
+
+    if (this.hitDetectionEnabled_) {
+      // draw the hit buffer
+      this.renderWorlds(frameState, true, startWorld, endWorld, worldWidth);
+      this.hitRenderTarget_.clearCachedData();
+    }
+
+    this.postRender(gl, frameState);
+
+    const canvas = this.helper.getCanvas();
+    return canvas;
+  }
+
+  /**
+   * Determine whether renderFrame should be called.
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   * @return {boolean} Layer is ready to be rendered.
+   */
+  prepareFrameInternal(frameState) {
+    const layer = this.getLayer();
+    const vectorSource = layer.getSource();
+    const viewState = frameState.viewState;
+    const viewNotMoving =
+      !frameState.viewHints[ViewHint.ANIMATING] &&
+      !frameState.viewHints[ViewHint.INTERACTING];
+    const extentChanged = !equals$2(this.previousExtent_, frameState.extent);
+    const sourceChanged = this.sourceRevision_ < vectorSource.getRevision();
+
+    if (sourceChanged) {
+      this.sourceRevision_ = vectorSource.getRevision();
+    }
+
+    if (viewNotMoving && (extentChanged || sourceChanged)) {
+      const projection = viewState.projection;
+      const resolution = viewState.resolution;
+
+      const renderBuffer =
+        layer instanceof BaseVectorLayer ? layer.getRenderBuffer() : 0;
+      const extent = buffer$1(frameState.extent, renderBuffer * resolution);
+      vectorSource.loadFeatures(extent, resolution, projection);
+
+      this.rebuildBuffers_(frameState);
+      this.previousExtent_ = frameState.extent.slice();
+    }
+
+    this.helper.useProgram(this.program_, frameState);
+    this.helper.prepareDraw(frameState);
+
+    // write new data
+    this.helper.bindBuffer(this.verticesBuffer_);
+    this.helper.bindBuffer(this.indicesBuffer_);
+    this.helper.enableAttributes(this.attributes);
+
+    return true;
+  }
+
+  /**
+   * Rebuild internal webgl buffers based on current view extent; costly, should not be called too much
+   * @param {import("../../Map").FrameState} frameState Frame state.
+   * @private
+   */
+  rebuildBuffers_(frameState) {
+    // saves the projection transform for the current frame state
+    const projectionTransform = create$2();
+    this.helper.makeProjectionTransform(frameState, projectionTransform);
+
+    const baseInstructionLength = this.hitDetectionEnabled_ ? 7 : 2; // see below
+    const singleInstructionLength =
+      baseInstructionLength + this.customAttributes.length;
+    const totalSize = singleInstructionLength * this.featureCount_;
+    if (
+      !this.renderInstructions_ ||
+      this.renderInstructions_.length !== totalSize
+    ) {
+      this.renderInstructions_ = new Float32Array(totalSize);
+    }
+
+    // loop on features to fill the buffer
+    let featureCache, geometry;
+    const tmpCoords = [];
+    const tmpColor = [];
+    let idx = -1;
+    for (const featureUid in this.featureCache_) {
+      featureCache = this.featureCache_[featureUid];
+      geometry = /** @type {import("../../geom").Point} */ (
+        featureCache.geometry
+      );
+      if (!geometry || geometry.getType() !== 'Point') {
+        continue;
+      }
+      {
+        tmpCoords[0] = geometry.getFlatCoordinates()[0];
+        tmpCoords[1] = geometry.getFlatCoordinates()[1];
+      }
+      apply(projectionTransform, tmpCoords);
+
+      this.renderInstructions_[++idx] = tmpCoords[0];
+      this.renderInstructions_[++idx] = tmpCoords[1];
+
+      // for hit detection, the feature uid is saved in the opacity value
+      // and the index of the opacity value is encoded in the color values
+      if (this.hitDetectionEnabled_) {
+        const hitColor = colorEncodeId(idx + 5, tmpColor);
+        this.renderInstructions_[++idx] = hitColor[0];
+        this.renderInstructions_[++idx] = hitColor[1];
+        this.renderInstructions_[++idx] = hitColor[2];
+        this.renderInstructions_[++idx] = hitColor[3];
+        this.renderInstructions_[++idx] = Number(featureUid);
+      }
+
+      // pushing custom attributes
+      for (let j = 0; j < this.customAttributes.length; j++) {
+        const value = this.customAttributes[j].callback(
+          featureCache.feature,
+          featureCache.properties,
+        );
+        this.renderInstructions_[++idx] = value;
+      }
+    }
+
+    /** @type {import('../../render/webgl/constants.js').WebGLWorkerGenerateBuffersMessage} */
+    const message = {
+      id: ++this.lastSentId,
+      type: WebGLWorkerMessageType.GENERATE_POINT_BUFFERS,
+      renderInstructions: this.renderInstructions_.buffer,
+      customAttributesSize: singleInstructionLength - 2,
+    };
+    // additional properties will be sent back as-is by the worker
+    message['projectionTransform'] = projectionTransform;
+    this.ready = false;
+    this.worker_.postMessage(message, [this.renderInstructions_.buffer]);
+    this.renderInstructions_ = null;
+  }
+
+  /**
+   * @param {import("../../coordinate.js").Coordinate} coordinate Coordinate.
+   * @param {import("../../Map.js").FrameState} frameState Frame state.
+   * @param {number} hitTolerance Hit tolerance in pixels.
+   * @param {import("../vector.js").FeatureCallback<T>} callback Feature callback.
+   * @param {Array<import("../Map.js").HitMatch<T>>} matches The hit detected matches with tolerance.
+   * @return {T|undefined} Callback result.
+   * @template T
+   */
+  forEachFeatureAtCoordinate(
+    coordinate,
+    frameState,
+    hitTolerance,
+    callback,
+    matches,
+  ) {
+    assert(
+      this.hitDetectionEnabled_,
+      '`forEachFeatureAtCoordinate` cannot be used on a WebGL layer if the hit detection logic has been disabled using the `disableHitDetection: true` option.',
+    );
+    if (!this.renderInstructions_ || !this.hitDetectionEnabled_) {
+      return undefined;
+    }
+
+    const pixel = apply(
+      frameState.coordinateToPixelTransform,
+      coordinate.slice(),
+    );
+
+    const data = this.hitRenderTarget_.readPixel(pixel[0] / 2, pixel[1] / 2);
+    const color = [data[0] / 255, data[1] / 255, data[2] / 255, data[3] / 255];
+    const index = colorDecodeId(color);
+    const opacity = this.renderInstructions_[index];
+    const uid = Math.floor(opacity).toString();
+
+    const source = this.getLayer().getSource();
+    const feature = source.getFeatureByUid(uid);
+    if (feature) {
+      return callback(feature, this.getLayer(), null);
+    }
+    return undefined;
+  }
+
+  /**
+   * Render the world, either to the main framebuffer or to the hit framebuffer
+   * @param {import("../../Map.js").FrameState} frameState current frame state
+   * @param {boolean} forHitDetection whether the rendering is for hit detection
+   * @param {number} startWorld the world to render in the first iteration
+   * @param {number} endWorld the last world to render
+   * @param {number} worldWidth the width of the worlds being rendered
+   */
+  renderWorlds(frameState, forHitDetection, startWorld, endWorld, worldWidth) {
+    let world = startWorld;
+
+    this.helper.useProgram(this.program_, frameState);
+
+    if (forHitDetection) {
+      this.hitRenderTarget_.setSize([
+        Math.floor(frameState.size[0] / 2),
+        Math.floor(frameState.size[1] / 2),
+      ]);
+      this.helper.prepareDrawToRenderTarget(
+        frameState,
+        this.hitRenderTarget_,
+        true,
+      );
+    }
+
+    this.helper.bindBuffer(this.verticesBuffer_);
+    this.helper.bindBuffer(this.indicesBuffer_);
+    this.helper.enableAttributes(this.attributes);
+
+    do {
+      this.helper.makeProjectionTransform(frameState, this.currentTransform_);
+      translate$1(this.currentTransform_, world * worldWidth, 0);
+      multiply(this.currentTransform_, this.invertRenderTransform_);
+      this.helper.applyUniforms(frameState);
+      this.helper.applyHitDetectionUniform(forHitDetection);
+      const renderCount = this.indicesBuffer_.getSize();
+      this.helper.drawElements(0, renderCount);
+    } while (++world < endWorld);
+  }
+
+  /**
+   * Clean up.
+   */
+  disposeInternal() {
+    this.worker_.terminate();
+    this.layer_ = null;
+    this.sourceListenKeys_.forEach(function (key) {
+      unlistenByKey(key);
+    });
+    this.sourceListenKeys_ = null;
+    super.disposeInternal();
+  }
+
+  renderDeclutter() {}
+}
+
+/**
+ * @module ol/webgl/PaletteTexture
+ */
+
+class PaletteTexture {
+  /**
+   * @param {string} name The name of the texture.
+   * @param {Uint8Array} data The texture data.
+   */
+  constructor(name, data) {
+    this.name = name;
+    this.data = data;
+
+    /**
+     * @type {WebGLTexture|null}
+     * @private
+     */
+    this.texture_ = null;
+  }
+
+  /**
+   * @param {WebGLRenderingContext} gl Rendering context.
+   * @return {WebGLTexture} The texture.
+   */
+  getTexture(gl) {
+    if (!this.texture_) {
+      const texture = gl.createTexture();
+      gl.bindTexture(gl.TEXTURE_2D, texture);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texImage2D(
+        gl.TEXTURE_2D,
+        0,
+        gl.RGBA,
+        this.data.length / 4,
+        1,
+        0,
+        gl.RGBA,
+        gl.UNSIGNED_BYTE,
+        this.data,
+      );
+      this.texture_ = texture;
+    }
+    return this.texture_;
+  }
+
+  /**
+   * @param {WebGLRenderingContext} gl Rendering context.
+   */
+  delete(gl) {
+    if (this.texture_) {
+      gl.deleteTexture(this.texture_);
+    }
+    this.texture_ = null;
+  }
+}
+
+/**
+ * @module ol/renderer/webgl/TileLayer
+ */
+
+const Uniforms = {
+  TILE_TEXTURE_ARRAY: 'u_tileTextures',
+  TEXTURE_PIXEL_WIDTH: 'u_texturePixelWidth',
+  TEXTURE_PIXEL_HEIGHT: 'u_texturePixelHeight'};
+
+/**
+ * @module ol/expr/gpu
+ */
+
+/**
+ * @param {string} operator Operator
+ * @param {CompilationContext} context Compilation context
+ * @return {string} A function name based on the operator, unique in the given context
+ */
+function computeOperatorFunctionName(operator, context) {
+  return `operator_${operator}_${Object.keys(context.functions).length}`;
+}
+
+/**
+ * Will return the number as a float with a dot separator, which is required by GLSL.
+ * @param {number} v Numerical value.
+ * @return {string} The value as string.
+ */
+function numberToGlsl(v) {
+  const s = v.toString();
+  return s.includes('.') ? s : s + '.0';
+}
+
+/**
+ * Will return the number array as a float with a dot separator, concatenated with ', '.
+ * @param {Array<number>} array Numerical values array.
+ * @return {string} The array as a vector, e. g.: `vec3(1.0, 2.0, 3.0)`.
+ */
+function arrayToGlsl(array) {
+  if (array.length < 2 || array.length > 4) {
+    throw new Error(
+      '`formatArray` can only output `vec2`, `vec3` or `vec4` arrays.',
+    );
+  }
+  return `vec${array.length}(${array.map(numberToGlsl).join(', ')})`;
+}
+
+/**
+ * Will normalize and converts to string a `vec4` color array compatible with GLSL.
+ * @param {string|import("../color.js").Color} color Color either in string format or [r, g, b, a] array format,
+ * with RGB components in the 0..255 range and the alpha component in the 0..1 range.
+ * Note that the final array will always have 4 components.
+ * @return {string} The color expressed in the `vec4(1.0, 1.0, 1.0, 1.0)` form.
+ */
+function colorToGlsl(color) {
+  const array = asArray(color);
+  const alpha = array.length > 3 ? array[3] : 1;
+  // all components are premultiplied with alpha value
+  return arrayToGlsl([
+    (array[0] / 255) * alpha,
+    (array[1] / 255) * alpha,
+    (array[2] / 255) * alpha,
+    alpha,
+  ]);
+}
+
+/**
+ * Normalizes and converts a number or array toa `vec2` array compatible with GLSL.
+ * @param {number|import('../size.js').Size} size Size.
+ * @return {string} The color expressed in the `vec4(1.0, 1.0, 1.0, 1.0)` form.
+ */
+function sizeToGlsl(size) {
+  const array = toSize(size);
+  return arrayToGlsl(array);
+}
+
+/** @type {Object<string, number>} */
+const stringToFloatMap = {};
+let stringToFloatCounter = 0;
+
+/**
+ * Returns a stable equivalent number for the string literal.
+ * @param {string} string String literal value
+ * @return {number} Number equivalent
+ */
+function getStringNumberEquivalent(string) {
+  if (!(string in stringToFloatMap)) {
+    stringToFloatMap[string] = stringToFloatCounter++;
+  }
+  return stringToFloatMap[string];
+}
+
+/**
+ * Returns a stable equivalent number for the string literal, for use in shaders. This number is then
+ * converted to be a GLSL-compatible string.
+ * Note: with a float precision of `mediump`, the amount of unique strings supported is 16,777,216
+ * @param {string} string String literal value
+ * @return {string} GLSL-compatible string containing a number
+ */
+function stringToGlsl(string) {
+  return numberToGlsl(getStringNumberEquivalent(string));
+}
+
+/**
+ * Get the uniform name given a variable name.
+ * @param {string} variableName The variable name.
+ * @return {string} The uniform name.
+ */
+function uniformNameForVariable(variableName) {
+  return 'u_var_' + variableName;
+}
+
+const GET_BAND_VALUE_FUNC = 'getBandValue';
+
+const PALETTE_TEXTURE_ARRAY = 'u_paletteTextures';
+
+/**
+ * @typedef {string} CompiledExpression
+ */
+
+/**
+ * @typedef {function(CompilationContext, CallExpression, number): string} Compiler
+ * Third argument is the expected value types
+ */
+
+/**
+ * @param {import('./expression.js').EncodedExpression} encoded The encoded expression.
+ * @param {number} type The expected type.
+ * @param {import('./expression.js').ParsingContext} parsingContext The parsing context.
+ * @param {CompilationContext} compilationContext An existing compilation context
+ * @return {CompiledExpression} The compiled expression.
+ */
+function buildExpression(
+  encoded,
+  type,
+  parsingContext,
+  compilationContext,
+) {
+  const expression = parse$2(encoded, parsingContext, type);
+  if (isType(expression.type, NoneType)) {
+    throw new Error(`No matching type was found`);
+  }
+  if (!overlapsType(type, expression.type)) {
+    const expected = typeName(type);
+    const actual = typeName(expression.type);
+    throw new Error(
+      `Expected expression to be of type ${expected}, got ${actual}`,
+    );
+  }
+  return compile(expression, type, compilationContext);
+}
+
+/**
+ * @param {function(Array<CompiledExpression>, CompilationContext): string} output Function that takes in parsed arguments and returns a string
+ * @return {function(CompilationContext, import("./expression.js").CallExpression, number): string} Compiler for the call expression
+ */
+function createCompiler(output) {
+  return (context, expression, type) => {
+    const length = expression.args.length;
+    const args = new Array(length);
+    for (let i = 0; i < length; ++i) {
+      args[i] = compile(expression.args[i], type, context);
+    }
+    return output(args, context);
+  };
+}
+
+/**
+ * @type {Object<string, Compiler>}
+ */
+const compilers = {
+  [Ops.Get]: (context, expression) => {
+    const firstArg = /** @type {LiteralExpression} */ (expression.args[0]);
+    const propName = /** @type {string} */ (firstArg.value);
+    const isExisting = propName in context.properties;
+    if (!isExisting) {
+      context.properties[propName] = {
+        name: propName,
+        type: expression.type,
+      };
+    }
+    const prefix = context.inFragmentShader ? 'v_prop_' : 'a_prop_';
+    return prefix + propName;
+  },
+  [Ops.GeometryType]: (context, expression, type) => {
+    const propName = 'geometryType';
+    const isExisting = propName in context.properties;
+    if (!isExisting) {
+      context.properties[propName] = {
+        name: propName,
+        type: StringType,
+        evaluator: (feature) => {
+          return computeGeometryType(feature.getGeometry());
+        },
+      };
+    }
+    const prefix = context.inFragmentShader ? 'v_prop_' : 'a_prop_';
+    return prefix + propName;
+  },
+  [Ops.Var]: (context, expression) => {
+    const firstArg = /** @type {LiteralExpression} */ (expression.args[0]);
+    const varName = /** @type {string} */ (firstArg.value);
+    const isExisting = varName in context.variables;
+    if (!isExisting) {
+      context.variables[varName] = {
+        name: varName,
+        type: expression.type,
+      };
+    }
+    return uniformNameForVariable(varName);
+  },
+  [Ops.Resolution]: () => 'u_resolution',
+  [Ops.Zoom]: () => 'u_zoom',
+  [Ops.Time]: () => 'u_time',
+  [Ops.Any]: createCompiler((compiledArgs) => `(${compiledArgs.join(` || `)})`),
+  [Ops.All]: createCompiler((compiledArgs) => `(${compiledArgs.join(` && `)})`),
+  [Ops.Not]: createCompiler(([value]) => `(!${value})`),
+  [Ops.Equal]: createCompiler(
+    ([firstValue, secondValue]) => `(${firstValue} == ${secondValue})`,
+  ),
+  [Ops.NotEqual]: createCompiler(
+    ([firstValue, secondValue]) => `(${firstValue} != ${secondValue})`,
+  ),
+  [Ops.GreaterThan]: createCompiler(
+    ([firstValue, secondValue]) => `(${firstValue} > ${secondValue})`,
+  ),
+  [Ops.GreaterThanOrEqualTo]: createCompiler(
+    ([firstValue, secondValue]) => `(${firstValue} >= ${secondValue})`,
+  ),
+  [Ops.LessThan]: createCompiler(
+    ([firstValue, secondValue]) => `(${firstValue} < ${secondValue})`,
+  ),
+  [Ops.LessThanOrEqualTo]: createCompiler(
+    ([firstValue, secondValue]) => `(${firstValue} <= ${secondValue})`,
+  ),
+  [Ops.Multiply]: createCompiler(
+    (compiledArgs) => `(${compiledArgs.join(' * ')})`,
+  ),
+  [Ops.Divide]: createCompiler(
+    ([firstValue, secondValue]) => `(${firstValue} / ${secondValue})`,
+  ),
+  [Ops.Add]: createCompiler((compiledArgs) => `(${compiledArgs.join(' + ')})`),
+  [Ops.Subtract]: createCompiler(
+    ([firstValue, secondValue]) => `(${firstValue} - ${secondValue})`,
+  ),
+  [Ops.Clamp]: createCompiler(
+    ([value, min, max]) => `clamp(${value}, ${min}, ${max})`,
+  ),
+  [Ops.Mod]: createCompiler(([value, modulo]) => `mod(${value}, ${modulo})`),
+  [Ops.Pow]: createCompiler(([value, power]) => `pow(${value}, ${power})`),
+  [Ops.Abs]: createCompiler(([value]) => `abs(${value})`),
+  [Ops.Floor]: createCompiler(([value]) => `floor(${value})`),
+  [Ops.Ceil]: createCompiler(([value]) => `ceil(${value})`),
+  [Ops.Round]: createCompiler(([value]) => `floor(${value} + 0.5)`),
+  [Ops.Sin]: createCompiler(([value]) => `sin(${value})`),
+  [Ops.Cos]: createCompiler(([value]) => `cos(${value})`),
+  [Ops.Atan]: createCompiler(([firstValue, secondValue]) => {
+    return secondValue !== undefined
+      ? `atan(${firstValue}, ${secondValue})`
+      : `atan(${firstValue})`;
+  }),
+  [Ops.Sqrt]: createCompiler(([value]) => `sqrt(${value})`),
+  [Ops.Match]: createCompiler((compiledArgs) => {
+    const input = compiledArgs[0];
+    const fallback = compiledArgs[compiledArgs.length - 1];
+    let result = null;
+    for (let i = compiledArgs.length - 3; i >= 1; i -= 2) {
+      const match = compiledArgs[i];
+      const output = compiledArgs[i + 1];
+      result = `(${input} == ${match} ? ${output} : ${result || fallback})`;
+    }
+    return result;
+  }),
+  [Ops.Between]: createCompiler(
+    ([value, min, max]) => `(${value} >= ${min} && ${value} <= ${max})`,
+  ),
+  [Ops.Interpolate]: createCompiler(([exponent, input, ...compiledArgs]) => {
+    let result = '';
+    for (let i = 0; i < compiledArgs.length - 2; i += 2) {
+      const stop1 = compiledArgs[i];
+      const output1 = result || compiledArgs[i + 1];
+      const stop2 = compiledArgs[i + 2];
+      const output2 = compiledArgs[i + 3];
+      let ratio;
+      if (exponent === numberToGlsl(1)) {
+        ratio = `(${input} - ${stop1}) / (${stop2} - ${stop1})`;
+      } else {
+        ratio = `(pow(${exponent}, (${input} - ${stop1})) - 1.0) / (pow(${exponent}, (${stop2} - ${stop1})) - 1.0)`;
+      }
+      result = `mix(${output1}, ${output2}, clamp(${ratio}, 0.0, 1.0))`;
+    }
+    return result;
+  }),
+  [Ops.Case]: createCompiler((compiledArgs) => {
+    const fallback = compiledArgs[compiledArgs.length - 1];
+    let result = null;
+    for (let i = compiledArgs.length - 3; i >= 0; i -= 2) {
+      const condition = compiledArgs[i];
+      const output = compiledArgs[i + 1];
+      result = `(${condition} ? ${output} : ${result || fallback})`;
+    }
+    return result;
+  }),
+  [Ops.In]: createCompiler(([needle, ...haystack], context) => {
+    const funcName = computeOperatorFunctionName('in', context);
+    const tests = [];
+    for (let i = 0; i < haystack.length; i += 1) {
+      tests.push(`  if (inputValue == ${haystack[i]}) { return true; }`);
+    }
+    context.functions[funcName] = `bool ${funcName}(float inputValue) {
+${tests.join('\n')}
+  return false;
+}`;
+    return `${funcName}(${needle})`;
+  }),
+  [Ops.Array]: createCompiler(
+    (args) => `vec${args.length}(${args.join(', ')})`,
+  ),
+  [Ops.Color]: createCompiler((compiledArgs) => {
+    if (compiledArgs.length === 1) {
+      //grayscale
+      return `vec4(vec3(${compiledArgs[0]} / 255.0), 1.0)`;
+    }
+    if (compiledArgs.length === 2) {
+      //grayscale with alpha
+      return `(${compiledArgs[1]} * vec4(vec3(${compiledArgs[0]} / 255.0), 1.0))`;
+    }
+    const rgb = compiledArgs.slice(0, 3).map((color) => `${color} / 255.0`);
+    if (compiledArgs.length === 3) {
+      return `vec4(${rgb.join(', ')}, 1.0)`;
+    }
+    const alpha = compiledArgs[3];
+    return `(${alpha} * vec4(${rgb.join(', ')}, 1.0))`;
+  }),
+  [Ops.Band]: createCompiler(([band, xOffset, yOffset], context) => {
+    if (!(GET_BAND_VALUE_FUNC in context.functions)) {
+      let ifBlocks = '';
+      const bandCount = context.bandCount || 1;
+      for (let i = 0; i < bandCount; i++) {
+        const colorIndex = Math.floor(i / 4);
+        let bandIndex = i % 4;
+        if (i === bandCount - 1 && bandIndex === 1) {
+          // LUMINANCE_ALPHA - band 1 assigned to rgb and band 2 assigned to alpha
+          bandIndex = 3;
+        }
+        const textureName = `${Uniforms.TILE_TEXTURE_ARRAY}[${colorIndex}]`;
+        ifBlocks += `  if (band == ${i + 1}.0) {
+    return texture2D(${textureName}, v_textureCoord + vec2(dx, dy))[${bandIndex}];
+  }
+`;
+      }
+
+      context.functions[GET_BAND_VALUE_FUNC] =
+        `float getBandValue(float band, float xOffset, float yOffset) {
+  float dx = xOffset / ${Uniforms.TEXTURE_PIXEL_WIDTH};
+  float dy = yOffset / ${Uniforms.TEXTURE_PIXEL_HEIGHT};
+${ifBlocks}
+}`;
+    }
+
+    return `${GET_BAND_VALUE_FUNC}(${band}, ${xOffset ?? '0.0'}, ${
+      yOffset ?? '0.0'
+    })`;
+  }),
+  [Ops.Palette]: (context, expression) => {
+    const [index, ...colors] = expression.args;
+    const numColors = colors.length;
+    const palette = new Uint8Array(numColors * 4);
+    for (let i = 0; i < colors.length; i++) {
+      const parsedValue = /** @type {string | Array<number>} */ (
+        /** @type {LiteralExpression} */ (colors[i]).value
+      );
+      const color = asArray(parsedValue);
+      const offset = i * 4;
+      palette[offset] = color[0];
+      palette[offset + 1] = color[1];
+      palette[offset + 2] = color[2];
+      palette[offset + 3] = color[3] * 255;
+    }
+    if (!context.paletteTextures) {
+      context.paletteTextures = [];
+    }
+    const paletteName = `${PALETTE_TEXTURE_ARRAY}[${context.paletteTextures.length}]`;
+    const paletteTexture = new PaletteTexture(paletteName, palette);
+    context.paletteTextures.push(paletteTexture);
+    const compiledIndex = compile(index, NumberType, context);
+    return `texture2D(${paletteName}, vec2((${compiledIndex} + 0.5) / ${numColors}.0, 0.5))`;
+  },
+  // TODO: unimplemented
+  // Ops.Number
+  // Ops.String
+  // Ops.Coalesce
+  // Ops.Concat
+  // Ops.ToString
+};
+
+/**
+ * @param {Expression} expression The expression.
+ * @param {number} returnType The expected return type.
+ * @param {CompilationContext} context The compilation context.
+ * @return {CompiledExpression} The compiled expression
+ */
+function compile(expression, returnType, context) {
+  // operator
+  if (expression instanceof CallExpression) {
+    const compiler = compilers[expression.operator];
+    if (compiler === undefined) {
+      throw new Error(
+        `No compiler defined for this operator: ${JSON.stringify(
+          expression.operator,
+        )}`,
+      );
+    }
+    return compiler(context, expression, returnType);
+  }
+
+  if ((expression.type & NumberType) > 0) {
+    return numberToGlsl(/** @type {number} */ (expression.value));
+  }
+
+  if ((expression.type & BooleanType) > 0) {
+    return expression.value.toString();
+  }
+
+  if ((expression.type & StringType) > 0) {
+    return stringToGlsl(expression.value.toString());
+  }
+
+  if ((expression.type & ColorType) > 0) {
+    return colorToGlsl(
+      /** @type {Array<number> | string} */ (expression.value),
+    );
+  }
+
+  if ((expression.type & NumberArrayType) > 0) {
+    return arrayToGlsl(/** @type {Array<number>} */ (expression.value));
+  }
+
+  if ((expression.type & SizeType) > 0) {
+    return sizeToGlsl(
+      /** @type {number|import('../size.js').Size} */ (expression.value),
+    );
+  }
+
+  throw new Error(
+    `Unexpected expression ${expression.value} (expected type ${typeName(
+      returnType,
+    )})`,
+  );
+}
+
+/**
+ * @module ol/style/flat
+ */
+
+/**
+ * @api
+ * @fileoverview Vector layers can be styled with an object literal containing properties for
+ * stroke, fill, image, and text styles.  The types below can be composed into a single object.
+ * For example, a style with both stroke and fill properties could look like this:
+ *
+ *     const style = {
+ *       'stroke-color': 'yellow',
+ *       'stroke-width': 1.5,
+ *       'fill-color': 'orange',
+ *     };
+ *
+ * See details about the available properties depending on what type of symbolizer should be applied:
+ *  * {@link module:ol/style/flat~FlatStroke Stroke} - properties for applying a stroke to lines and polygons
+ *  * {@link module:ol/style/flat~FlatFill Fill} - properties for filling polygons
+ *  * {@link module:ol/style/flat~FlatText Text} - properties for labeling points, lines, and polygons
+ *  * {@link module:ol/style/flat~FlatIcon Icon} - properties for rendering points with an icon
+ *  * {@link module:ol/style/flat~FlatCircle Circle} - properties for rendering points with a circle
+ *  * {@link module:ol/style/flat~FlatShape Shape} - properties for rendering points with a regular shape
+ *
+ * To conditionally apply styles based on a filter, a list of {@link module:ol/style/flat~Rule rules} can be used.
+ * For example, to style points with a big orange circle if the population is greater than 1 million and
+ * a smaller blue circle otherwise:
+ *
+ *     const rules = [
+ *       {
+ *         filter: ['>', ['get', 'population'], 1_000_000],
+ *         style: {
+ *           'circle-radius': 10,
+ *           'circle-fill-color': 'red',
+ *         }
+ *       },
+ *       {
+ *         else: true,
+ *         style: {
+ *           'circle-radius': 5,
+ *           'circle-fill-color': 'blue',
+ *         },
+ *       },
+ *     ];
+ */
+
+/**
+ * A literal boolean (e.g. `true`) or an expression that evaluates to a boolean (e.g. `['>', ['get', 'population'], 1_000_000]`).
+ *
+ * @typedef {boolean|Array} BooleanExpression
+ */
+
+/**
+ * A literal string (e.g. `'hello'`) or an expression that evaluates to a string (e.g. `['get', 'greeting']`).
+ *
+ * @typedef {string|Array} StringExpression
+ */
+
+/**
+ * A literal number (e.g. `42`) or an expression that evaluates to a number (e.g. `['+', 40, 2]`).
+ *
+ * @typedef {number|Array} NumberExpression
+ */
+
+/**
+ * A CSS named color (e.g. `'blue'`), an array of 3 RGB values (e.g. `[0, 255, 0]`), an array of 4 RGBA values
+ * (e.g. `[0, 255, 0, 0.5]`), or an expression that evaluates to one of these color types (e.g. `['get', 'color']`).
+ *
+ * @typedef {import("../color.js").Color|string|Array} ColorExpression
+ */
+
+/**
+ * An array of numbers (e.g. `[1, 2, 3]`) or an expression that evaluates to the same (e.g. `['get', 'values']`).
+ *
+ * @typedef {Array<number>|Array} NumberArrayExpression
+ */
+
+/**
+ * An array of two numbers (e.g. `[10, 20]`) or an expression that evaluates to the same (e.g. `['get', 'size']`).
+ *
+ * @typedef {number|Array<number>|Array} SizeExpression
+ */
+
+/**
+ * For static styling, the [layer.setStyle()]{@link module:ol/layer/Vector~VectorLayer#setStyle} method
+ * can be called with an object literal that has fill, stroke, text, icon, regular shape, and/or circle properties.
+ * @api
+ *
+ * @typedef {FlatFill & FlatStroke & FlatText & FlatIcon & FlatShape & FlatCircle} FlatStyle
+ */
+
+/**
+ * A flat style literal or an array of the same.
+ *
+ * @typedef {FlatStyle|Array<FlatStyle>|Array<Rule>} FlatStyleLike
+ */
+
+/**
+ * Fill style properties applied to polygon features.
+ *
+ * @typedef {Object} FlatFill
+ * @property {ColorExpression} [fill-color] The fill color.
+ * @property {StringExpression} [fill-pattern-src] Fill pattern image URL.
+ * @property {SizeExpression} [fill-pattern-size] Fill pattern image size in pixels.
+ * Can be used together with `fill-pattern-offset` to define the sub-rectangle to use
+ * from a fill pattern image sprite sheet.
+ * @property {SizeExpression} [fill-pattern-offset] Fill pattern image offset in pixels.
+ */
+
+/**
+ * Stroke style properties applied to line strings and polygon boundaries.  To apply a stroke, at least one of
+ * `stroke-color` or `stroke-width` must be provided.
+ *
+ * @typedef {Object} FlatStroke
+ * @property {ColorExpression} [stroke-color] The stroke color.
+ * @property {NumberExpression} [stroke-width] Stroke pixel width.
+ * @property {StringExpression} [stroke-line-cap='round'] Line cap style: `butt`, `round`, or `square`.
+ * @property {StringExpression} [stroke-line-join='round'] Line join style: `bevel`, `round`, or `miter`.
+ * @property {NumberArrayExpression} [stroke-line-dash] Line dash pattern.
+ * @property {NumberExpression} [stroke-line-dash-offset=0] Line dash offset.
+ * @property {NumberExpression} [stroke-miter-limit=10] Miter limit.
+ * @property {NumberExpression} [z-index] The zIndex of the style.
+ */
+
+/**
+ * Label style properties applied to all features.  At a minimum, a `text-value` must be provided.
+ *
+ * @typedef {Object} FlatText
+ * @property {StringExpression} [text-value] Text content (with `\n` for line breaks).
+ * @property {StringExpression} [text-font='10px sans-serif'] Font style as [CSS `font`](https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/font) value.
+ * @property {NumberExpression} [text-max-angle=Math.PI/4] When `text-placement` is set to `'line'`, allow a maximum angle between adjacent characters.
+ * The expected value is in radians, and the default is 45° (`Math.PI / 4`).
+ * @property {NumberExpression} [text-offset-x=0] Horizontal text offset in pixels. A positive will shift the text right.
+ * @property {NumberExpression} [text-offset-y=0] Vertical text offset in pixels. A positive will shift the text down.
+ * @property {BooleanExpression} [text-overflow=false] For polygon labels or when `placement` is set to `'line'`, allow text to exceed
+ * the width of the polygon at the label position or the length of the path that it follows.
+ * @property {StringExpression} [text-placement='point'] Text placement.
+ * @property {NumberExpression} [text-repeat] Repeat interval in pixels. When set, the text will be repeated at this interval. Only available when
+ * `text-placement` is set to `'line'`. Overrides `text-align`.
+ * @property {SizeExpression} [text-scale] Scale.
+ * @property {BooleanExpression} [text-rotate-with-view=false] Whether to rotate the text with the view.
+ * @property {NumberExpression} [text-rotation=0] Rotation in radians (positive rotation clockwise).
+ * @property {StringExpression} [text-align] Text alignment. Possible values: `'left'`, `'right'`, `'center'`, `'end'` or `'start'`.
+ * Default is `'center'` for `'text-placement': 'point'`. For `'text-placement': 'line'`, the default is to let the renderer choose a
+ * placement where `text-max-angle` is not exceeded.
+ * @property {StringExpression} [text-justify] Text justification within the text box.
+ * If not set, text is justified towards the `textAlign` anchor.
+ * Otherwise, use options `'left'`, `'center'`, or `'right'` to justify the text within the text box.
+ * **Note:** `text-justify` is ignored for immediate rendering and also for `'text-placement': 'line'`.
+ * @property {StringExpression} [text-baseline='middle'] Text base line. Possible values: `'bottom'`, `'top'`, `'middle'`, `'alphabetic'`,
+ * `'hanging'`, `'ideographic'`.
+ * @property {NumberArrayExpression} [text-padding=[0, 0, 0, 0]] Padding in pixels around the text for decluttering and background. The order of
+ * values in the array is `[top, right, bottom, left]`.
+ * @property {ColorExpression} [text-fill-color] The fill color. Specify `'none'` to avoid hit detection on the fill.
+ * @property {ColorExpression} [text-background-fill-color] The fill color.
+ * @property {ColorExpression} [text-stroke-color] The stroke color.
+ * @property {StringExpression} [text-stroke-line-cap='round'] Line cap style: `butt`, `round`, or `square`.
+ * @property {StringExpression} [text-stroke-line-join='round'] Line join style: `bevel`, `round`, or `miter`.
+ * @property {NumberArrayExpression} [text-stroke-line-dash] Line dash pattern.
+ * @property {NumberExpression} [text-stroke-line-dash-offset=0] Line dash offset.
+ * @property {NumberExpression} [text-stroke-miter-limit=10] Miter limit.
+ * @property {NumberExpression} [text-stroke-width] Stroke pixel width.
+ * @property {ColorExpression} [text-background-stroke-color] The stroke color.
+ * @property {StringExpression} [text-background-stroke-line-cap='round'] Line cap style: `butt`, `round`, or `square`.
+ * @property {StringExpression} [text-background-stroke-line-join='round'] Line join style: `bevel`, `round`, or `miter`.
+ * @property {NumberArrayExpression} [text-background-stroke-line-dash] Line dash pattern.
+ * @property {NumberExpression} [text-background-stroke-line-dash-offset=0] Line dash offset.
+ * @property {NumberExpression} [text-background-stroke-miter-limit=10] Miter limit.
+ * @property {NumberExpression} [text-background-stroke-width] Stroke pixel width.
+ * @property {import("./Style.js").DeclutterMode} [text-declutter-mode] Declutter mode
+ * @property {NumberExpression} [z-index] The zIndex of the style.
+ */
+
+/**
+ * Icon style properties applied to point features. `icon-src` must be provided to render
+ * points with an icon.
+ *
+ * @typedef {Object} FlatIcon
+ * @property {string} [icon-src] Image source URI.
+ * @property {NumberArrayExpression} [icon-anchor=[0.5, 0.5]] Anchor. Default value is the icon center.
+ * @property {import("./Icon.js").IconOrigin} [icon-anchor-origin='top-left'] Origin of the anchor: `bottom-left`, `bottom-right`,
+ * `top-left` or `top-right`.
+ * @property {import("./Icon.js").IconAnchorUnits} [icon-anchor-x-units='fraction'] Units in which the anchor x value is
+ * specified. A value of `'fraction'` indicates the x value is a fraction of the icon. A value of `'pixels'` indicates
+ * the x value in pixels.
+ * @property {import("./Icon.js").IconAnchorUnits} [icon-anchor-y-units='fraction'] Units in which the anchor y value is
+ * specified. A value of `'fraction'` indicates the y value is a fraction of the icon. A value of `'pixels'` indicates
+ * the y value in pixels.
+ * @property {import("../color.js").Color|string} [icon-color] Color to tint the icon. If not specified,
+ * the icon will be left as is.
+ * @property {null|string} [icon-cross-origin] The `crossOrigin` attribute for loaded images. Note that you must provide a
+ * `icon-cross-origin` value if you want to access pixel data with the Canvas renderer.
+ * See https://developer.mozilla.org/en-US/docs/Web/HTML/CORS_enabled_image for more detail.
+ * @property {Array<number>} [icon-offset=[0, 0]] Offset, which, together with the size and the offset origin, define the
+ * sub-rectangle to use from the original icon image.
+ * @property {NumberArrayExpression} [icon-displacement=[0,0]] Displacement of the icon.
+ * @property {import("./Icon.js").IconOrigin} [icon-offset-origin='top-left'] Origin of the offset: `bottom-left`, `bottom-right`,
+ * `top-left` or `top-right`.
+ * @property {NumberExpression} [icon-opacity=1] Opacity of the icon.
+ * @property {SizeExpression} [icon-scale=1] Scale.
+ * @property {number} [icon-width] Width of the icon. If not specified, the actual image width will be used. Cannot be combined
+ * with `scale`.
+ * @property {number} [icon-height] Height of the icon. If not specified, the actual image height will be used. Cannot be combined
+ * with `scale`.
+ * @property {NumberExpression} [icon-rotation=0] Rotation in radians (positive rotation clockwise).
+ * @property {BooleanExpression} [icon-rotate-with-view=false] Whether to rotate the icon with the view.
+ * @property {import("../size.js").Size} [icon-size] Icon size in pixel. Can be used together with `icon-offset` to define the
+ * sub-rectangle to use from the origin (sprite) icon image.
+ * @property {import("./Style.js").DeclutterMode} [icon-declutter-mode] Declutter mode
+ * @property {NumberExpression} [z-index] The zIndex of the style.
+ */
+
+/**
+ * Regular shape style properties for rendering point features.  At least `shape-points` must be provided.
+ *
+ * @typedef {Object} FlatShape
+ * @property {number} [shape-points] Number of points for stars and regular polygons. In case of a polygon, the number of points
+ * is the number of sides.
+ * @property {ColorExpression} [shape-fill-color] The fill color.
+ * @property {ColorExpression} [shape-stroke-color] The stroke color.
+ * @property {NumberExpression} [shape-stroke-width] Stroke pixel width.
+ * @property {StringExpression} [shape-stroke-line-cap='round'] Line cap style: `butt`, `round`, or `square`.
+ * @property {StringExpression} [shape-stroke-line-join='round'] Line join style: `bevel`, `round`, or `miter`.
+ * @property {NumberArrayExpression} [shape-stroke-line-dash] Line dash pattern.
+ * @property {NumberExpression} [shape-stroke-line-dash-offset=0] Line dash offset.
+ * @property {NumberExpression} [shape-stroke-miter-limit=10] Miter limit.
+ * @property {number} [shape-radius] Radius of a regular polygon.
+ * @property {number} [shape-radius2] Second radius to make a star instead of a regular polygon.
+ * @property {number} [shape-angle=0] Shape's angle in radians. A value of 0 will have one of the shape's point facing up.
+ * @property {NumberArrayExpression} [shape-displacement=[0,0]] Displacement of the shape
+ * @property {NumberExpression} [shape-rotation=0] Rotation in radians (positive rotation clockwise).
+ * @property {BooleanExpression} [shape-rotate-with-view=false] Whether to rotate the shape with the view.
+ * @property {SizeExpression} [shape-scale=1] Scale. Unless two dimensional scaling is required a better
+ * result may be obtained with appropriate settings for `shape-radius` and `shape-radius2`.
+ * @property {import("./Style.js").DeclutterMode} [shape-declutter-mode] Declutter mode.
+ * @property {NumberExpression} [z-index] The zIndex of the style.
+ */
+
+/**
+ * Circle style properties for rendering point features.  At least `circle-radius` must be provided.
+ *
+ * @typedef {Object} FlatCircle
+ * @property {number} [circle-radius] Circle radius.
+ * @property {ColorExpression} [circle-fill-color] The fill color.
+ * @property {ColorExpression} [circle-stroke-color] The stroke color.
+ * @property {NumberExpression} [circle-stroke-width] Stroke pixel width.
+ * @property {StringExpression} [circle-stroke-line-cap='round'] Line cap style: `butt`, `round`, or `square`.
+ * @property {StringExpression} [circle-stroke-line-join='round'] Line join style: `bevel`, `round`, or `miter`.
+ * @property {NumberArrayExpression} [circle-stroke-line-dash] Line dash pattern.
+ * @property {NumberExpression} [circle-stroke-line-dash-offset=0] Line dash offset.
+ * @property {NumberExpression} [circle-stroke-miter-limit=10] Miter limit.
+ * @property {NumberArrayExpression} [circle-displacement=[0,0]] displacement
+ * @property {SizeExpression} [circle-scale=1] Scale. A two dimensional scale will produce an ellipse.
+ * Unless two dimensional scaling is required a better result may be obtained with an appropriate setting for `circle-radius`.
+ * @property {NumberExpression} [circle-rotation=0] Rotation in radians
+ * (positive rotation clockwise, meaningful only when used in conjunction with a two dimensional scale).
+ * @property {BooleanExpression} [circle-rotate-with-view=false] Whether to rotate the shape with the view
+ * (meaningful only when used in conjunction with a two dimensional scale).
+ * @property {import("./Style.js").DeclutterMode} [circle-declutter-mode] Declutter mode
+ * @property {NumberExpression} [z-index] The zIndex of the style.
+ */
+
+/**
+ * These default style properties are applied when no other style is given.
+ *
+ * @typedef {Object} DefaultStyle
+ * @property {string} fill-color `'rgba(255,255,255,0.4)'`
+ * @property {string} stroke-color `'#3399CC'`
+ * @property {number} stroke-width `1.25`
+ * @property {number} circle-radius `5`
+ * @property {string} circle-fill-color `'rgba(255,255,255,0.4)'`
+ * @property {number} circle-stroke-width `1.25`
+ * @property {string} circle-stroke-color `'#3399CC'`
+ */
+
+/**
+ * @return {DefaultStyle} The default flat style.
+ */
+function createDefaultStyle() {
+  return {
+    'fill-color': 'rgba(255,255,255,0.4)',
+    'stroke-color': '#3399CC',
+    'stroke-width': 1.25,
+    'circle-radius': 5,
+    'circle-fill-color': 'rgba(255,255,255,0.4)',
+    'circle-stroke-width': 1.25,
+    'circle-stroke-color': '#3399CC',
+  };
+}
+
+/**
+ * A rule is used to conditionally apply a style.  If the rule's filter evaluates to true,
+ * the style will be applied.
+ *
+ * @typedef {Object} Rule
+ * @property {FlatStyle|Array<FlatStyle>} style The style to be applied if the filter matches.
+ * @property {import("../expr/expression.js").EncodedExpression} [filter] The filter used
+ * to determine if a style applies.  If no filter is included, the rule always applies
+ * (unless it is an else rule).
+ * @property {boolean} [else] If true, the rule applies only if no other previous rule applies.
+ * If the else rule also has a filter, the rule will not apply if the filter does not match.
+ */
+
+/**
+ * Class for generating shaders from literal style objects
+ * @module ol/webgl/ShaderBuilder
+ */
+
+const COMMON_HEADER = `#ifdef GL_FRAGMENT_PRECISION_HIGH
+precision highp float;
+#else
+precision mediump float;
+#endif
+uniform mat4 u_projectionMatrix;
+uniform mat4 u_screenToWorldMatrix;
+uniform vec2 u_viewportSizePx;
+uniform float u_pixelRatio;
+uniform float u_globalAlpha;
+uniform float u_time;
+uniform float u_zoom;
+uniform float u_resolution;
+uniform float u_rotation;
+uniform vec4 u_renderExtent;
+uniform vec2 u_patternOrigin;
+uniform float u_depth;
+uniform mediump int u_hitDetection;
+
+const float PI = 3.141592653589793238;
+const float TWO_PI = 2.0 * PI;
+
+// this used to produce an alpha-premultiplied color from a texture
+vec4 samplePremultiplied(sampler2D sampler, vec2 texCoord) {
+  vec4 color = texture2D(sampler, texCoord);
+  return vec4(color.rgb * color.a, color.a);
+}
+`;
+
+const DEFAULT_STYLE$1 = createDefaultStyle();
+
+/**
+ * @typedef {Object} VaryingDescription
+ * @property {string} name Varying name, as will be declared in the header.
+ * @property {string} type Varying type, either `float`, `vec2`, `vec4`...
+ * @property {string} expression Expression which will be assigned to the varying in the vertex shader, and
+ * passed on to the fragment shader.
+ */
+
+/**
+ * @classdesc
+ * This class implements a classic builder pattern for generating many different types of shaders.
+ * Methods can be chained, e. g.:
+ *
+ * ```js
+ * const shader = new ShaderBuilder()
+ *   .addVarying('v_width', 'float', 'a_width')
+ *   .addUniform('u_time')
+ *   .setColorExpression('...')
+ *   .setSymbolSizeExpression('...')
+ *   .getSymbolFragmentShader();
+ * ```
+ */
+class ShaderBuilder {
+  constructor() {
+    /**
+     * Uniforms; these will be declared in the header (should include the type).
+     * @type {Array<string>}
+     * @private
+     */
+    this.uniforms_ = [];
+
+    /**
+     * Attributes; these will be declared in the header (should include the type).
+     * @type {Array<string>}
+     * @private
+     */
+    this.attributes_ = [];
+
+    /**
+     * Varyings with a name, a type and an expression.
+     * @type {Array<VaryingDescription>}
+     * @private
+     */
+    this.varyings_ = [];
+
+    /**
+     * @type {boolean}
+     * @private
+     */
+    this.hasSymbol_ = false;
+
+    /**
+     * @type {string}
+     * @private
+     */
+    this.symbolSizeExpression_ = `vec2(${numberToGlsl(
+      DEFAULT_STYLE$1['circle-radius'],
+    )} + ${numberToGlsl(DEFAULT_STYLE$1['circle-stroke-width'] * 0.5)})`;
+
+    /**
+     * @type {string}
+     * @private
+     */
+    this.symbolRotationExpression_ = '0.0';
+
+    /**
+     * @type {string}
+     * @private
+     */
+    this.symbolOffsetExpression_ = 'vec2(0.0)';
+
+    /**
+     * @type {string}
+     * @private
+     */
+    this.symbolColorExpression_ = colorToGlsl(
+      /** @type {string} */ (DEFAULT_STYLE$1['circle-fill-color']),
+    );
+
+    /**
+     * @type {string}
+     * @private
+     */
+    this.texCoordExpression_ = 'vec4(0.0, 0.0, 1.0, 1.0)';
+
+    /**
+     * @type {string}
+     * @private
+     */
+    this.discardExpression_ = 'false';
+
+    /**
+     * @type {boolean}
+     * @private
+     */
+    this.symbolRotateWithView_ = false;
+
+    /**
+     * @type {boolean}
+     * @private
+     */
+    this.hasStroke_ = false;
+
+    /**
+     * @type {string}
+     * @private
+     */
+    this.strokeWidthExpression_ = numberToGlsl(DEFAULT_STYLE$1['stroke-width']);
+
+    /**
+     * @type {string}
+     * @private
+     */
+    this.strokeColorExpression_ = colorToGlsl(
+      /** @type {string} */ (DEFAULT_STYLE$1['stroke-color']),
+    );
+
+    /**
+     * @private
+     */
+    this.strokeOffsetExpression_ = '0.';
+
+    /**
+     * @private
+     */
+    this.strokeCapExpression_ = stringToGlsl('round');
+
+    /**
+     * @private
+     */
+    this.strokeJoinExpression_ = stringToGlsl('round');
+
+    /**
+     * @private
+     */
+    this.strokeMiterLimitExpression_ = '10.';
+
+    /**
+     * @private
+     */
+    this.strokeDistanceFieldExpression_ = '-1000.';
+
+    /**
+     * @type {boolean}
+     * @private
+     */
+    this.hasFill_ = false;
+
+    /**
+     * @type {string}
+     * @private
+     */
+    this.fillColorExpression_ = colorToGlsl(
+      /** @type {string} */ (DEFAULT_STYLE$1['fill-color']),
+    );
+
+    /**
+     * @type {Array<string>}
+     * @private
+     */
+    this.vertexShaderFunctions_ = [];
+
+    /**
+     * @type {Array<string>}
+     * @private
+     */
+    this.fragmentShaderFunctions_ = [];
+  }
+
+  /**
+   * Adds a uniform accessible in both fragment and vertex shaders.
+   * The given name should include a type, such as `sampler2D u_texture`.
+   * @param {string} name Uniform name
+   * @return {ShaderBuilder} the builder object
+   */
+  addUniform(name) {
+    this.uniforms_.push(name);
+    return this;
+  }
+
+  /**
+   * Adds an attribute accessible in the vertex shader, read from the geometry buffer.
+   * The given name should include a type, such as `vec2 a_position`.
+   * @param {string} name Attribute name
+   * @return {ShaderBuilder} the builder object
+   */
+  addAttribute(name) {
+    this.attributes_.push(name);
+    return this;
+  }
+
+  /**
+   * Adds a varying defined in the vertex shader and accessible from the fragment shader.
+   * The type and expression of the varying have to be specified separately.
+   * @param {string} name Varying name
+   * @param {'float'|'vec2'|'vec3'|'vec4'} type Type
+   * @param {string} expression Expression used to assign a value to the varying.
+   * @return {ShaderBuilder} the builder object
+   */
+  addVarying(name, type, expression) {
+    this.varyings_.push({
+      name: name,
+      type: type,
+      expression: expression,
+    });
+    return this;
+  }
+
+  /**
+   * Sets an expression to compute the size of the shape.
+   * This expression can use all the uniforms and attributes available
+   * in the vertex shader, and should evaluate to a `vec2` value.
+   * @param {string} expression Size expression
+   * @return {ShaderBuilder} the builder object
+   */
+  setSymbolSizeExpression(expression) {
+    this.hasSymbol_ = true;
+    this.symbolSizeExpression_ = expression;
+    return this;
+  }
+
+  /**
+   * @return {string} The current symbol size expression
+   */
+  getSymbolSizeExpression() {
+    return this.symbolSizeExpression_;
+  }
+
+  /**
+   * Sets an expression to compute the rotation of the shape.
+   * This expression can use all the uniforms and attributes available
+   * in the vertex shader, and should evaluate to a `float` value in radians.
+   * @param {string} expression Size expression
+   * @return {ShaderBuilder} the builder object
+   */
+  setSymbolRotationExpression(expression) {
+    this.symbolRotationExpression_ = expression;
+    return this;
+  }
+
+  /**
+   * Sets an expression to compute the offset of the symbol from the point center.
+   * This expression can use all the uniforms and attributes available
+   * in the vertex shader, and should evaluate to a `vec2` value.
+   * @param {string} expression Offset expression
+   * @return {ShaderBuilder} the builder object
+   */
+  setSymbolOffsetExpression(expression) {
+    this.symbolOffsetExpression_ = expression;
+    return this;
+  }
+
+  /**
+   * @return {string} The current symbol offset expression
+   */
+  getSymbolOffsetExpression() {
+    return this.symbolOffsetExpression_;
+  }
+
+  /**
+   * Sets an expression to compute the color of the shape.
+   * This expression can use all the uniforms, varyings and attributes available
+   * in the fragment shader, and should evaluate to a `vec4` value.
+   * @param {string} expression Color expression
+   * @return {ShaderBuilder} the builder object
+   */
+  setSymbolColorExpression(expression) {
+    this.hasSymbol_ = true;
+    this.symbolColorExpression_ = expression;
+    return this;
+  }
+
+  /**
+   * @return {string} The current symbol color expression
+   */
+  getSymbolColorExpression() {
+    return this.symbolColorExpression_;
+  }
+
+  /**
+   * Sets an expression to compute the texture coordinates of the vertices.
+   * This expression can use all the uniforms and attributes available
+   * in the vertex shader, and should evaluate to a `vec4` value.
+   * @param {string} expression Texture coordinate expression
+   * @return {ShaderBuilder} the builder object
+   */
+  setTextureCoordinateExpression(expression) {
+    this.texCoordExpression_ = expression;
+    return this;
+  }
+
+  /**
+   * Sets an expression to determine whether a fragment (pixel) should be discarded,
+   * i.e. not drawn at all.
+   * This expression can use all the uniforms, varyings and attributes available
+   * in the fragment shader, and should evaluate to a `bool` value (it will be
+   * used in an `if` statement)
+   * @param {string} expression Fragment discard expression
+   * @return {ShaderBuilder} the builder object
+   */
+  setFragmentDiscardExpression(expression) {
+    this.discardExpression_ = expression;
+    return this;
+  }
+
+  /**
+   * @return {string} The current fragment discard expression
+   */
+  getFragmentDiscardExpression() {
+    return this.discardExpression_;
+  }
+
+  /**
+   * Sets whether the symbols should rotate with the view or stay aligned with the map.
+   * Note: will only be used for point geometry shaders.
+   * @param {boolean} rotateWithView Rotate with view
+   * @return {ShaderBuilder} the builder object
+   */
+  setSymbolRotateWithView(rotateWithView) {
+    this.symbolRotateWithView_ = rotateWithView;
+    return this;
+  }
+
+  /**
+   * @param {string} expression Stroke width expression, returning value in pixels
+   * @return {ShaderBuilder} the builder object
+   */
+  setStrokeWidthExpression(expression) {
+    this.hasStroke_ = true;
+    this.strokeWidthExpression_ = expression;
+    return this;
+  }
+
+  /**
+   * @param {string} expression Stroke color expression, evaluate to `vec4`: can rely on currentLengthPx and currentRadiusPx
+   * @return {ShaderBuilder} the builder object
+   */
+  setStrokeColorExpression(expression) {
+    this.hasStroke_ = true;
+    this.strokeColorExpression_ = expression;
+    return this;
+  }
+
+  /**
+   * @return {string} The current stroke color expression
+   */
+  getStrokeColorExpression() {
+    return this.strokeColorExpression_;
+  }
+
+  /**
+   * @param {string} expression Stroke color expression, evaluate to `float`
+   * @return {ShaderBuilder} the builder object
+   */
+  setStrokeOffsetExpression(expression) {
+    this.strokeOffsetExpression_ = expression;
+    return this;
+  }
+
+  /**
+   * @param {string} expression Stroke line cap expression, evaluate to `float`
+   * @return {ShaderBuilder} the builder object
+   */
+  setStrokeCapExpression(expression) {
+    this.strokeCapExpression_ = expression;
+    return this;
+  }
+
+  /**
+   * @param {string} expression Stroke line join expression, evaluate to `float`
+   * @return {ShaderBuilder} the builder object
+   */
+  setStrokeJoinExpression(expression) {
+    this.strokeJoinExpression_ = expression;
+    return this;
+  }
+
+  /**
+   * @param {string} expression Stroke miter limit expression, evaluate to `float`
+   * @return {ShaderBuilder} the builder object
+   */
+  setStrokeMiterLimitExpression(expression) {
+    this.strokeMiterLimitExpression_ = expression;
+    return this;
+  }
+
+  /**
+   * @param {string} expression Stroke distance field expression, evaluate to `float`
+   * This can override the default distance field; can rely on currentLengthPx and currentRadiusPx
+   * @return {ShaderBuilder} the builder object
+   */
+  setStrokeDistanceFieldExpression(expression) {
+    this.strokeDistanceFieldExpression_ = expression;
+    return this;
+  }
+
+  /**
+   * @param {string} expression Fill color expression, evaluate to `vec4`
+   * @return {ShaderBuilder} the builder object
+   */
+  setFillColorExpression(expression) {
+    this.hasFill_ = true;
+    this.fillColorExpression_ = expression;
+    return this;
+  }
+
+  /**
+   * @return {string} The current fill color expression
+   */
+  getFillColorExpression() {
+    return this.fillColorExpression_;
+  }
+
+  addVertexShaderFunction(code) {
+    if (this.vertexShaderFunctions_.includes(code)) {
+      return;
+    }
+    this.vertexShaderFunctions_.push(code);
+  }
+  addFragmentShaderFunction(code) {
+    if (this.fragmentShaderFunctions_.includes(code)) {
+      return;
+    }
+    this.fragmentShaderFunctions_.push(code);
+  }
+
+  /**
+   * Generates a symbol vertex shader from the builder parameters
+   * @return {string|null} The full shader as a string; null if no size or color specified
+   */
+  getSymbolVertexShader() {
+    if (!this.hasSymbol_) {
+      return null;
+    }
+
+    return `${COMMON_HEADER}
+${this.uniforms_
+  .map(function (uniform) {
+    return 'uniform ' + uniform + ';';
+  })
+  .join('\n')}
+attribute vec2 a_position;
+attribute float a_index;
+attribute vec4 a_prop_hitColor;
+${this.attributes_
+  .map(function (attribute) {
+    return 'attribute ' + attribute + ';';
+  })
+  .join('\n')}
+varying vec2 v_texCoord;
+varying vec2 v_quadCoord;
+varying vec4 v_prop_hitColor;
+varying vec2 v_centerPx;
+varying float v_angle;
+varying vec2 v_quadSizePx;
+${this.varyings_
+  .map(function (varying) {
+    return 'varying ' + varying.type + ' ' + varying.name + ';';
+  })
+  .join('\n')}
+${this.vertexShaderFunctions_.join('\n')}
+vec2 pxToScreen(vec2 coordPx) {
+  vec2 scaled = coordPx / u_viewportSizePx / 0.5;
+  return scaled;
+}
+
+vec2 screenToPx(vec2 coordScreen) {
+  return (coordScreen * 0.5 + 0.5) * u_viewportSizePx;
+}
+
+void main(void) {
+  v_quadSizePx = ${this.symbolSizeExpression_};
+  vec2 halfSizePx = v_quadSizePx * 0.5;
+  vec2 centerOffsetPx = ${this.symbolOffsetExpression_};
+  vec2 offsetPx = centerOffsetPx;
+  if (a_index == 0.0) {
+    offsetPx -= halfSizePx;
+  } else if (a_index == 1.0) {
+    offsetPx += halfSizePx * vec2(1., -1.);
+  } else if (a_index == 2.0) {
+    offsetPx += halfSizePx;
+  } else {
+    offsetPx += halfSizePx * vec2(-1., 1.);
+  }
+  float angle = ${this.symbolRotationExpression_};
+  ${this.symbolRotateWithView_ ? 'angle += u_rotation;' : ''}
+  float c = cos(-angle);
+  float s = sin(-angle);
+  offsetPx = vec2(c * offsetPx.x - s * offsetPx.y, s * offsetPx.x + c * offsetPx.y);
+  vec4 center = u_projectionMatrix * vec4(a_position, 0.0, 1.0);
+  gl_Position = center + vec4(pxToScreen(offsetPx), u_depth, 0.);
+  vec4 texCoord = ${this.texCoordExpression_};
+  float u = a_index == 0.0 || a_index == 3.0 ? texCoord.s : texCoord.p;
+  float v = a_index == 2.0 || a_index == 3.0 ? texCoord.t : texCoord.q;
+  v_texCoord = vec2(u, v);
+  v_prop_hitColor = a_prop_hitColor;
+  v_angle = angle;
+  c = cos(-v_angle);
+  s = sin(-v_angle);
+  centerOffsetPx = vec2(c * centerOffsetPx.x - s * centerOffsetPx.y, s * centerOffsetPx.x + c * centerOffsetPx.y); 
+  v_centerPx = screenToPx(center.xy) + centerOffsetPx;
+${this.varyings_
+  .map(function (varying) {
+    return '  ' + varying.name + ' = ' + varying.expression + ';';
+  })
+  .join('\n')}
+}`;
+  }
+
+  /**
+   * Generates a symbol fragment shader from the builder parameters
+   * @return {string|null} The full shader as a string; null if no size or color specified
+   */
+  getSymbolFragmentShader() {
+    if (!this.hasSymbol_) {
+      return null;
+    }
+
+    return `${COMMON_HEADER}
+${this.uniforms_
+  .map(function (uniform) {
+    return 'uniform ' + uniform + ';';
+  })
+  .join('\n')}
+varying vec2 v_texCoord;
+varying vec4 v_prop_hitColor;
+varying vec2 v_centerPx;
+varying float v_angle;
+varying vec2 v_quadSizePx;
+${this.varyings_
+  .map(function (varying) {
+    return 'varying ' + varying.type + ' ' + varying.name + ';';
+  })
+  .join('\n')}
+${this.fragmentShaderFunctions_.join('\n')}
+
+void main(void) {
+  if (${this.discardExpression_}) { discard; }
+  vec2 coordsPx = gl_FragCoord.xy / u_pixelRatio - v_centerPx; // relative to center
+  float c = cos(v_angle);
+  float s = sin(v_angle);
+  coordsPx = vec2(c * coordsPx.x - s * coordsPx.y, s * coordsPx.x + c * coordsPx.y);
+  gl_FragColor = ${this.symbolColorExpression_};
+  if (u_hitDetection > 0) {
+    if (gl_FragColor.a < 0.05) { discard; };
+    gl_FragColor = v_prop_hitColor;
+  }
+}`;
+  }
+
+  /**
+   * Generates a stroke vertex shader from the builder parameters
+   * @return {string|null} The full shader as a string; null if no size or color specified
+   */
+  getStrokeVertexShader() {
+    if (!this.hasStroke_) {
+      return null;
+    }
+
+    return `${COMMON_HEADER}
+${this.uniforms_
+  .map(function (uniform) {
+    return 'uniform ' + uniform + ';';
+  })
+  .join('\n')}
+attribute vec2 a_position;
+attribute float a_index;
+attribute vec2 a_segmentStart;
+attribute vec2 a_segmentEnd;
+attribute float a_parameters;
+attribute float a_distance;
+attribute vec2 a_joinAngles;
+attribute vec4 a_prop_hitColor;
+${this.attributes_
+  .map(function (attribute) {
+    return 'attribute ' + attribute + ';';
+  })
+  .join('\n')}
+varying vec2 v_segmentStart;
+varying vec2 v_segmentEnd;
+varying float v_angleStart;
+varying float v_angleEnd;
+varying float v_width;
+varying vec4 v_prop_hitColor;
+varying float v_distanceOffsetPx;
+${this.varyings_
+  .map(function (varying) {
+    return 'varying ' + varying.type + ' ' + varying.name + ';';
+  })
+  .join('\n')}
+${this.vertexShaderFunctions_.join('\n')}
+vec2 worldToPx(vec2 worldPos) {
+  vec4 screenPos = u_projectionMatrix * vec4(worldPos, 0.0, 1.0);
+  return (0.5 * screenPos.xy + 0.5) * u_viewportSizePx;
+}
+
+vec4 pxToScreen(vec2 pxPos) {
+  vec2 screenPos = 2.0 * pxPos / u_viewportSizePx - 1.0;
+  return vec4(screenPos, u_depth, 1.0);
+}
+
+bool isCap(float joinAngle) {
+  return joinAngle < -0.1;
+}
+
+vec2 getJoinOffsetDirection(vec2 normalPx, float joinAngle) {
+  float halfAngle = joinAngle / 2.0;
+  float c = cos(halfAngle);
+  float s = sin(halfAngle);
+  vec2 angleBisectorNormal = vec2(s * normalPx.x + c * normalPx.y, -c * normalPx.x + s * normalPx.y);
+  float length = 1.0 / s;
+  return angleBisectorNormal * length;
+}
+
+vec2 getOffsetPoint(vec2 point, vec2 normal, float joinAngle, float offsetPx) {
+  // if on a cap or the join angle is too high, offset the line along the segment normal
+  if (cos(joinAngle) > 0.998 || isCap(joinAngle)) {
+    return point - normal * offsetPx;
+  }
+  // offset is applied along the inverted normal (positive offset goes "right" relative to line direction)
+  return point - getJoinOffsetDirection(normal, joinAngle) * offsetPx;
+}
+
+void main(void) {
+  v_angleStart = a_joinAngles.x;
+  v_angleEnd = a_joinAngles.y;
+  float vertexNumber = floor(abs(a_parameters) / 10000. + 0.5);
+  // we're reading the fractional part while keeping the sign (so -4.12 gives -0.12, 3.45 gives 0.45)
+  float angleTangentSum = fract(abs(a_parameters) / 10000.) * 10000. * sign(a_parameters);
+
+  float lineWidth = ${this.strokeWidthExpression_};
+  float lineOffsetPx = ${this.strokeOffsetExpression_};
+
+  // compute segment start/end in px with offset
+  vec2 segmentStartPx = worldToPx(a_segmentStart);
+  vec2 segmentEndPx = worldToPx(a_segmentEnd);
+  vec2 tangentPx = normalize(segmentEndPx - segmentStartPx);
+  vec2 normalPx = vec2(-tangentPx.y, tangentPx.x);
+  segmentStartPx = getOffsetPoint(segmentStartPx, normalPx, v_angleStart, lineOffsetPx),
+  segmentEndPx = getOffsetPoint(segmentEndPx, normalPx, v_angleEnd, lineOffsetPx);
+  
+  // compute current vertex position
+  float normalDir = vertexNumber < 0.5 || (vertexNumber > 1.5 && vertexNumber < 2.5) ? 1.0 : -1.0;
+  float tangentDir = vertexNumber < 1.5 ? 1.0 : -1.0;
+  float angle = vertexNumber < 1.5 ? v_angleStart : v_angleEnd;
+  vec2 joinDirection;
+  vec2 positionPx = vertexNumber < 1.5 ? segmentStartPx : segmentEndPx;
+  // if angle is too high, do not make a proper join
+  if (cos(angle) > ${LINESTRING_ANGLE_COSINE_CUTOFF} || isCap(angle)) {
+    joinDirection = normalPx * normalDir - tangentPx * tangentDir;
+  } else {
+    joinDirection = getJoinOffsetDirection(normalPx * normalDir, angle);
+  }
+  positionPx = positionPx + joinDirection * (lineWidth * 0.5 + 1.); // adding 1 pixel for antialiasing
+  gl_Position = pxToScreen(positionPx);
+
+  v_segmentStart = segmentStartPx;
+  v_segmentEnd = segmentEndPx;
+  v_width = lineWidth;
+  v_prop_hitColor = a_prop_hitColor;
+  v_distanceOffsetPx = a_distance / u_resolution - (lineOffsetPx * angleTangentSum);
+${this.varyings_
+  .map(function (varying) {
+    return '  ' + varying.name + ' = ' + varying.expression + ';';
+  })
+  .join('\n')}
+}`;
+  }
+
+  /**
+   * Generates a stroke fragment shader from the builder parameters
+   *
+   * @return {string|null} The full shader as a string; null if no size or color specified
+   */
+  getStrokeFragmentShader() {
+    if (!this.hasStroke_) {
+      return null;
+    }
+
+    return `${COMMON_HEADER}
+${this.uniforms_
+  .map(function (uniform) {
+    return 'uniform ' + uniform + ';';
+  })
+  .join('\n')}
+varying vec2 v_segmentStart;
+varying vec2 v_segmentEnd;
+varying float v_angleStart;
+varying float v_angleEnd;
+varying float v_width;
+varying vec4 v_prop_hitColor;
+varying float v_distanceOffsetPx;
+${this.varyings_
+  .map(function (varying) {
+    return 'varying ' + varying.type + ' ' + varying.name + ';';
+  })
+  .join('\n')}
+${this.fragmentShaderFunctions_.join('\n')}
+
+vec2 pxToWorld(vec2 pxPos) {
+  vec2 screenPos = 2.0 * pxPos / u_viewportSizePx - 1.0;
+  return (u_screenToWorldMatrix * vec4(screenPos, 0.0, 1.0)).xy;
+}
+
+bool isCap(float joinAngle) {
+  return joinAngle < -0.1;
+}
+
+float segmentDistanceField(vec2 point, vec2 start, vec2 end, float width) {
+  vec2 tangent = normalize(end - start);
+  vec2 normal = vec2(-tangent.y, tangent.x);
+  vec2 startToPoint = point - start;
+  return abs(dot(startToPoint, normal)) - width * 0.5;
+}
+
+float buttCapDistanceField(vec2 point, vec2 start, vec2 end) {
+  vec2 startToPoint = point - start;
+  vec2 tangent = normalize(end - start);
+  return dot(startToPoint, -tangent);
+}
+
+float squareCapDistanceField(vec2 point, vec2 start, vec2 end, float width) {
+  return buttCapDistanceField(point, start, end) - width * 0.5;
+}
+
+float roundCapDistanceField(vec2 point, vec2 start, vec2 end, float width) {
+  float onSegment = max(0., 1000. * dot(point - start, end - start)); // this is very high when inside the segment
+  return length(point - start) - width * 0.5 - onSegment;
+}
+
+float roundJoinDistanceField(vec2 point, vec2 start, vec2 end, float width) {
+  return roundCapDistanceField(point, start, end, width);
+}
+
+float bevelJoinField(vec2 point, vec2 start, vec2 end, float width, float joinAngle) {
+  vec2 startToPoint = point - start;
+  vec2 tangent = normalize(end - start);
+  float c = cos(joinAngle * 0.5);
+  float s = sin(joinAngle * 0.5);
+  float direction = -sign(sin(joinAngle));
+  vec2 bisector = vec2(c * tangent.x - s * tangent.y, s * tangent.x + c * tangent.y);
+  float radius = width * 0.5 * s;
+  return dot(startToPoint, bisector * direction) - radius;
+}
+
+float miterJoinDistanceField(vec2 point, vec2 start, vec2 end, float width, float joinAngle) {
+  if (cos(joinAngle) > ${LINESTRING_ANGLE_COSINE_CUTOFF}) { // avoid risking a division by zero
+    return bevelJoinField(point, start, end, width, joinAngle);
+  }
+  float miterLength = 1. / sin(joinAngle * 0.5);
+  float miterLimit = ${this.strokeMiterLimitExpression_};
+  if (miterLength > miterLimit) {
+    return bevelJoinField(point, start, end, width, joinAngle);
+  }
+  return -1000.;
+}
+
+float capDistanceField(vec2 point, vec2 start, vec2 end, float width, float capType) {
+   if (capType == ${stringToGlsl('butt')}) {
+    return buttCapDistanceField(point, start, end);
+  } else if (capType == ${stringToGlsl('square')}) {
+    return squareCapDistanceField(point, start, end, width);
+  }
+  return roundCapDistanceField(point, start, end, width);
+}
+
+float joinDistanceField(vec2 point, vec2 start, vec2 end, float width, float joinAngle, float joinType) {
+  if (joinType == ${stringToGlsl('bevel')}) {
+    return bevelJoinField(point, start, end, width, joinAngle);
+  } else if (joinType == ${stringToGlsl('miter')}) {
+    return miterJoinDistanceField(point, start, end, width, joinAngle);
+  }
+  return roundJoinDistanceField(point, start, end, width);
+}
+
+float computeSegmentPointDistance(vec2 point, vec2 start, vec2 end, float width, float joinAngle, float capType, float joinType) {
+  if (isCap(joinAngle)) {
+    return capDistanceField(point, start, end, width, capType);
+  }
+  return joinDistanceField(point, start, end, width, joinAngle, joinType);
+}
+
+void main(void) {
+  vec2 currentPoint = gl_FragCoord.xy / u_pixelRatio;
+  #ifdef GL_FRAGMENT_PRECISION_HIGH
+  vec2 worldPos = pxToWorld(currentPoint);
+  if (
+    abs(u_renderExtent[0] - u_renderExtent[2]) > 0.0 && (
+      worldPos[0] < u_renderExtent[0] ||
+      worldPos[1] < u_renderExtent[1] ||
+      worldPos[0] > u_renderExtent[2] ||
+      worldPos[1] > u_renderExtent[3]
+    )
+  ) {
+    discard;
+  }
+  #endif
+  if (${this.discardExpression_}) { discard; }
+
+  float segmentLength = length(v_segmentEnd - v_segmentStart);
+  vec2 segmentTangent = (v_segmentEnd - v_segmentStart) / segmentLength;
+  vec2 segmentNormal = vec2(-segmentTangent.y, segmentTangent.x);
+  vec2 startToPoint = currentPoint - v_segmentStart;
+  float currentLengthPx = max(0., min(dot(segmentTangent, startToPoint), segmentLength)) + v_distanceOffsetPx; 
+  float currentRadiusPx = abs(dot(segmentNormal, startToPoint));
+  float currentRadiusRatio = dot(segmentNormal, startToPoint) * 2. / v_width;
+  vec4 color = ${this.strokeColorExpression_} * u_globalAlpha;
+  float capType = ${this.strokeCapExpression_};
+  float joinType = ${this.strokeJoinExpression_};
+  float segmentStartDistance = computeSegmentPointDistance(currentPoint, v_segmentStart, v_segmentEnd, v_width, v_angleStart, capType, joinType);
+  float segmentEndDistance = computeSegmentPointDistance(currentPoint, v_segmentEnd, v_segmentStart, v_width, v_angleEnd, capType, joinType);
+  float distance = max(
+    segmentDistanceField(currentPoint, v_segmentStart, v_segmentEnd, v_width),
+    max(segmentStartDistance, segmentEndDistance)
+  );
+  distance = max(distance, ${this.strokeDistanceFieldExpression_});
+  gl_FragColor = color * smoothstep(0.5, -0.5, distance);
+  if (u_hitDetection > 0) {
+    if (gl_FragColor.a < 0.1) { discard; };
+    gl_FragColor = v_prop_hitColor;
+  }
+}`;
+  }
+
+  /**
+   * Generates a fill vertex shader from the builder parameters
+   *
+   * @return {string|null} The full shader as a string; null if no color specified
+   */
+  getFillVertexShader() {
+    if (!this.hasFill_) {
+      return null;
+    }
+
+    return `${COMMON_HEADER}
+${this.uniforms_
+  .map(function (uniform) {
+    return 'uniform ' + uniform + ';';
+  })
+  .join('\n')}
+attribute vec2 a_position;
+attribute vec4 a_prop_hitColor;
+${this.attributes_
+  .map(function (attribute) {
+    return 'attribute ' + attribute + ';';
+  })
+  .join('\n')}
+varying vec4 v_prop_hitColor;
+${this.varyings_
+  .map(function (varying) {
+    return 'varying ' + varying.type + ' ' + varying.name + ';';
+  })
+  .join('\n')}
+${this.vertexShaderFunctions_.join('\n')}
+void main(void) {
+  gl_Position = u_projectionMatrix * vec4(a_position, u_depth, 1.0);
+  v_prop_hitColor = a_prop_hitColor;
+${this.varyings_
+  .map(function (varying) {
+    return '  ' + varying.name + ' = ' + varying.expression + ';';
+  })
+  .join('\n')}
+}`;
+  }
+
+  /**
+   * Generates a fill fragment shader from the builder parameters
+   * @return {string|null} The full shader as a string; null if no color specified
+   */
+  getFillFragmentShader() {
+    if (!this.hasFill_) {
+      return null;
+    }
+
+    return `${COMMON_HEADER}
+${this.uniforms_
+  .map(function (uniform) {
+    return 'uniform ' + uniform + ';';
+  })
+  .join('\n')}
+varying vec4 v_prop_hitColor;
+${this.varyings_
+  .map(function (varying) {
+    return 'varying ' + varying.type + ' ' + varying.name + ';';
+  })
+  .join('\n')}
+${this.fragmentShaderFunctions_.join('\n')}
+vec2 pxToWorld(vec2 pxPos) {
+  vec2 screenPos = 2.0 * pxPos / u_viewportSizePx - 1.0;
+  return (u_screenToWorldMatrix * vec4(screenPos, 0.0, 1.0)).xy;
+}
+
+vec2 worldToPx(vec2 worldPos) {
+  vec4 screenPos = u_projectionMatrix * vec4(worldPos, 0.0, 1.0);
+  return (0.5 * screenPos.xy + 0.5) * u_viewportSizePx;
+}
+
+void main(void) {
+  vec2 pxPos = gl_FragCoord.xy / u_pixelRatio;
+  vec2 pxOrigin = worldToPx(u_patternOrigin);
+  #ifdef GL_FRAGMENT_PRECISION_HIGH
+  vec2 worldPos = pxToWorld(pxPos);
+  if (
+    abs(u_renderExtent[0] - u_renderExtent[2]) > 0.0 && (
+      worldPos[0] < u_renderExtent[0] ||
+      worldPos[1] < u_renderExtent[1] ||
+      worldPos[0] > u_renderExtent[2] ||
+      worldPos[1] > u_renderExtent[3]
+    )
+  ) {
+    discard;
+  }
+  #endif
+  if (${this.discardExpression_}) { discard; }
+  gl_FragColor = ${this.fillColorExpression_} * u_globalAlpha;
+  if (u_hitDetection > 0) {
+    if (gl_FragColor.a < 0.1) { discard; };
+    gl_FragColor = v_prop_hitColor;
+  }
+}`;
+  }
+}
+
+/**
+ * Utilities for parsing literal style objects
+ * @module ol/webgl/styleparser
+ */
+
+/**
+ * Recursively parses a style expression and outputs a GLSL-compatible string. Takes in a compilation context that
+ * will be read and modified during the parsing operation.
+ * @param {import("../expr/gpu.js").CompilationContext} compilationContext Compilation context
+ * @param {import("../expr/expression.js").EncodedExpression} value Value
+ * @param {number} [expectedType] Expected final type (can be several types combined)
+ * @return {string} GLSL-compatible output
+ */
+function expressionToGlsl(compilationContext, value, expectedType) {
+  const parsingContext = newParsingContext();
+  parsingContext.style = compilationContext.style;
+  return buildExpression(
+    value,
+    expectedType,
+    parsingContext,
+    compilationContext,
+  );
+}
+
+/**
+ * Packs all components of a color into a two-floats array
+ * @param {import("../color.js").Color|string} color Color as array of numbers or string
+ * @return {Array<number>} Vec2 array containing the color in compressed form
+ */
+function packColor(color) {
+  const array = asArray(color);
+  const r = array[0] * 256;
+  const g = array[1];
+  const b = array[2] * 256;
+  const a = Math.round(array[3] * 255);
+  return [r + g, b + a];
+}
+
+const UNPACK_COLOR_FN = `vec4 unpackColor(vec2 packedColor) {
+  return fract(packedColor[1] / 256.0) * vec4(
+    fract(floor(packedColor[0] / 256.0) / 256.0),
+    fract(packedColor[0] / 256.0),
+    fract(floor(packedColor[1] / 256.0) / 256.0),
+    1.0
+  );
+}`;
+
+/**
+ * @param {number} type Value type
+ * @return {1|2|3|4} The amount of components for this value
+ */
+function getGlslSizeFromType(type) {
+  if (type === ColorType || type === SizeType) {
+    return 2;
+  }
+  if (type === NumberArrayType) {
+    return 4;
+  }
+  return 1;
+}
+
+/**
+ * @param {number} type Value type
+ * @return {'float'|'vec2'|'vec3'|'vec4'} The corresponding GLSL type for this value
+ */
+function getGlslTypeFromType(type) {
+  const size = getGlslSizeFromType(type);
+  if (size > 1) {
+    return /** @type {'vec2'|'vec3'|'vec4'} */ (`vec${size}`);
+  }
+  return 'float';
+}
+
+/**
+ * see https://stackoverflow.com/questions/7616461/generate-a-hash-from-string-in-javascript
+ * @param {Object|string} input The hash input, either an object or string
+ * @return {string} Hash (if the object cannot be serialized, it is based on `getUid`)
+ */
+function computeHash(input) {
+  const hash = JSON.stringify(input)
+    .split('')
+    .reduce((prev, curr) => (prev << 5) - prev + curr.charCodeAt(0), 0);
+  return (hash >>> 0).toString();
+}
+
+/**
+ * @param {import("../style/webgl.js").WebGLStyle} style Style
+ * @param {ShaderBuilder} builder Shader builder
+ * @param {import("../expr/gpu.js").CompilationContext} vertContext Vertex shader compilation context
+ * @param {'shape-'|'circle-'|'icon-'} prefix Properties prefix
+ */
+function parseCommonSymbolProperties(style, builder, vertContext, prefix) {
+  if (`${prefix}radius` in style && prefix !== 'icon-') {
+    let radius = expressionToGlsl(
+      vertContext,
+      style[`${prefix}radius`],
+      NumberType,
+    );
+    if (`${prefix}radius2` in style) {
+      const radius2 = expressionToGlsl(
+        vertContext,
+        style[`${prefix}radius2`],
+        NumberType,
+      );
+      radius = `max(${radius}, ${radius2})`;
+    }
+    if (`${prefix}stroke-width` in style) {
+      radius = `(${radius} + ${expressionToGlsl(
+        vertContext,
+        style[`${prefix}stroke-width`],
+        NumberType,
+      )} * 0.5)`;
+    }
+    builder.setSymbolSizeExpression(`vec2(${radius} * 2. + 0.5)`); // adding some padding for antialiasing
+  }
+  if (`${prefix}scale` in style) {
+    const scale = expressionToGlsl(
+      vertContext,
+      style[`${prefix}scale`],
+      SizeType,
+    );
+    builder.setSymbolSizeExpression(
+      `${builder.getSymbolSizeExpression()} * ${scale}`,
+    );
+  }
+  if (`${prefix}displacement` in style) {
+    builder.setSymbolOffsetExpression(
+      expressionToGlsl(
+        vertContext,
+        style[`${prefix}displacement`],
+        NumberArrayType,
+      ),
+    );
+  }
+  if (`${prefix}rotation` in style) {
+    builder.setSymbolRotationExpression(
+      expressionToGlsl(vertContext, style[`${prefix}rotation`], NumberType),
+    );
+  }
+  if (`${prefix}rotate-with-view` in style) {
+    builder.setSymbolRotateWithView(!!style[`${prefix}rotate-with-view`]);
+  }
+}
+
+/**
+ * @param {string} distanceField The distance field expression
+ * @param {string|null} fillColor The fill color expression; null if no fill
+ * @param {string|null} strokeColor The stroke color expression; null if no stroke
+ * @param {string|null} strokeWidth The stroke width expression; null if no stroke
+ * @param {string|null} opacity The opacity expression; null if no stroke
+ * @return {string} The final color expression, based on the distance field and given params
+ */
+function getColorFromDistanceField(
+  distanceField,
+  fillColor,
+  strokeColor,
+  strokeWidth,
+  opacity,
+) {
+  let color = 'vec4(0.)';
+  if (fillColor !== null) {
+    color = fillColor;
+  }
+  if (strokeColor !== null && strokeWidth !== null) {
+    const strokeFillRatio = `smoothstep(-${strokeWidth} + 0.63, -${strokeWidth} - 0.58, ${distanceField})`;
+    color = `mix(${strokeColor}, ${color}, ${strokeFillRatio})`;
+  }
+  const shapeOpacity = `(1.0 - smoothstep(-0.63, 0.58, ${distanceField}))`;
+  let result = `${color} * ${shapeOpacity}`;
+  if (opacity !== null) {
+    result = `${result} * ${opacity}`;
+  }
+  return result;
+}
+
+/**
+ * This will parse an image property provided by `<prefix>-src`
+ * The image size expression in GLSL will be returned
+ * @param {import("../style/webgl.js").WebGLStyle} style Style
+ * @param {ShaderBuilder} builder Shader builder
+ * @param {Object<string,import("../webgl/Helper").UniformValue>} uniforms Uniforms
+ * @param {'icon-'|'fill-pattern-'|'stroke-pattern-'} prefix Property prefix
+ * @param {string} textureId A identifier that will be used in the generated uniforms: `sample2d u_texture<id>` and `vec2 u_texture<id>_size`
+ * @return {string} The image size expression
+ */
+function parseImageProperties(style, builder, uniforms, prefix, textureId) {
+  const image = new Image();
+  let size;
+  image.crossOrigin =
+    style[`${prefix}cross-origin`] === undefined
+      ? 'anonymous'
+      : style[`${prefix}cross-origin`];
+  image.src = style[`${prefix}src`];
+
+  if (image.complete && image.width && image.height) {
+    size = arrayToGlsl([image.width, image.height]);
+  } else {
+    // the size is provided asynchronously using a uniform
+    uniforms[`u_texture${textureId}_size`] = () => {
+      return image.complete ? [image.width, image.height] : [0, 0];
+    };
+    builder.addUniform(`vec2 u_texture${textureId}_size`);
+    size = `u_texture${textureId}_size`;
+  }
+  uniforms[`u_texture${textureId}`] = image;
+  builder.addUniform(`sampler2D u_texture${textureId}`);
+  return size;
+}
+
+/**
+ * This will parse an image's offset properties provided by `<prefix>-offset`, `<prefix>-offset-origin` and `<prefix>-size`
+ * @param {import("../style/webgl.js").WebGLStyle} style Style
+ * @param {'icon-'|'fill-pattern-'|'stroke-pattern-'} prefix Property prefix
+ * @param {import("../expr/gpu.js").CompilationContext} context Shader compilation context (vertex or fragment)
+ * @param {string} imageSize Pixel size of the full image as a GLSL expression
+ * @param {string} sampleSize Pixel size of the sample in the image as a GLSL expression
+ * @return {string} The offset expression
+ */
+function parseImageOffsetProperties(
+  style,
+  prefix,
+  context,
+  imageSize,
+  sampleSize,
+) {
+  let offsetExpression = expressionToGlsl(
+    context,
+    style[`${prefix}offset`],
+    NumberArrayType,
+  );
+  if (`${prefix}offset-origin` in style) {
+    switch (style[`${prefix}offset-origin`]) {
+      case 'top-right':
+        offsetExpression = `vec2(${imageSize}.x, 0.) + ${sampleSize} * vec2(-1., 0.) + ${offsetExpression} * vec2(-1., 1.)`;
+        break;
+      case 'bottom-left':
+        offsetExpression = `vec2(0., ${imageSize}.y) + ${sampleSize} * vec2(0., -1.) + ${offsetExpression} * vec2(1., -1.)`;
+        break;
+      case 'bottom-right':
+        offsetExpression = `${imageSize} - ${sampleSize} - ${offsetExpression}`;
+        break;
+    }
+  }
+  return offsetExpression;
+}
+
+/**
+ * @param {import("../style/webgl.js").WebGLStyle} style Style
+ * @param {ShaderBuilder} builder Shader builder
+ * @param {Object<string,import("../webgl/Helper").UniformValue>} uniforms Uniforms
+ * @param {import("../expr/gpu.js").CompilationContext} vertContext Vertex shader compilation context
+ * @param {import("../expr/gpu.js").CompilationContext} fragContext Fragment shader compilation context
+ */
+function parseCircleProperties(
+  style,
+  builder,
+  uniforms,
+  vertContext,
+  fragContext,
+) {
+  // this function takes in screen coordinates in pixels and returns the signed distance field
+  // (0 on the boundary, negative inside the circle, positive outside, values in pixels)
+  fragContext.functions['circleDistanceField'] =
+    `float circleDistanceField(vec2 point, float radius) {
+  return length(point) - radius;
+}`;
+
+  parseCommonSymbolProperties(style, builder, vertContext, 'circle-');
+
+  // OPACITY
+  let opacity = null;
+  if ('circle-opacity' in style) {
+    opacity = expressionToGlsl(
+      fragContext,
+      style['circle-opacity'],
+      NumberType,
+    );
+  }
+
+  // SCALE
+  let currentPoint = 'coordsPx';
+  if ('circle-scale' in style) {
+    const scale = expressionToGlsl(
+      fragContext,
+      style['circle-scale'],
+      SizeType,
+    );
+    currentPoint = `coordsPx / ${scale}`;
+  }
+
+  // FILL COLOR
+  let fillColor = null;
+  if ('circle-fill-color' in style) {
+    fillColor = expressionToGlsl(
+      fragContext,
+      style['circle-fill-color'],
+      ColorType,
+    );
+  }
+
+  // STROKE COLOR
+  let strokeColor = null;
+  if ('circle-stroke-color' in style) {
+    strokeColor = expressionToGlsl(
+      fragContext,
+      style['circle-stroke-color'],
+      ColorType,
+    );
+  }
+
+  // RADIUS
+  let radius = expressionToGlsl(
+    fragContext,
+    style['circle-radius'],
+    NumberType,
+  );
+
+  // STROKE WIDTH
+  let strokeWidth = null;
+  if ('circle-stroke-width' in style) {
+    strokeWidth = expressionToGlsl(
+      fragContext,
+      style['circle-stroke-width'],
+      NumberType,
+    );
+    radius = `(${radius} + ${strokeWidth} * 0.5)`;
+  }
+
+  // FINAL COLOR
+  const distanceField = `circleDistanceField(${currentPoint}, ${radius})`;
+  const colorExpression = getColorFromDistanceField(
+    distanceField,
+    fillColor,
+    strokeColor,
+    strokeWidth,
+    opacity,
+  );
+  builder.setSymbolColorExpression(colorExpression);
+}
+
+/**
+ * @param {import("../style/webgl.js").WebGLStyle} style Style
+ * @param {ShaderBuilder} builder Shader builder
+ * @param {Object<string,import("../webgl/Helper").UniformValue>} uniforms Uniforms
+ * @param {import("../expr/gpu.js").CompilationContext} vertContext Vertex shader compilation context
+ * @param {import("../expr/gpu.js").CompilationContext} fragContext Fragment shader compilation context
+ */
+function parseShapeProperties(
+  style,
+  builder,
+  uniforms,
+  vertContext,
+  fragContext,
+) {
+  fragContext.functions['round'] = `float round(float v) {
+  return sign(v) * floor(abs(v) + 0.5);
+}`;
+
+  // these functions take in screen coordinates in pixels and returns the signed distance field
+  // (0 on the boundary, negative inside the polygon, positive outside, values in pixels)
+  // inspired by https://github.com/zranger1/PixelblazePatterns/blob/master/Toolkit/sdf2d.md#n-sided-regular-polygon
+  fragContext.functions['starDistanceField'] =
+    `float starDistanceField(vec2 point, float numPoints, float radius, float radius2, float angle) {
+  float startAngle = -PI * 0.5 + angle; // tip starts upwards and rotates clockwise with angle
+  float c = cos(startAngle);
+  float s = sin(startAngle);
+  vec2 pointRotated = vec2(c * point.x - s * point.y, s * point.x + c * point.y);
+  float alpha = TWO_PI / numPoints; // the angle of one sector
+  float beta = atan(pointRotated.y, pointRotated.x);
+  float gamma = round(beta / alpha) * alpha; // angle in sector
+  c = cos(-gamma);
+  s = sin(-gamma);
+  vec2 inSector = vec2(c * pointRotated.x - s * pointRotated.y, abs(s * pointRotated.x + c * pointRotated.y));
+  vec2 tipToPoint = inSector + vec2(-radius, 0.);
+  vec2 edgeNormal = vec2(radius2 * sin(alpha * 0.5), -radius2 * cos(alpha * 0.5) + radius);
+  return dot(normalize(edgeNormal), tipToPoint);
+}`;
+  fragContext.functions['regularDistanceField'] =
+    `float regularDistanceField(vec2 point, float numPoints, float radius, float angle) {
+  float startAngle = -PI * 0.5 + angle; // tip starts upwards and rotates clockwise with angle
+  float c = cos(startAngle);
+  float s = sin(startAngle);
+  vec2 pointRotated = vec2(c * point.x - s * point.y, s * point.x + c * point.y);
+  float alpha = TWO_PI / numPoints; // the angle of one sector
+  float radiusIn = radius * cos(PI / numPoints);
+  float beta = atan(pointRotated.y, pointRotated.x);
+  float gamma = round((beta - alpha * 0.5) / alpha) * alpha + alpha * 0.5; // angle in sector from mid
+  c = cos(-gamma);
+  s = sin(-gamma);
+  vec2 inSector = vec2(c * pointRotated.x - s * pointRotated.y, abs(s * pointRotated.x + c * pointRotated.y));
+  return inSector.x - radiusIn;
+}`;
+
+  parseCommonSymbolProperties(style, builder, vertContext, 'shape-');
+
+  // OPACITY
+  let opacity = null;
+  if ('shape-opacity' in style) {
+    opacity = expressionToGlsl(fragContext, style['shape-opacity'], NumberType);
+  }
+
+  // SCALE
+  let currentPoint = 'coordsPx';
+  if ('shape-scale' in style) {
+    const scale = expressionToGlsl(fragContext, style['shape-scale'], SizeType);
+    currentPoint = `coordsPx / ${scale}`;
+  }
+
+  // FILL COLOR
+  let fillColor = null;
+  if ('shape-fill-color' in style) {
+    fillColor = expressionToGlsl(
+      fragContext,
+      style['shape-fill-color'],
+      ColorType,
+    );
+  }
+
+  // STROKE COLOR
+  let strokeColor = null;
+  if ('shape-stroke-color' in style) {
+    strokeColor = expressionToGlsl(
+      fragContext,
+      style['shape-stroke-color'],
+      ColorType,
+    );
+  }
+
+  // STROKE WIDTH
+  let strokeWidth = null;
+  if ('shape-stroke-width' in style) {
+    strokeWidth = expressionToGlsl(
+      fragContext,
+      style['shape-stroke-width'],
+      NumberType,
+    );
+  }
+
+  // SHAPE TYPE
+  const numPoints = expressionToGlsl(
+    fragContext,
+    style['shape-points'],
+    NumberType,
+  );
+  let angle = '0.';
+  if ('shape-angle' in style) {
+    angle = expressionToGlsl(fragContext, style['shape-angle'], NumberType);
+  }
+  let shapeField;
+  let radius = expressionToGlsl(fragContext, style['shape-radius'], NumberType);
+  if (strokeWidth !== null) {
+    radius = `${radius} + ${strokeWidth} * 0.5`;
+  }
+  if ('shape-radius2' in style) {
+    let radius2 = expressionToGlsl(
+      fragContext,
+      style['shape-radius2'],
+      NumberType,
+    );
+    if (strokeWidth !== null) {
+      radius2 = `${radius2} + ${strokeWidth} * 0.5`;
+    }
+    shapeField = `starDistanceField(${currentPoint}, ${numPoints}, ${radius}, ${radius2}, ${angle})`;
+  } else {
+    shapeField = `regularDistanceField(${currentPoint}, ${numPoints}, ${radius}, ${angle})`;
+  }
+
+  // FINAL COLOR
+  const colorExpression = getColorFromDistanceField(
+    shapeField,
+    fillColor,
+    strokeColor,
+    strokeWidth,
+    opacity,
+  );
+  builder.setSymbolColorExpression(colorExpression);
+}
+
+/**
+ * @param {import("../style/webgl.js").WebGLStyle} style Style
+ * @param {ShaderBuilder} builder Shader builder
+ * @param {Object<string,import("../webgl/Helper").UniformValue>} uniforms Uniforms
+ * @param {import("../expr/gpu.js").CompilationContext} vertContext Vertex shader compilation context
+ * @param {import("../expr/gpu.js").CompilationContext} fragContext Fragment shader compilation context
+ */
+function parseIconProperties(
+  style,
+  builder,
+  uniforms,
+  vertContext,
+  fragContext,
+) {
+  // COLOR
+  let color = 'vec4(1.0)';
+  if ('icon-color' in style) {
+    color = expressionToGlsl(fragContext, style['icon-color'], ColorType);
+  }
+
+  // OPACITY
+  if ('icon-opacity' in style) {
+    color = `${color} * ${expressionToGlsl(
+      fragContext,
+      style['icon-opacity'],
+      NumberType,
+    )}`;
+  }
+
+  // IMAGE & SIZE
+  const textureId = computeHash(style['icon-src']);
+  const sizeExpression = parseImageProperties(
+    style,
+    builder,
+    uniforms,
+    'icon-',
+    textureId,
+  );
+  builder
+    .setSymbolColorExpression(
+      `${color} * samplePremultiplied(u_texture${textureId}, v_texCoord)`,
+    )
+    .setSymbolSizeExpression(sizeExpression);
+
+  // override size if width/height were specified
+  if ('icon-width' in style && 'icon-height' in style) {
+    builder.setSymbolSizeExpression(
+      `vec2(${expressionToGlsl(
+        vertContext,
+        style['icon-width'],
+        NumberType,
+      )}, ${expressionToGlsl(vertContext, style['icon-height'], NumberType)})`,
+    );
+  }
+
+  // tex coord
+  if ('icon-offset' in style && 'icon-size' in style) {
+    const sampleSize = expressionToGlsl(
+      vertContext,
+      style['icon-size'],
+      NumberArrayType,
+    );
+    const fullsize = builder.getSymbolSizeExpression();
+    builder.setSymbolSizeExpression(sampleSize);
+    const offset = parseImageOffsetProperties(
+      style,
+      'icon-',
+      vertContext,
+      'v_quadSizePx',
+      sampleSize,
+    );
+    builder.setTextureCoordinateExpression(
+      `(vec4((${offset}).xyxy) + vec4(0., 0., ${sampleSize})) / (${fullsize}).xyxy`,
+    );
+  }
+
+  parseCommonSymbolProperties(style, builder, vertContext, 'icon-');
+
+  if ('icon-anchor' in style) {
+    const anchor = expressionToGlsl(
+      vertContext,
+      style['icon-anchor'],
+      NumberArrayType,
+    );
+    let scale = `1.0`;
+    if (`icon-scale` in style) {
+      scale = expressionToGlsl(vertContext, style[`icon-scale`], SizeType);
+    }
+    let shiftPx;
+    if (
+      style['icon-anchor-x-units'] === 'pixels' &&
+      style['icon-anchor-y-units'] === 'pixels'
+    ) {
+      shiftPx = `${anchor} * ${scale}`;
+    } else if (style['icon-anchor-x-units'] === 'pixels') {
+      shiftPx = `${anchor} * vec2(vec2(${scale}).x, v_quadSizePx.y)`;
+    } else if (style['icon-anchor-y-units'] === 'pixels') {
+      shiftPx = `${anchor} * vec2(v_quadSizePx.x, vec2(${scale}).x)`;
+    } else {
+      shiftPx = `${anchor} * v_quadSizePx`;
+    }
+    // default origin is top-left
+    let offsetPx = `v_quadSizePx * vec2(0.5, -0.5) + ${shiftPx} * vec2(-1., 1.)`;
+    if ('icon-anchor-origin' in style) {
+      switch (style['icon-anchor-origin']) {
+        case 'top-right':
+          offsetPx = `v_quadSizePx * -0.5 + ${shiftPx}`;
+          break;
+        case 'bottom-left':
+          offsetPx = `v_quadSizePx * 0.5 - ${shiftPx}`;
+          break;
+        case 'bottom-right':
+          offsetPx = `v_quadSizePx * vec2(-0.5, 0.5) + ${shiftPx} * vec2(1., -1.)`;
+          break;
+      }
+    }
+    builder.setSymbolOffsetExpression(
+      `${builder.getSymbolOffsetExpression()} + ${offsetPx}`,
+    );
+  }
+}
+
+/**
+ * @param {import("../style/webgl.js").WebGLStyle} style Style
+ * @param {ShaderBuilder} builder Shader Builder
+ * @param {Object<string,import("../webgl/Helper").UniformValue>} uniforms Uniforms
+ * @param {import("../expr/gpu.js").CompilationContext} vertContext Vertex shader compilation context
+ * @param {import("../expr/gpu.js").CompilationContext} fragContext Fragment shader compilation context
+ */
+function parseStrokeProperties(
+  style,
+  builder,
+  uniforms,
+  vertContext,
+  fragContext,
+) {
+  if ('stroke-color' in style) {
+    builder.setStrokeColorExpression(
+      expressionToGlsl(fragContext, style['stroke-color'], ColorType),
+    );
+  }
+  if ('stroke-pattern-src' in style) {
+    const textureId = computeHash(style['stroke-pattern-src']);
+    const sizeExpression = parseImageProperties(
+      style,
+      builder,
+      uniforms,
+      'stroke-pattern-',
+      textureId,
+    );
+    let sampleSizeExpression = sizeExpression;
+    let offsetExpression = 'vec2(0.)';
+    if ('stroke-pattern-offset' in style && 'stroke-pattern-size' in style) {
+      sampleSizeExpression = expressionToGlsl(
+        fragContext,
+        style[`stroke-pattern-size`],
+        NumberArrayType,
+      );
+      offsetExpression = parseImageOffsetProperties(
+        style,
+        'stroke-pattern-',
+        fragContext,
+        sizeExpression,
+        sampleSizeExpression,
+      );
+    }
+    let spacingExpression = '0.';
+    if ('stroke-pattern-spacing' in style) {
+      spacingExpression = expressionToGlsl(
+        fragContext,
+        style['stroke-pattern-spacing'],
+        NumberType,
+      );
+    }
+    fragContext.functions['sampleStrokePattern'] =
+      `vec4 sampleStrokePattern(sampler2D texture, vec2 textureSize, vec2 textureOffset, vec2 sampleSize, float spacingPx, float currentLengthPx, float currentRadiusRatio, float lineWidth) {
+  float currentLengthScaled = currentLengthPx * sampleSize.y / lineWidth;
+  float spacingScaled = spacingPx * sampleSize.y / lineWidth;
+  float uCoordPx = mod(currentLengthScaled, (sampleSize.x + spacingScaled));
+  // make sure that we're not sampling too close to the borders to avoid interpolation with outside pixels
+  uCoordPx = clamp(uCoordPx, 0.5, sampleSize.x - 0.5);
+  float vCoordPx = (-currentRadiusRatio * 0.5 + 0.5) * sampleSize.y;
+  vec2 texCoord = (vec2(uCoordPx, vCoordPx) + textureOffset) / textureSize;
+  return samplePremultiplied(texture, texCoord);
+}`;
+    const textureName = `u_texture${textureId}`;
+    let tintExpression = '1.';
+    if ('stroke-color' in style) {
+      tintExpression = builder.getStrokeColorExpression();
+    }
+    builder.setStrokeColorExpression(
+      `${tintExpression} * sampleStrokePattern(${textureName}, ${sizeExpression}, ${offsetExpression}, ${sampleSizeExpression}, ${spacingExpression}, currentLengthPx, currentRadiusRatio, v_width)`,
+    );
+  }
+
+  if ('stroke-width' in style) {
+    builder.setStrokeWidthExpression(
+      expressionToGlsl(vertContext, style['stroke-width'], NumberType),
+    );
+  }
+
+  if ('stroke-offset' in style) {
+    builder.setStrokeOffsetExpression(
+      expressionToGlsl(vertContext, style['stroke-offset'], NumberType),
+    );
+  }
+
+  if ('stroke-line-cap' in style) {
+    builder.setStrokeCapExpression(
+      expressionToGlsl(vertContext, style['stroke-line-cap'], StringType),
+    );
+  }
+
+  if ('stroke-line-join' in style) {
+    builder.setStrokeJoinExpression(
+      expressionToGlsl(vertContext, style['stroke-line-join'], StringType),
+    );
+  }
+
+  if ('stroke-miter-limit' in style) {
+    builder.setStrokeMiterLimitExpression(
+      expressionToGlsl(vertContext, style['stroke-miter-limit'], NumberType),
+    );
+  }
+
+  if ('stroke-line-dash' in style) {
+    fragContext.functions['getSingleDashDistance'] =
+      `float getSingleDashDistance(float distance, float radius, float dashOffset, float dashLength, float dashLengthTotal, float capType) {
+  float localDistance = mod(distance, dashLengthTotal);
+  float distanceSegment = abs(localDistance - dashOffset - dashLength * 0.5) - dashLength * 0.5;
+  distanceSegment = min(distanceSegment, dashLengthTotal - localDistance);
+  if (capType == ${stringToGlsl('square')}) {
+    distanceSegment -= v_width * 0.5;
+  } else if (capType == ${stringToGlsl('round')}) {
+    distanceSegment = min(distanceSegment, sqrt(distanceSegment * distanceSegment + radius * radius) - v_width * 0.5);
+  }
+  return distanceSegment;
+}`;
+
+    let dashPattern = style['stroke-line-dash'].map((v) =>
+      expressionToGlsl(fragContext, v, NumberType),
+    );
+    // if pattern has odd length, concatenate it with itself to be even
+    if (dashPattern.length % 2 === 1) {
+      dashPattern = [...dashPattern, ...dashPattern];
+    }
+
+    let offsetExpression = '0.';
+    if ('stroke-line-dash-offset' in style) {
+      offsetExpression = expressionToGlsl(
+        vertContext,
+        style['stroke-line-dash-offset'],
+        NumberType,
+      );
+    }
+
+    // define a function for this dash specifically
+    const uniqueDashKey = computeHash(style['stroke-line-dash']);
+    const dashFunctionName = `dashDistanceField_${uniqueDashKey}`;
+
+    const dashLengthsDef = dashPattern.map(
+      (v, i) => `float dashLength${i} = ${v};`,
+    );
+    const totalLengthDef = dashPattern
+      .map((v, i) => `dashLength${i}`)
+      .join(' + ');
+    let currentDashOffset = '0.';
+    let distanceExpression = `getSingleDashDistance(distance, radius, ${currentDashOffset}, dashLength0, totalDashLength, capType)`;
+    for (let i = 2; i < dashPattern.length; i += 2) {
+      currentDashOffset = `${currentDashOffset} + dashLength${
+        i - 2
+      } + dashLength${i - 1}`;
+      distanceExpression = `min(${distanceExpression}, getSingleDashDistance(distance, radius, ${currentDashOffset}, dashLength${i}, totalDashLength, capType))`;
+    }
+
+    fragContext.functions[dashFunctionName] =
+      `float ${dashFunctionName}(float distance, float radius, float capType) {
+  ${dashLengthsDef.join('\n  ')}
+  float totalDashLength = ${totalLengthDef};
+  return ${distanceExpression};
+}`;
+    builder.setStrokeDistanceFieldExpression(
+      `${dashFunctionName}(currentLengthPx + ${offsetExpression}, currentRadiusPx, capType)`,
+    );
+  }
+}
+
+/**
+ * @param {import("../style/webgl.js").WebGLStyle} style Style
+ * @param {ShaderBuilder} builder Shader Builder
+ * @param {Object<string,import("../webgl/Helper").UniformValue>} uniforms Uniforms
+ * @param {import("../expr/gpu.js").CompilationContext} vertContext Vertex shader compilation context
+ * @param {import("../expr/gpu.js").CompilationContext} fragContext Fragment shader compilation context
+ */
+function parseFillProperties(
+  style,
+  builder,
+  uniforms,
+  vertContext,
+  fragContext,
+) {
+  if ('fill-color' in style) {
+    builder.setFillColorExpression(
+      expressionToGlsl(fragContext, style['fill-color'], ColorType),
+    );
+  }
+  if ('fill-pattern-src' in style) {
+    const textureId = computeHash(style['fill-pattern-src']);
+    const sizeExpression = parseImageProperties(
+      style,
+      builder,
+      uniforms,
+      'fill-pattern-',
+      textureId,
+    );
+    let sampleSizeExpression = sizeExpression;
+    let offsetExpression = 'vec2(0.)';
+    if ('fill-pattern-offset' in style && 'fill-pattern-size' in style) {
+      sampleSizeExpression = expressionToGlsl(
+        fragContext,
+        style[`fill-pattern-size`],
+        NumberArrayType,
+      );
+      offsetExpression = parseImageOffsetProperties(
+        style,
+        'fill-pattern-',
+        fragContext,
+        sizeExpression,
+        sampleSizeExpression,
+      );
+    }
+    fragContext.functions['sampleFillPattern'] =
+      `vec4 sampleFillPattern(sampler2D texture, vec2 textureSize, vec2 textureOffset, vec2 sampleSize, vec2 pxOrigin, vec2 pxPosition) {
+  float scaleRatio = pow(2., mod(u_zoom + 0.5, 1.) - 0.5);
+  vec2 pxRelativePos = pxPosition - pxOrigin;
+  // rotate the relative position from origin by the current view rotation
+  pxRelativePos = vec2(pxRelativePos.x * cos(u_rotation) - pxRelativePos.y * sin(u_rotation), pxRelativePos.x * sin(u_rotation) + pxRelativePos.y * cos(u_rotation));
+  // sample position is computed according to the sample offset & size
+  vec2 samplePos = mod(pxRelativePos / scaleRatio, sampleSize);
+  // also make sure that we're not sampling too close to the borders to avoid interpolation with outside pixels
+  samplePos = clamp(samplePos, vec2(0.5), sampleSize - vec2(0.5));
+  samplePos.y = sampleSize.y - samplePos.y; // invert y axis so that images appear upright
+  return samplePremultiplied(texture, (samplePos + textureOffset) / textureSize);
+}`;
+    const textureName = `u_texture${textureId}`;
+    let tintExpression = '1.';
+    if ('fill-color' in style) {
+      tintExpression = builder.getFillColorExpression();
+    }
+    builder.setFillColorExpression(
+      `${tintExpression} * sampleFillPattern(${textureName}, ${sizeExpression}, ${offsetExpression}, ${sampleSizeExpression}, pxOrigin, pxPos)`,
+    );
+  }
+}
+
+/**
+ * @typedef {Object} StyleParseResult
+ * @property {ShaderBuilder} builder Shader builder pre-configured according to a given style
+ * @property {import("../render/webgl/VectorStyleRenderer.js").UniformDefinitions} uniforms Uniform definitions
+ * @property {import("../render/webgl/VectorStyleRenderer.js").AttributeDefinitions} attributes Attribute definitions
+ */
+
+/**
+ * Parses a {@link import("../style/webgl.js").WebGLStyle} object and returns a {@link ShaderBuilder}
+ * object that has been configured according to the given style, as well as `attributes` and `uniforms`
+ * arrays to be fed to the `WebGLPointsRenderer` class.
+ *
+ * Also returns `uniforms` and `attributes` properties as expected by the
+ * {@link module:ol/renderer/webgl/PointsLayer~WebGLPointsLayerRenderer}.
+ *
+ * @param {import("../style/webgl.js").WebGLStyle} style Literal style.
+ * @return {StyleParseResult} Result containing shader params, attributes and uniforms.
+ */
+function parseLiteralStyle(style) {
+  /**
+   * @type {import("../expr/gpu.js").CompilationContext}
+   */
+  const vertContext = {
+    inFragmentShader: false,
+    properties: {},
+    variables: {},
+    functions: {},
+    style,
+  };
+
+  /**
+   * @type {import("../expr/gpu.js").CompilationContext}
+   */
+  const fragContext = {
+    inFragmentShader: true,
+    variables: vertContext.variables,
+    properties: {},
+    functions: {},
+    style,
+  };
+
+  const builder = new ShaderBuilder();
+
+  /** @type {Object<string,import("../webgl/Helper").UniformValue>} */
+  const uniforms = {};
+
+  if ('icon-src' in style) {
+    parseIconProperties(style, builder, uniforms, vertContext, fragContext);
+  } else if ('shape-points' in style) {
+    parseShapeProperties(style, builder, uniforms, vertContext, fragContext);
+  } else if ('circle-radius' in style) {
+    parseCircleProperties(style, builder, uniforms, vertContext, fragContext);
+  }
+  parseStrokeProperties(style, builder, uniforms, vertContext, fragContext);
+  parseFillProperties(style, builder, uniforms, vertContext, fragContext);
+
+  if (style.filter) {
+    const parsedFilter = expressionToGlsl(
+      fragContext,
+      style.filter,
+      BooleanType,
+    );
+    builder.setFragmentDiscardExpression(`!${parsedFilter}`);
+  }
+
+  // define one uniform per variable
+  Object.keys(fragContext.variables).forEach(function (varName) {
+    const variable = fragContext.variables[varName];
+    const uniformName = uniformNameForVariable(variable.name);
+    builder.addUniform(`${getGlslTypeFromType(variable.type)} ${uniformName}`);
+
+    let callback;
+    if (variable.type === StringType) {
+      callback = () =>
+        getStringNumberEquivalent(
+          /** @type {string} */ (style.variables[variable.name]),
+        );
+    } else if (variable.type === ColorType) {
+      callback = () =>
+        packColor([
+          ...asArray(
+            /** @type {string|Array<number>} */ (
+              style.variables[variable.name]
+            ) || '#eee',
+          ),
+        ]);
+    } else if (variable.type === BooleanType) {
+      callback = () =>
+        /** @type {boolean} */ (style.variables[variable.name]) ? 1.0 : 0.0;
+    } else {
+      callback = () => /** @type {number} */ (style.variables[variable.name]);
+    }
+    uniforms[uniformName] = callback;
+  });
+
+  // for each feature attribute used in the fragment shader, define a varying that will be used to pass data
+  // from the vertex to the fragment shader, as well as an attribute in the vertex shader (if not already present)
+  Object.keys(fragContext.properties).forEach(function (propName) {
+    const property = fragContext.properties[propName];
+    if (!vertContext.properties[propName]) {
+      vertContext.properties[propName] = property;
+    }
+    let type = getGlslTypeFromType(property.type);
+    let expression = `a_prop_${property.name}`;
+    if (property.type === ColorType) {
+      type = 'vec4';
+      expression = `unpackColor(${expression})`;
+      builder.addVertexShaderFunction(UNPACK_COLOR_FN);
+    }
+    builder.addVarying(`v_prop_${property.name}`, type, expression);
+  });
+
+  // for each feature attribute used in the vertex shader, define an attribute in the vertex shader.
+  Object.keys(vertContext.properties).forEach(function (propName) {
+    const property = vertContext.properties[propName];
+    builder.addAttribute(
+      `${getGlslTypeFromType(property.type)} a_prop_${property.name}`,
+    );
+  });
+
+  const attributes = Object.keys(vertContext.properties).map(
+    function (propName) {
+      const property = vertContext.properties[propName];
+      let callback;
+      if (property.evaluator) {
+        callback = property.evaluator;
+      } else if (property.type === StringType) {
+        callback = (feature) =>
+          getStringNumberEquivalent(feature.get(property.name));
+      } else if (property.type === ColorType) {
+        callback = (feature) =>
+          packColor([...asArray(feature.get(property.name) || '#eee')]);
+      } else if (property.type === BooleanType) {
+        callback = (feature) => (feature.get(property.name) ? 1.0 : 0.0);
+      } else {
+        callback = (feature) => feature.get(property.name);
+      }
+
+      return {
+        name: property.name,
+        size: getGlslSizeFromType(property.type),
+        callback,
+      };
+    },
+  );
+
+  // add functions that were collected in the compilation contexts
+  for (const functionName in vertContext.functions) {
+    builder.addVertexShaderFunction(vertContext.functions[functionName]);
+  }
+  for (const functionName in fragContext.functions) {
+    builder.addFragmentShaderFunction(fragContext.functions[functionName]);
+  }
+
+  return {
+    builder: builder,
+    attributes: attributes.reduce(
+      (prev, curr) => ({
+        ...prev,
+        [curr.name]: {callback: curr.callback, size: curr.size},
+      }),
+      {},
+    ),
+    uniforms: uniforms,
+  };
+}
+
+/**
+ * @module ol/layer/WebGLPoints
+ */
+
+/**
+ * @template {import("../source/Vector.js").default<import('../Feature').FeatureLike>} VectorSourceType
+ * @typedef {Object} Options
+ * @property {import('../style/webgl.js').WebGLStyle} style Literal style to apply to the layer features.
+ * @property {string} [className='ol-layer'] A CSS class name to set to the layer element.
+ * @property {number} [opacity=1] Opacity (0, 1).
+ * @property {boolean} [visible=true] Visibility.
+ * @property {import("../extent.js").Extent} [extent] The bounding extent for layer rendering.  The layer will not be
+ * rendered outside of this extent.
+ * @property {number} [zIndex] The z-index for layer rendering.  At rendering time, the layers
+ * will be ordered, first by Z-index and then by position. When `undefined`, a `zIndex` of 0 is assumed
+ * for layers that are added to the map's `layers` collection, or `Infinity` when the layer's `setMap()`
+ * method was used.
+ * @property {number} [minResolution] The minimum resolution (inclusive) at which this layer will be
+ * visible.
+ * @property {number} [maxResolution] The maximum resolution (exclusive) below which this layer will
+ * be visible.
+ * @property {number} [minZoom] The minimum view zoom level (exclusive) above which this layer will be
+ * visible.
+ * @property {number} [maxZoom] The maximum view zoom level (inclusive) at which this layer will
+ * be visible.
+ * @property {VectorSourceType} [source] Point source.
+ * @property {boolean} [disableHitDetection=false] Setting this to true will provide a slight performance boost, but will
+ * prevent all hit detection on the layer.
+ * @property {Object<string, *>} [properties] Arbitrary observable properties. Can be accessed with `#get()` and `#set()`.
+ */
+
+/**
+ * @classdesc
+ * Layer optimized for rendering large point datasets. Takes a `style` property which
+ * is a serializable JSON object describing how the layer should be rendered.
+ *
+ * Here are a few samples of literal style objects:
+ * ```js
+ * const style = {
+ *   'circle-radius': 8,
+ *   'circle-fill-color': '#33AAFF',
+ *   'circle-opacity': 0.9
+ * }
+ * ```
+ *
+ * ```js
+ * const style = {
+ *   'icon-src': '../static/exclamation-mark.png',
+ *   'icon-offset': [0, 12],
+ *   'icon-width': 4,
+ *   'icon-height': 8
+ * }
+ * ```
+ *
+ * **Important: a `WebGLPoints` layer must be manually disposed when removed, otherwise the underlying WebGL context
+ * will not be garbage collected.**
+ *
+ * Note that any property set in the options is set as a {@link module:ol/Object~BaseObject}
+ * property on the layer object; for example, setting `title: 'My Title'` in the
+ * options means that `title` is observable, and has get/set accessors.
+ *
+ * @template {import("../source/Vector.js").default<import('../Feature').FeatureLike>} VectorSourceType
+ * @extends {Layer<VectorSourceType, WebGLPointsLayerRenderer>}
+ * @fires import("../render/Event.js").RenderEvent
+ */
+class WebGLPointsLayer extends Layer {
+  /**
+   * @param {Options<VectorSourceType>} options Options.
+   */
+  constructor(options) {
+    const baseOptions = Object.assign({}, options);
+
+    super(baseOptions);
+
+    /**
+     * @private
+     * @type {import('../webgl/styleparser.js').StyleParseResult}
+     */
+    this.parseResult_ = parseLiteralStyle(options.style);
+
+    /**
+     * @type {Object<string, (string|number|Array<number>|boolean)>}
+     * @private
+     */
+    this.styleVariables_ = options.style.variables || {};
+
+    /**
+     * @private
+     * @type {boolean}
+     */
+    this.hitDetectionDisabled_ = !!options.disableHitDetection;
+  }
+
+  createRenderer() {
+    const attributes = Object.keys(this.parseResult_.attributes).map(
+      (name) => ({
+        name,
+        ...this.parseResult_.attributes[name],
+      }),
+    );
+    return new WebGLPointsLayerRenderer(this, {
+      vertexShader: this.parseResult_.builder.getSymbolVertexShader(),
+      fragmentShader: this.parseResult_.builder.getSymbolFragmentShader(),
+      hitDetectionEnabled: !this.hitDetectionDisabled_,
+      uniforms: this.parseResult_.uniforms,
+      attributes:
+        /** @type {Array<import('../renderer/webgl/PointsLayer.js').CustomAttribute>} */ (
+          attributes
+        ),
+    });
+  }
+
+  /**
+   * Update any variables used by the layer style and trigger a re-render.
+   * @param {Object<string, number>} variables Variables to update.
+   */
+  updateStyleVariables(variables) {
+    Object.assign(this.styleVariables_, variables);
+    this.changed();
+  }
+}
+
+var DEFAULT_STYLE = {
+  'circle-radius': 5,
+  'circle-fill-color': '#3399cc'
+};
+
+/** Render large GeoJSON point datasets with the OpenLayers WebGL renderer. */
+var WebGLPointsLayerComponent = _ref => {
+  var id = _ref.id,
+    data = _ref.data,
+    style = _ref.style,
+    _ref$disableHitDetect = _ref.disableHitDetection,
+    disableHitDetection = _ref$disableHitDetect === void 0 ? false : _ref$disableHitDetect;
+  var map = useMap();
+  var sourceRef = useRef(null);
+  useEffect(() => {
+    if (!map) return undefined;
+    var source = new VectorSource();
+    sourceRef.current = source;
+    return () => {
+      source.clear();
+      if (sourceRef.current === source) sourceRef.current = null;
+    };
+  }, [id, map]);
+  useEffect(() => {
+    var source = sourceRef.current;
+    if (!map || !source) return undefined;
+    var layer = new WebGLPointsLayer({
+      source,
+      style: style !== null && style !== void 0 ? style : DEFAULT_STYLE,
+      disableHitDetection
+    });
+    layer.set('dashId', id);
+    layer.set('dashLayerControl', true);
+    map.addLayer(layer);
+    return () => {
+      map.removeLayer(layer);
+      layer.dispose();
+    };
+  }, [disableHitDetection, id, map, style]);
+  useEffect(() => {
+    var source = sourceRef.current;
+    if (!map || !source) return;
+    source.clear();
+    if (!data) return;
+    var features = readFeatures(data, {
+      featureProjection: map.getView().getProjection()
+    });
+    source.addFeatures(features);
+  }, [data, id, map]);
+  return null;
+};
+WebGLPointsLayerComponent.defaultProps = {
+  data: null,
+  style: null,
+  disableHitDetection: false
+};
+WebGLPointsLayerComponent.propTypes = {
+  /** Component ID used to identify this layer in the Dash layout. */
+  id: PropTypes.string,
+  /** GeoJSON Point or MultiPoint FeatureCollection as an object or JSON string; embedded CRS metadata is honored, otherwise coordinates default to EPSG:4326. */
+  data: PropTypes.oneOfType([PropTypes.string, PropTypes.object]),
+  /** OpenLayers WebGL style object; expressions such as get, match, and interpolate style feature properties. Changing the style recreates the layer; the default style is blue circles. */
+  style: PropTypes.object,
+  /** Disable WebGL feature hit detection for a small rendering performance gain. */
+  disableHitDetection: PropTypes.bool,
   /** Dash-supplied callback used to write component state back to the layout. */
   setProps: PropTypes.func
 };
@@ -77081,4 +84461,4 @@ WMTSLayer.propTypes = {
   setProps: PropTypes.func
 };
 
-export { DrawInteraction, ImageWMSLayer as ImageWMS, LayerControl, MapComponent as Map, ModifyInteraction, OLContext, SelectInteraction, TileLayer, TileWMSLayer as TileWMS, VectorLayerComponent as VectorLayer, VectorTileLayer, WFSLayer, WMTSLayer, exportFeature, exportFeatures, readFeatures };
+export { DrawInteraction, ImageWMSLayer as ImageWMS, LayerControl, MapComponent as Map, ModifyInteraction, OLContext, Popup, SelectInteraction, TileLayer, TileWMSLayer as TileWMS, VectorLayerComponent as VectorLayer, VectorTileLayer, WFSLayer, WMTSLayer, WebGLPointsLayerComponent as WebGLPointsLayer, exportFeature, exportFeatures, readFeatures };

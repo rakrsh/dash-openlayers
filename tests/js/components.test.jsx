@@ -4,11 +4,13 @@ import MapComponent from '../../src/lib/components/Map.react';
 import TileLayer from '../../src/lib/components/TileLayer.react';
 import VectorLayer from '../../src/lib/components/VectorLayer.react';
 import VectorTileLayer from '../../src/lib/components/VectorTileLayer.react';
+import WebGLPointsLayerComponent from '../../src/lib/components/WebGLPointsLayer.react';
 import WMTSLayer from '../../src/lib/components/WMTSLayer.react';
 import TileWMSLayer from '../../src/lib/components/TileWMS.react';
 import ImageWMSLayer from '../../src/lib/components/ImageWMS.react';
 import DrawInteraction from '../../src/lib/components/DrawInteraction.react';
 import ModifyInteraction from '../../src/lib/components/ModifyInteraction.react';
+import Popup from '../../src/lib/components/Popup.react';
 import SelectInteraction from '../../src/lib/components/SelectInteraction.react';
 import WFSLayer from '../../src/lib/components/WFSLayer.react';
 import { OLContext, useMap } from '../../src/lib/context/OLContext';
@@ -16,6 +18,7 @@ import { getEditHistory } from '../../src/lib/utils/editHistory';
 import { exportFeature, exportFeatures, readFeatures } from '../../src/lib/utils/featureFormats';
 import Snap from 'ol/interaction/Snap';
 import Map from 'ol/Map';
+import Overlay from 'ol/Overlay';
 import View from 'ol/View';
 import { toLonLat } from 'ol/proj';
 import { registerProjections } from '../../src/lib/utils/projection';
@@ -39,6 +42,7 @@ import WMTS, { optionsFromCapabilities } from 'ol/source/WMTS';
 import ImageLayer from 'ol/layer/Image';
 import TileWMSSource from 'ol/source/TileWMS';
 import ImageWMSSource from 'ol/source/ImageWMS';
+import OpenLayersWebGLPointsLayer from 'ol/layer/WebGLPoints';
 
 jest.mock('ol/source/Cluster', () => ({
   __esModule: true,
@@ -61,7 +65,19 @@ jest.mock('ol/Map', () => ({
     this.setTarget = jest.fn();
     this.addLayer = jest.fn();
     this.removeLayer = jest.fn();
+    this.addOverlay = jest.fn();
+    this.removeOverlay = jest.fn();
     this.getView = jest.fn(() => options.view);
+  }),
+}));
+
+jest.mock('ol/Overlay', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockOverlay(options) {
+    this.options = options;
+    this.setOffset = jest.fn();
+    this.setPosition = jest.fn();
+    this.setPositioning = jest.fn();
   }),
 }));
 
@@ -143,7 +159,10 @@ jest.mock('ol/format/GeoJSON', () => ({
       geometry: { type: 'Point', coordinates: [10, 45] },
       properties: {},
     }));
-    this.writeFeaturesObject = jest.fn(() => ({ type: 'FeatureCollection', features: [] }));
+    this.writeFeaturesObject = jest.fn((features) => ({
+      type: 'FeatureCollection',
+      features: features.map((feature) => feature.geoJSON).filter(Boolean),
+    }));
   }),
 }));
 
@@ -241,6 +260,15 @@ jest.mock('ol/layer/Vector', () => ({
     this.setStyle = jest.fn((style) => {
       if (typeof style === 'function') this.styleFunction = style;
     });
+  }),
+}));
+
+jest.mock('ol/layer/WebGLPoints', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockWebGLPointsLayer(options) {
+    this.options = options;
+    this.set = jest.fn();
+    this.dispose = jest.fn();
   }),
 }));
 
@@ -375,6 +403,8 @@ describe('feature format helpers', () => {
 const makeMap = () => ({
   addLayer: jest.fn(),
   removeLayer: jest.fn(),
+  addOverlay: jest.fn(),
+  removeOverlay: jest.fn(),
   addInteraction: jest.fn(),
   removeInteraction: jest.fn(),
   getLayers: jest.fn(() => ({ getArray: () => [] })),
@@ -450,6 +480,64 @@ describe('Map', () => {
 
     rerender(renderMap(1, 1));
     expect(command.redo).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('Popup', () => {
+  it('renders children in an overlay, updates its position, and removes it on unmount', () => {
+    const map = makeMap();
+    const { rerender, unmount } = render(
+      <OLContext.Provider value={map}>
+        <Popup
+          id="place-popup"
+          position={[10, 20]}
+          positioning="bottom-center"
+          offset={[0, -8]}
+          autoPan
+          className="place-popup"
+          style={{ color: 'red' }}
+        >
+          <span>Place details</span>
+        </Popup>
+      </OLContext.Provider>,
+    );
+    const overlay = Overlay.mock.instances[0];
+
+    expect(map.addOverlay).toHaveBeenCalledWith(overlay);
+    expect(overlay.options).toMatchObject({
+      element: expect.any(HTMLDivElement),
+      autoPan: true,
+    });
+    expect(overlay.options.element).toHaveTextContent('Place details');
+    expect(overlay.options.element.firstChild).toMatchObject({
+      id: 'place-popup',
+      className: 'place-popup',
+    });
+    expect(overlay.options.element.firstChild.style.color).toBe('red');
+    expect(overlay.setOffset).toHaveBeenLastCalledWith([0, -8]);
+    expect(overlay.setPositioning).toHaveBeenLastCalledWith('bottom-center');
+    expect(overlay.setPosition).toHaveBeenLastCalledWith([10, 20]);
+
+    rerender(
+      <OLContext.Provider value={map}>
+        <Popup
+          position={[30, 40]}
+          positioning="bottom-center"
+          offset={[0, -8]}
+          autoPan
+          className="place-popup"
+          style={{ color: 'red' }}
+        >
+          <span>Updated details</span>
+        </Popup>
+      </OLContext.Provider>,
+    );
+
+    expect(overlay.setPosition).toHaveBeenLastCalledWith([30, 40]);
+    expect(overlay.options.element).toHaveTextContent('Updated details');
+
+    unmount();
+    expect(map.removeOverlay).toHaveBeenCalledWith(overlay);
   });
 });
 
@@ -662,6 +750,93 @@ describe('TileLayer', () => {
   });
 });
 
+describe('WebGLPointsLayer', () => {
+  it('uses a default circle style when no WebGL style is provided', () => {
+    const map = makeMap();
+    render(
+      <OLContext.Provider value={map}>
+        <WebGLPointsLayerComponent />
+      </OLContext.Provider>,
+    );
+
+    expect(OpenLayersWebGLPointsLayer.mock.instances[0].options.style).toEqual({
+      'circle-radius': 5,
+      'circle-fill-color': '#3399cc',
+    });
+  });
+
+  it('loads GeoJSON, updates its stable source, and disposes replaced and removed layers', () => {
+    const map = makeMap();
+    const initialData = { type: 'FeatureCollection', features: [] };
+    const updatedData = JSON.stringify({ type: 'FeatureCollection', features: [] });
+    const initialStyle = {
+      'circle-radius': ['interpolate', ['linear'], ['get', 'magnitude'], 0, 3, 10, 12],
+      'circle-fill-color': ['match', ['get', 'kind'], 'station', '#d66f41', '#1f6a5e'],
+    };
+    const updatedStyle = { 'shape-points': 5, 'shape-radius': 8, 'shape-fill-color': '#d66f41' };
+    const { rerender, unmount } = render(
+      <OLContext.Provider value={map}>
+        <WebGLPointsLayerComponent
+          id="large-points"
+          data={initialData}
+          style={initialStyle}
+          disableHitDetection
+        />
+      </OLContext.Provider>,
+    );
+
+    const source = VectorSource.mock.instances[0];
+    const firstLayer = OpenLayersWebGLPointsLayer.mock.instances[0];
+    expect(firstLayer.options).toEqual({ source, style: initialStyle, disableHitDetection: true });
+    expect(firstLayer.set).toHaveBeenCalledWith('dashId', 'large-points');
+    expect(firstLayer.set).toHaveBeenCalledWith('dashLayerControl', true);
+    expect(map.addLayer).toHaveBeenCalledWith(firstLayer);
+    expect(GeoJSON.mock.instances.at(-1).readFeatures).toHaveBeenCalledWith(initialData, {
+      featureProjection: 'EPSG:3857',
+    });
+
+    rerender(
+      <OLContext.Provider value={map}>
+        <WebGLPointsLayerComponent
+          id="large-points"
+          data={updatedData}
+          style={initialStyle}
+          disableHitDetection
+        />
+      </OLContext.Provider>,
+    );
+    expect(OpenLayersWebGLPointsLayer).toHaveBeenCalledTimes(1);
+    expect(source.clear).toHaveBeenCalledTimes(2);
+    expect(GeoJSON.mock.instances.at(-1).readFeatures).toHaveBeenCalledWith(updatedData, {
+      featureProjection: 'EPSG:3857',
+    });
+
+    rerender(
+      <OLContext.Provider value={map}>
+        <WebGLPointsLayerComponent
+          id="large-points"
+          data={updatedData}
+          style={updatedStyle}
+          disableHitDetection
+        />
+      </OLContext.Provider>,
+    );
+    const replacementLayer = OpenLayersWebGLPointsLayer.mock.instances[1];
+    expect(firstLayer.dispose).toHaveBeenCalledTimes(1);
+    expect(map.removeLayer).toHaveBeenCalledWith(firstLayer);
+    expect(replacementLayer.options).toEqual({
+      source,
+      style: updatedStyle,
+      disableHitDetection: true,
+    });
+
+    unmount();
+    expect(map.removeLayer).toHaveBeenLastCalledWith(replacementLayer);
+    expect(replacementLayer.dispose).toHaveBeenCalledTimes(1);
+    expect(source.clear).toHaveBeenCalledTimes(3);
+  });
+});
+
 describe('VectorLayer', () => {
   it('loads GeoJSON into a projected vector layer and updates it when props change', () => {
     const map = makeMap();
@@ -697,7 +872,6 @@ describe('VectorLayer', () => {
     expect(layer.set).toHaveBeenCalledWith('dashId', 'features');
     expect(map.addLayer).toHaveBeenCalledWith(layer);
     expect(initialFormat.readFeatures).toHaveBeenCalledWith(initialGeoJSON, {
-      dataProjection: 'EPSG:4326',
       featureProjection: 'EPSG:3857',
     });
     expect(source.addFeatures).toHaveBeenCalledWith(initialFormat.features);
@@ -710,7 +884,6 @@ describe('VectorLayer', () => {
     expect(source.clear).toHaveBeenCalledTimes(2);
     const updatedFormat = GeoJSON.mock.instances.at(-1);
     expect(updatedFormat.readFeatures).toHaveBeenCalledWith(updatedGeoJSON, {
-      dataProjection: 'EPSG:4326',
       featureProjection: 'EPSG:3857',
     });
 
@@ -719,12 +892,45 @@ describe('VectorLayer', () => {
     expect(source.clear).toHaveBeenCalledTimes(3);
   });
 
+  it('accepts GeoJSON strings and objects through data and prefers data to geojson', () => {
+    const map = makeMap();
+    const data = {
+      type: 'FeatureCollection',
+      crs: { type: 'name', properties: { name: 'EPSG:3857' } },
+      features: [],
+    };
+    const serializedData = JSON.stringify(data);
+    const { rerender } = render(
+      <OLContext.Provider value={map}>
+        <VectorLayer data={serializedData} geojson={{ type: 'FeatureCollection', features: [] }} />
+      </OLContext.Provider>,
+    );
+
+    expect(GeoJSON.mock.instances.at(-1).readFeatures).toHaveBeenCalledWith(serializedData, {
+      featureProjection: 'EPSG:3857',
+    });
+
+    rerender(
+      <OLContext.Provider value={map}>
+        <VectorLayer data={data} />
+      </OLContext.Provider>,
+    );
+    expect(GeoJSON.mock.instances.at(-1).readFeatures).toHaveBeenCalledWith(data, {
+      featureProjection: 'EPSG:3857',
+    });
+  });
+
   it('loads WKT input in the map projection ahead of GeoJSON input', () => {
     const map = makeMap();
     const wkt = 'POINT (10 45)';
     render(
       <OLContext.Provider value={map}>
-        <VectorLayer id="features" geojson={{ type: 'FeatureCollection', features: [] }} wkt={wkt} />
+        <VectorLayer
+          id="features"
+          data={{ type: 'FeatureCollection', features: [] }}
+          geojson={{ type: 'FeatureCollection', features: [] }}
+          wkt={wkt}
+        />
       </OLContext.Provider>,
     );
 
@@ -1193,11 +1399,16 @@ describe('SelectInteraction', () => {
     );
 
     const select = Select.mock.instances[0];
-    const feature = { id: 'selected-feature' };
+    const selectedGeoJSONFeature = {
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [10, 45] },
+      properties: { name: 'Station A' },
+    };
+    const feature = { id: 'selected-feature', geoJSON: selectedGeoJSONFeature };
     select.selectedFeatures.items = [feature];
-    expect(select.options.layers({ get: (key) => (key === 'dashId' ? 'vectors' : undefined) })).toBe(
-      true,
-    );
+    expect(
+      select.options.layers({ get: (key) => (key === 'dashId' ? 'vectors' : undefined) }),
+    ).toBe(true);
     expect(select.options.layers({ get: () => 'other-layer' })).toBe(false);
     expect(map.addInteraction).toHaveBeenCalledWith(select);
 
@@ -1207,7 +1418,15 @@ describe('SelectInteraction', () => {
       dataProjection: 'EPSG:4326',
     });
     expect(setProps).toHaveBeenCalledWith({
+      selectedGeoJSON: { type: 'FeatureCollection', features: [selectedGeoJSONFeature] },
+      selectedFeature: selectedGeoJSONFeature,
+    });
+
+    select.selectedFeatures.items = [];
+    select.listeners.select();
+    expect(setProps).toHaveBeenLastCalledWith({
       selectedGeoJSON: { type: 'FeatureCollection', features: [] },
+      selectedFeature: null,
     });
 
     const listenerKey = { event: 'select', listener: select.listeners.select };

@@ -76,6 +76,21 @@ Allow editing vertices in a VectorLayer and report the updated features.
 | `modifiedTopoJSON` | `dict` | — | Read-only: TopoJSON topology of the target layer after modification. |
 | `geometryValidation` | `dict` | — | Read-only: topology validation result from the last modification. |
 
+## `Popup`
+
+Render Dash content in an OpenLayers overlay anchored to a map coordinate.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | — | The ID used to identify this component in Dash callbacks. |
+| `children` | `Dash component` | — | Dash children rendered inside the overlay element. |
+| `position` | `list[number]` | `null` | Overlay position as [x, y] in the map view projection; null hides the popup. |
+| `positioning` | `'bottom-left' \| 'bottom-center' \| 'bottom-right' \| 'center-left' \| 'center-center' \| 'center-right' \| 'top-left' \| 'top-center' \| 'top-right'` | `'bottom-center'` | Overlay alignment relative to its position coordinate. |
+| `offset` | `list[number]` | `[0, 0]` | Pixel offset [x, y] applied to the overlay. |
+| `autoPan` | `bool` | `false` | Pan the map when positioning the overlay would place it outside the viewport. |
+| `className` | `string` | `null` | CSS class applied to the popup content element. |
+| `style` | `dict` | `null` | Inline CSS style applied to the popup content element. |
+
 ## `SelectInteraction`
 
 Select vector features and report the current selection to Dash.
@@ -85,6 +100,7 @@ Select vector features and report the current selection to Dash.
 | `id` | `string` | — | The ID used to identify this component in Dash callbacks. |
 | `layerId` | `string` | `null` | Dash ID of the vector layer to select from; omit to allow all selectable layers. |
 | `selectedGeoJSON` | `dict` | — | Read-only: current selection as a GeoJSON FeatureCollection in EPSG:4326. |
+| `selectedFeature` | `dict` | — | Read-only: first selected GeoJSON Feature in EPSG:4326, or null when nothing is selected. |
 
 ## `TileLayer`
 
@@ -114,8 +130,9 @@ Render GeoJSON features in a canvas-backed OpenLayers vector layer.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `id` | `string` | — | Dash component ID; also used by ModifyInteraction to target this vector layer. |
-| `geojson` | `dict` | `null` | GeoJSON Feature or FeatureCollection with coordinates in [longitude, latitude] order; updates are rendered in the map projection. |
-| `wkt` | `string` | `null` | WKT geometry in [x, y] order; takes precedence over geojson when non-empty. |
+| `data` | `string \| dict` | `null` | GeoJSON Feature or FeatureCollection as an object or JSON string; embedded CRS metadata is honored, otherwise coordinates default to EPSG:4326. Takes precedence over geojson. |
+| `geojson` | `dict` | `null` | Backward-compatible GeoJSON Feature or FeatureCollection object alias for data. |
+| `wkt` | `string` | `null` | WKT geometry in [x, y] order; takes precedence over data and geojson when non-empty. |
 | `style` | `dict \| list[dict]` | `null` | OpenLayers flat style object or rule array; supports icon, fill, stroke, feature filters, and resolution expressions. |
 | `clusterDistance` | `number` | `0` | Point clustering distance in screen pixels; set to 0 to disable clustering. |
 | `clusterMinDistance` | `number` | `0` | Minimum distance in screen pixels between clusters; capped at clusterDistance. |
@@ -166,3 +183,14 @@ Render a WMTS layer using its service capabilities to configure the tile grid.
 | `requestEncoding` | `'KVP' \| 'REST'` | `null` | WMTS request encoding, either KVP or REST. |
 | `dimensions` | `dict` | `null` | Values for advertised WMTS dimensions, such as TIME or ELEVATION. |
 | `attributions` | `string \| list[string]` | `null` | Attribution text or a list of attribution strings for the tile provider. |
+
+## `WebGLPointsLayer`
+
+Render large GeoJSON point datasets with the OpenLayers WebGL renderer.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | — | Component ID used to identify this layer in the Dash layout. |
+| `data` | `string \| dict` | `null` | GeoJSON Point or MultiPoint FeatureCollection as an object or JSON string; embedded CRS metadata is honored, otherwise coordinates default to EPSG:4326. |
+| `style` | `dict` | `null` | OpenLayers WebGL style object; expressions such as get, match, and interpolate style feature properties. Changing the style recreates the layer; the default style is blue circles. |
+| `disableHitDetection` | `bool` | `false` | Disable WebGL feature hit detection for a small rendering performance gain. |

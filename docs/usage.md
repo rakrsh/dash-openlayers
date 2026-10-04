@@ -16,6 +16,56 @@ dol.Map(
 )
 ```
 
+Add a `SelectInteraction` to a map to select vector features on click. Its
+read-only `selectedFeature` prop contains the first selected GeoJSON Feature,
+including its properties and geometry in EPSG:4326; it becomes `None` when
+selection is cleared. `selectedGeoJSON` remains available for the full
+selection, while `Map.clickData` independently reports click coordinates:
+
+```python
+dol.Map(
+    id="map",
+    children=[
+        dol.VectorLayer(id="points", data=point_feature_collection),
+        dol.SelectInteraction(id="select", layerId="points"),
+    ],
+)
+
+
+@app.callback(Output("feature-details", "children"), Input("select", "selectedFeature"))
+def show_feature(feature):
+    return json.dumps(feature["properties"], indent=2) if feature else "Select a feature"
+```
+
+## Popups
+
+Add `Popup` as a `Map` child to render Dash content at a coordinate. The
+coordinate uses `[x, y]` units in the map view projection. Set `position` to
+`None` to hide the popup; `autoPan=True` keeps it in view when it is positioned.
+Use `className` or `style` to customize the popup content.
+
+```python
+dol.Map(
+    id="popup-map",
+    center=[0, 0],
+    zoom=2,
+    children=[
+        dol.TileLayer(source="OSM"),
+        dol.Popup(
+            id="place-popup",
+            position=[0, 0],
+            positioning="bottom-center",
+            offset=[0, -12],
+            autoPan=True,
+            className="place-popup",
+            style={"backgroundColor": "white", "padding": "8px 12px"},
+            children=html.Div([html.Strong("Null Island"), html.P("0, 0")]),
+        ),
+    ],
+    style={"height": "500px"},
+)
+```
+
 Add `LayerControl` as a child of `Map` to toggle visibility, adjust opacity,
 and change the drawing order of declarative layer components. Layers are
 identified by their component `id`; interaction-owned temporary layers are
@@ -73,6 +123,51 @@ dol.VectorLayer(
 ```
 
 See `tests/demos/layer_control.py` for a runnable example with nearby points.
+
+## WebGL Points for Large Datasets
+
+Use `WebGLPointsLayer` for GeoJSON point datasets that benefit from GPU-backed
+rendering. Its `style` prop uses OpenLayers' WebGL style expressions, which can
+derive color, size, and symbol shape from feature properties. The layer accepts
+GeoJSON as an object or JSON string; embedded CRS metadata is honored, with
+EPSG:4326 used when it is absent. WebGL styles are compiled when the layer is
+created, so changing `style` recreates the layer. Set `disableHitDetection=True`
+when feature hit detection is not needed for a small additional performance
+gain.
+
+```python
+webgl_style = {
+    "shape-points": ["match", ["get", "kind"], "station", 5, 4],
+    "shape-radius": ["interpolate", ["linear"], ["get", "magnitude"], 0, 3, 10, 9],
+    "shape-fill-color": [
+        "match",
+        ["get", "kind"],
+        "station",
+        "#d66f41",
+        "incident",
+        "#1f6a5e",
+        "#284d78",
+    ],
+}
+
+dol.Map(
+    id="large-points-map",
+    center=[0, 0],
+    zoom=5,
+    children=[
+        dol.WebGLPointsLayer(
+            id="large-points",
+            data=point_feature_collection,
+            style=webgl_style,
+            disableHitDetection=True,
+        )
+    ],
+    style={"height": "500px"},
+)
+```
+
+See `usage_webgl_points_layer.py` for a runnable example that creates 20,000
+styled points. Use Point or MultiPoint geometries with this layer.
 
 `TileWMS` requests tiled WMS images. `ImageWMS` requests one image for the map
 viewport. Both accept a WMS endpoint, request `params` (including `LAYERS`),
@@ -333,36 +428,56 @@ def disable_undo(can_undo):
     return not can_undo
 ```
 
-`VectorLayer` renders a GeoJSON Feature or FeatureCollection. Coordinates use
-GeoJSON's `[longitude, latitude]` order and are transformed into the map's
-projection. Updating `geojson` from a Dash callback replaces the rendered
-features:
+`VectorLayer.data` accepts a GeoJSON Feature or FeatureCollection as either a
+Python dictionary or a serialized JSON string. This includes the string
+returned by `GeoDataFrame.to_json()`:
 
 ```python
-features = {
-    "type": "FeatureCollection",
-    "features": [
-        {
-            "type": "Feature",
-            "geometry": {"type": "Point", "coordinates": [-0.1, 51.5]},
-            "properties": {"name": "London"},
-        }
-    ],
-}
+geojson_text = geodataframe.to_json()
 
 dol.Map(
     id="map",
-    center=[-0.1, 51.5],
+    center=[0, 0],
     zoom=8,
-    children=[dol.VectorLayer(id="features", geojson=features)],
+    children=[dol.VectorLayer(id="features", data=geojson_text)],
     style={"height": "500px"},
 )
 ```
 
-`VectorLayer` can also read a WKT string with `wkt`. When both `wkt` and
-`geojson` are set, a non-empty `wkt` takes precedence. WKT coordinates use
-`[x, y]` order; by default they are interpreted as EPSG:4326 and transformed
-to the map projection, just like GeoJSON.
+For GeoJSON without embedded CRS metadata, coordinates default to EPSG:4326
+and are transformed into the map projection. Embedded CRS metadata, including
+GeoPandas `to_json()` output for projected data, is honored. `geojson` remains
+available as a backward-compatible object alias; `data` takes precedence when
+both are set. A non-empty `wkt` takes precedence over both. WKT coordinates use
+`[x, y]` order and default to EPSG:4326.
+
+GeoJSON feature properties can drive flat-style rules. The same layer can
+render points, lines, and polygons using rules that match a feature property:
+
+```python
+dol.VectorLayer(
+    id="styled-features",
+    data=geojson_text,
+    style=[
+        {
+            "filter": ["==", ["get", "category"], "site"],
+            "style": {"circle-radius": 6, "circle-fill-color": "#d66f41"},
+        },
+        {
+            "filter": ["==", ["get", "category"], "route"],
+            "style": {"stroke-color": "#1f6a5e", "stroke-width": 3},
+        },
+        {
+            "else": True,
+            "style": {
+                "fill-color": "rgba(31, 106, 94, 0.24)",
+                "stroke-color": "#1f6a5e",
+                "stroke-width": 2,
+            },
+        },
+    ],
+)
+```
 
 Draw and modify interactions keep their GeoJSON outputs and also publish WKT
 and TopoJSON:

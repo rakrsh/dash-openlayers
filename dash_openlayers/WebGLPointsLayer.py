@@ -20,49 +20,46 @@ ComponentType = typing.Union[
 ]
 
 
-class SelectInteraction(Component):
-    """A SelectInteraction component.
-Select vector features and report the current selection to Dash.
+class WebGLPointsLayer(Component):
+    """A WebGLPointsLayer component.
+Render large GeoJSON point datasets with the OpenLayers WebGL renderer.
 
 Keyword arguments:
 
 - id (string; optional):
-    The ID used to identify this component in Dash callbacks.
+    Component ID used to identify this layer in the Dash layout.
 
-- layerId (string; optional):
-    Dash ID of the vector layer to select from; omit to allow all
-    selectable layers.
+- data (string | dict; optional):
+    GeoJSON Point or MultiPoint FeatureCollection as an object or JSON
+    string; embedded CRS metadata is honored, otherwise coordinates
+    default to EPSG:4326.
 
-- selectedGeoJSON (dict; optional):
-    Read-only: current selection as a GeoJSON FeatureCollection in
-    EPSG:4326.
-
-- selectedFeature (dict; optional):
-    Read-only: first selected GeoJSON Feature in EPSG:4326, or None
-    when nothing is selected."""
+- disableHitDetection (boolean; default False):
+    Disable WebGL feature hit detection for a small rendering
+    performance gain."""
     _children_props: typing.List[str] = []
     _base_nodes = ['children']
     _namespace = 'dash_openlayers'
-    _type = 'SelectInteraction'
+    _type = 'WebGLPointsLayer'
 
 
     def __init__(
         self,
         id: typing.Optional[typing.Union[str, dict]] = None,
-        layerId: typing.Optional[str] = None,
-        selectedGeoJSON: typing.Optional[dict] = None,
-        selectedFeature: typing.Optional[dict] = None,
+        data: typing.Optional[typing.Union[str, dict]] = None,
+        style: typing.Optional[typing.Any] = None,
+        disableHitDetection: typing.Optional[bool] = None,
         **kwargs
     ):
-        self._prop_names = ['id', 'layerId', 'selectedGeoJSON', 'selectedFeature']
+        self._prop_names = ['id', 'data', 'style', 'disableHitDetection']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'layerId', 'selectedGeoJSON', 'selectedFeature']
+        self.available_properties = ['id', 'data', 'style', 'disableHitDetection']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()
         _locals.update(kwargs)  # For wildcard attrs and excess named props
         args = {k: _locals[k] for k in _explicit_args}
 
-        super(SelectInteraction, self).__init__(**args)
+        super(WebGLPointsLayer, self).__init__(**args)
 
-setattr(SelectInteraction, "__init__", _explicitize_args(SelectInteraction.__init__))
+setattr(WebGLPointsLayer, "__init__", _explicitize_args(WebGLPointsLayer.__init__))

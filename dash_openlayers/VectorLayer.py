@@ -30,14 +30,18 @@ Keyword arguments:
     Dash component ID; also used by ModifyInteraction to target this
     vector layer.
 
+- data (string | dict; optional):
+    GeoJSON Feature or FeatureCollection as an object or JSON string;
+    embedded CRS metadata is honored, otherwise coordinates default to
+    EPSG:4326. Takes precedence over geojson.
+
 - geojson (dict; optional):
-    GeoJSON Feature or FeatureCollection with coordinates in
-    [longitude, latitude] order; updates are rendered in the map
-    projection.
+    Backward-compatible GeoJSON Feature or FeatureCollection object
+    alias for data.
 
 - wkt (string; optional):
-    WKT geometry in [x, y] order; takes precedence over geojson when
-    non-empty.
+    WKT geometry in [x, y] order; takes precedence over data and
+    geojson when non-empty.
 
 - clusterDistance (number; default 0):
     Point clustering distance in screen pixels; set to 0 to disable
@@ -59,6 +63,7 @@ Keyword arguments:
     def __init__(
         self,
         id: typing.Optional[typing.Union[str, dict]] = None,
+        data: typing.Optional[typing.Union[str, dict]] = None,
         geojson: typing.Optional[dict] = None,
         wkt: typing.Optional[str] = None,
         style: typing.Optional[typing.Any] = None,
@@ -67,9 +72,9 @@ Keyword arguments:
         declutter: typing.Optional[typing.Union[bool, str]] = None,
         **kwargs
     ):
-        self._prop_names = ['id', 'geojson', 'wkt', 'style', 'clusterDistance', 'clusterMinDistance', 'declutter']
+        self._prop_names = ['id', 'data', 'geojson', 'wkt', 'style', 'clusterDistance', 'clusterMinDistance', 'declutter']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'geojson', 'wkt', 'style', 'clusterDistance', 'clusterMinDistance', 'declutter']
+        self.available_properties = ['id', 'data', 'geojson', 'wkt', 'style', 'clusterDistance', 'clusterMinDistance', 'declutter']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()

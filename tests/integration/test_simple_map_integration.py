@@ -53,6 +53,105 @@ def test_simple_map_starts(dash_duo):
     assert dash_duo.get_logs() == []
 
 
+def test_select_interaction_reports_selected_feature_geojson(dash_duo):
+    feature = {
+        "type": "Feature",
+        "geometry": {"type": "Point", "coordinates": [0, 0]},
+        "properties": {"name": "Station A", "kind": "station"},
+    }
+    app = dash.Dash(__name__)
+    app.layout = dash.html.Div(
+        [
+            dol.Map(
+                id="map",
+                center=[0, 0],
+                zoom=5,
+                children=[
+                    dol.VectorLayer(
+                        id="points",
+                        data={"type": "FeatureCollection", "features": [feature]},
+                        style={"circle-radius": 12, "circle-fill-color": "#d66f41"},
+                    ),
+                    dol.SelectInteraction(id="select", layerId="points"),
+                ],
+                style={"height": "400px", "width": "600px"},
+            ),
+            html.Pre(id="feature-output"),
+        ]
+    )
+
+    @app.callback(Output("feature-output", "children"), Input("select", "selectedFeature"))
+    def show_selected_feature(selected_feature):
+        return json.dumps(selected_feature) if selected_feature else ""
+
+    dash_duo.start_server(app)
+    viewport = dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
+    dash_duo.wait_for_element("#map canvas", timeout=15)
+    viewport.click()
+    dash_duo.wait_for_contains_text("#feature-output", "Station A", timeout=10)
+
+    selected_feature = json.loads(dash_duo.find_element("#feature-output").text)
+    assert selected_feature["type"] == "Feature"
+    assert selected_feature["geometry"]["type"] == "Point"
+    assert selected_feature["properties"] == {"name": "Station A", "kind": "station"}
+    assert selected_feature["geometry"]["coordinates"] == [0, 0]
+    assert dash_duo.get_logs() == []
+
+
+def test_popup_child_mounts_and_unmounts(dash_duo):
+    app = dash.Dash(__name__)
+    app.layout = dash.html.Div(
+        [
+            dash.dcc.Checklist(
+                id="show-popup",
+                options=[{"label": "Show popup", "value": "show"}],
+                value=["show"],
+            ),
+            dol.Map(
+                id="map",
+                center=[0, 0],
+                zoom=2,
+                children=[
+                    dol.Popup(
+                        id="popup",
+                        position=[0, 0],
+                        className="place-popup",
+                        children=html.Div("Popup body"),
+                    ),
+                ],
+                style={"height": "300px"},
+            ),
+        ]
+    )
+
+    @app.callback(
+        dash.Output("map", "children"),
+        dash.Input("show-popup", "value"),
+    )
+    def show_popup(values):
+        if "show" in (values or []):
+            return [
+                dol.Popup(
+                    id="popup",
+                    position=[0, 0],
+                    className="place-popup",
+                    children=html.Div("Popup body"),
+                )
+            ]
+        return []
+
+    dash_duo.start_server(app)
+    dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
+    dash_duo.wait_for_element("#popup", timeout=15)
+    assert dash_duo.find_element("#popup").text == "Popup body"
+
+    dash_duo.find_element("#show-popup input").click()
+    WebDriverWait(dash_duo.driver, 15).until(
+        lambda driver: not driver.find_elements(By.CSS_SELECTOR, "#popup")
+    )
+    assert dash_duo.get_logs() == []
+
+
 def test_tile_layer_sources_attach_and_cleanup(dash_duo):
     app = dash.Dash(__name__)
     app.layout = dash.html.Div(
@@ -193,6 +292,161 @@ def test_vector_layer_renders_geojson_and_updates(dash_duo):
     dash_duo.find_element("#update-features").click()
     WebDriverWait(dash_duo.driver, 15).until(
         lambda driver: (frame := rendered_canvas(driver)) and frame != initial_frame
+    )
+    assert dash_duo.get_logs() == []
+
+
+def test_vector_layer_renders_geopandas_geojson_string_and_property_styles(dash_duo):
+    geojson_text = json.dumps(
+        {
+            "type": "FeatureCollection",
+            "crs": {
+                "type": "name",
+                "properties": {"name": "urn:ogc:def:crs:EPSG::3857"},
+            },
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {"type": "Point", "coordinates": [1_000_000, 2_000_000]},
+                    "properties": {"category": "site", "details": {"name": "Point"}},
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "LineString",
+                        "coordinates": [[900_000, 1_900_000], [1_100_000, 2_100_000]],
+                    },
+                    "properties": {"category": "route", "details": {"name": "Line"}},
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Polygon",
+                        "coordinates": [
+                            [
+                                [900_000, 1_900_000],
+                                [1_100_000, 1_900_000],
+                                [1_100_000, 2_100_000],
+                                [900_000, 2_100_000],
+                                [900_000, 1_900_000],
+                            ]
+                        ],
+                    },
+                    "properties": {"category": "area", "details": {"name": "Polygon"}},
+                },
+            ],
+        }
+    )
+    style = [
+        {
+            "filter": ["==", ["get", "category"], "site"],
+            "style": {"circle-radius": 6, "circle-fill-color": "#d66f41"},
+        },
+        {
+            "filter": ["==", ["get", "category"], "route"],
+            "style": {"stroke-color": "#1f6a5e", "stroke-width": 3},
+        },
+        {
+            "else": True,
+            "style": {
+                "fill-color": "rgba(31, 106, 94, 0.24)",
+                "stroke-color": "#1f6a5e",
+                "stroke-width": 2,
+            },
+        },
+    ]
+    app = dash.Dash(__name__)
+    app.layout = dol.Map(
+        id="map",
+        center=[1_000_000, 2_000_000],
+        zoom=5,
+        children=[dol.VectorLayer(id="features", data=geojson_text, style=style)],
+        style={"height": "400px", "width": "600px"},
+    )
+
+    dash_duo.start_server(app)
+    dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
+    WebDriverWait(dash_duo.driver, 15).until(
+        lambda driver: driver.execute_script(
+            """
+            const canvas = document.querySelector('#map .ol-layer canvas');
+            if (!canvas) return false;
+            const pixels = canvas.getContext('2d').getImageData(
+              0, 0, canvas.width, canvas.height
+            ).data;
+            return pixels.some((value, index) => index % 4 === 3 && value > 0);
+            """
+        )
+    )
+    assert dash_duo.get_logs() == []
+
+
+def test_webgl_points_layer_renders_twenty_thousand_styled_points(dash_duo):
+    features = [
+        {
+            "type": "Feature",
+            "geometry": {
+                "type": "Point",
+                "coordinates": [((index % 200) - 100) / 100, ((index // 200) - 50) / 100],
+            },
+            "properties": {
+                "kind": "station" if index % 2 else "incident",
+                "magnitude": index % 11,
+            },
+        }
+        for index in range(20_000)
+    ]
+    style = {
+        "shape-points": ["match", ["get", "kind"], "station", 5, 4],
+        "shape-radius": ["interpolate", ["linear"], ["get", "magnitude"], 0, 3, 10, 9],
+        "shape-fill-color": [
+            "match",
+            ["get", "kind"],
+            "station",
+            "#d66f41",
+            "incident",
+            "#1f6a5e",
+            "#284d78",
+        ],
+    }
+    app = dash.Dash(__name__)
+    app.layout = dol.Map(
+        id="map",
+        center=[0, 0],
+        zoom=5,
+        children=[
+            dol.WebGLPointsLayer(
+                id="large-points",
+                data={"type": "FeatureCollection", "features": features},
+                style=style,
+                disableHitDetection=True,
+            )
+        ],
+        style={"height": "400px", "width": "600px"},
+    )
+
+    dash_duo.start_server(app)
+    dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
+    WebDriverWait(dash_duo.driver, 15).until(
+        lambda driver: driver.execute_script(
+            "return !!document.querySelector('#map canvas.ol-layer')"
+        )
+    )
+    WebDriverWait(dash_duo.driver, 30).until(
+        lambda driver: driver.execute_script(
+            """
+            const canvas = document.querySelector('#map canvas.ol-layer');
+            if (!canvas) return false;
+            const gl = canvas.getContext('experimental-webgl');
+            if (!gl) return false;
+            const pixels = new Uint8Array(gl.drawingBufferWidth * gl.drawingBufferHeight * 4);
+            gl.readPixels(
+              0, 0, gl.drawingBufferWidth, gl.drawingBufferHeight,
+              gl.RGBA, gl.UNSIGNED_BYTE, pixels
+            );
+            return pixels.some((value, index) => index % 4 === 3 && value > 0);
+            """
+        )
     )
     assert dash_duo.get_logs() == []
 
@@ -501,7 +755,24 @@ def test_map_center_zoom_syncs_both_directions(dash_duo):
                 id="map",
                 center=[0, 0],
                 zoom=2,
-                children=[dol.TileLayer(source="OSM")],
+                children=[
+                    dol.VectorLayer(
+                        id="sync-features",
+                        geojson={
+                            "type": "FeatureCollection",
+                            "features": [
+                                {
+                                    "type": "Feature",
+                                    "geometry": {
+                                        "type": "Point",
+                                        "coordinates": [8.9831528, 17.6789142],
+                                    },
+                                    "properties": {},
+                                }
+                            ],
+                        },
+                    ),
+                ],
                 style={"height": "400px", "width": "600px"},
             ),
             html.Pre(id="view-state"),
@@ -533,6 +804,9 @@ def test_map_center_zoom_syncs_both_directions(dash_duo):
     dash_duo.start_server(app)
     viewport = dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
     dash_duo.wait_for_element("#map canvas", timeout=15)
+    vector_canvas = WebDriverWait(dash_duo.driver, 15).until(
+        lambda driver: driver.find_element(By.CSS_SELECTOR, "#map .ol-layer canvas")
+    )
 
     dash_duo.find_element("#set-view").click()
     WebDriverWait(dash_duo.driver, 15).until(
@@ -540,6 +814,17 @@ def test_map_center_zoom_syncs_both_directions(dash_duo):
             json.loads(driver.find_element(By.ID, "view-state").text)
             == {"center": target_center, "zoom": target_zoom}
         )
+    )
+    current_vector_canvas = dash_duo.driver.find_element(By.CSS_SELECTOR, "#map .ol-layer canvas")
+    assert current_vector_canvas == vector_canvas
+    assert dash_duo.driver.execute_script(
+        """
+        const canvas = document.querySelector('#map .ol-layer canvas');
+        const context = canvas?.getContext('2d');
+        if (!context) return false;
+        const pixels = context.getImageData(0, 0, context.canvas.width, context.canvas.height).data;
+        return pixels.some((value, index) => index % 4 === 3 && value > 0);
+        """
     )
 
     viewport.click()
