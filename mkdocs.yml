@@ -38,7 +38,6 @@ extra_javascript:
 extra:
   repo_name: dash-openlayers
 markdown_extensions:
-  - pymdownx.superfences
   - pymdownx.highlight
   - pymdownx.inlinehilite
   - attr_list

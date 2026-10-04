@@ -11,7 +11,7 @@ jobs:
     environment: pypi
     permissions:
       id-token: write  # Required for PyPI OIDC
-      contents: read   # Required for repo checkout
+      contents: write # Required to attach distributions to the GitHub release
 
     steps:
       - name: Checkout Repository
@@ -64,6 +64,11 @@ jobs:
           uv pip install --python .venv-check dist/*.whl
           cd "$RUNNER_TEMP"
           "$GITHUB_WORKSPACE/.venv-check/bin/python" "$GITHUB_WORKSPACE/scripts/check_installed_package.py"
+
+      - name: Upload distributions to GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "$GITHUB_REF_NAME" dist/* --clobber
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
