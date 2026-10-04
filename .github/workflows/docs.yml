@@ -71,6 +71,6 @@ jobs:
 
             echo "Deploying version: $VERSION and major.minor alias: $MAJMIN"
             uv run mike deploy "$VERSION" --allow-empty --push --branch=gh-pages
-            uv run mike alias --update-aliases "$VERSION" "$MAJMIN" latest --push --branch=gh-pages
+            uv run mike alias --update-aliases --alias-type copy "$VERSION" "$MAJMIN" latest --push --branch=gh-pages
             uv run mike set-default latest --push --branch=gh-pages
           fi
