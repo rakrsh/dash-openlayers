@@ -757,6 +757,24 @@ templates:</p>
     <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
 <span class="p">)</span>
 </code></pre></div>
+<p>Add a <code>SelectInteraction</code> to a map to select vector features on click. Its
+read-only <code>selectedFeature</code> prop contains the first selected GeoJSON Feature,
+including its properties and geometry in EPSG:4326; it becomes <code>None</code> when
+selection is cleared. <code>selectedGeoJSON</code> remains available for the full
+selection, while <code>Map.clickData</code> independently reports click coordinates:</p>
+<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
+    <span class="nb">id</span><span class="o">=</span><span class="s2">"map"</span><span class="p">,</span>
+    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">VectorLayer</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"points"</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">point_feature_collection</span><span class="p">),</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">SelectInteraction</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s2">"select"</span><span class="p">,</span> <span class="n">layerId</span><span class="o">=</span><span class="s2">"points"</span><span class="p">),</span>
+    <span class="p">],</span>
+<span class="p">)</span>
+
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">callback</span><span class="p">(</span><span class="n">Output</span><span class="p">(</span><span class="s2">"feature-details"</span><span class="p">,</span> <span class="s2">"children"</span><span class="p">),</span> <span class="n">Input</span><span class="p">(</span><span class="s2">"select"</span><span class="p">,</span> <span class="s2">"selectedFeature"</span><span class="p">))</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">show_feature</span><span class="p">(</span><span class="n">feature</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">feature</span><span class="p">[</span><span class="s2">"properties"</span><span class="p">],</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span> <span class="k">if</span> <span class="n">feature</span> <span class="k">else</span> <span class="s2">"Select a feature"</span>
+</code></pre></div>
 <h2 id="popups">Popups</h2>
 <p>Add <code>Popup</code> as a <code>Map</code> child to render Dash content at a coordinate. The
 coordinate uses <code>[x, y]</code> units in the map view projection. Set <code>position</code> to
