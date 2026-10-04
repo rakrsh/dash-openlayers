@@ -572,6 +572,31 @@ prop reports errors and suggestions. Self-intersection errors include their
 `[longitude, latitude]` crossing coordinates; malformed rings suggest closing
 the ring and providing enough positions.
 
+Use `DrawControl` to let users choose a drawing mode directly on the map. Its
+`drawnGeoJSON` prop is a GeoJSON Feature in EPSG:4326 and can be used as a Dash
+callback input. The `Box` mode draws a rectangular Polygon from two corners:
+
+```python
+dol.Map(
+    id="study-map",
+    center=[0, 0],
+    zoom=3,
+    children=[
+        dol.TileLayer(source="OSM"),
+        dol.DrawControl(id="study-area", geometryTypes=["Box"]),
+    ],
+    style={"height": "500px"},
+)
+
+
+@app.callback(Output("study-area-output", "children"), Input("study-area", "drawnGeoJSON"))
+def show_study_area(feature):
+    return json.dumps(feature, indent=2) if feature else "Draw an area"
+```
+
+The default tools are Point, LineString, Polygon, and Box. Set `geometryTypes`
+to choose a subset, and click the active tool again to stop drawing.
+
 Listen to the validation result with `Input("draw-tool", "geometryValidation")`
 in a Dash callback. A self-intersection result has this shape:
 

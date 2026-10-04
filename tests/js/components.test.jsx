@@ -1,6 +1,7 @@
 import React from 'react';
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import MapComponent from '../../src/lib/components/Map.react';
+import DrawControl from '../../src/lib/components/DrawControl.react';
 import TileLayer from '../../src/lib/components/TileLayer.react';
 import VectorLayer from '../../src/lib/components/VectorLayer.react';
 import VectorTileLayer from '../../src/lib/components/VectorTileLayer.react';
@@ -22,7 +23,7 @@ import Overlay from 'ol/Overlay';
 import View from 'ol/View';
 import { toLonLat } from 'ol/proj';
 import { registerProjections } from '../../src/lib/utils/projection';
-import Draw from 'ol/interaction/Draw';
+import Draw, { createBox } from 'ol/interaction/Draw';
 import Modify from 'ol/interaction/Modify';
 import Select from 'ol/interaction/Select';
 import { unByKey } from 'ol/Observable';
@@ -67,7 +68,16 @@ jest.mock('ol/Map', () => ({
     this.removeLayer = jest.fn();
     this.addOverlay = jest.fn();
     this.removeOverlay = jest.fn();
+    this.addControl = jest.fn();
+    this.removeControl = jest.fn();
     this.getView = jest.fn(() => options.view);
+  }),
+}));
+
+jest.mock('ol/control/Control', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockControl(options) {
+    this.element = options.element;
   }),
 }));
 
@@ -177,6 +187,7 @@ jest.mock('ol/format/WKT', () => ({
 
 jest.mock('ol/interaction/Draw', () => ({
   __esModule: true,
+  createBox: jest.fn(() => jest.fn()),
   default: jest.fn().mockImplementation(function MockDraw(options) {
     this.options = options;
     this.listeners = {};
@@ -405,6 +416,8 @@ const makeMap = () => ({
   removeLayer: jest.fn(),
   addOverlay: jest.fn(),
   removeOverlay: jest.fn(),
+  addControl: jest.fn(),
+  removeControl: jest.fn(),
   addInteraction: jest.fn(),
   removeInteraction: jest.fn(),
   getLayers: jest.fn(() => ({ getArray: () => [] })),
@@ -1589,5 +1602,50 @@ describe('DrawInteraction', () => {
         ],
       },
     });
+  });
+});
+
+describe('DrawControl', () => {
+  it('activates rectangle drawing, reports GeoJSON, and preserves features when deactivated', async () => {
+    const map = makeMap();
+    const setProps = jest.fn();
+    const { unmount } = render(
+      <OLContext.Provider value={map}>
+        <DrawControl id="study-area" setProps={setProps} />
+      </OLContext.Provider>,
+    );
+
+    expect(map.addControl).toHaveBeenCalledTimes(1);
+    expect(Draw).not.toHaveBeenCalled();
+    const controlElement = map.addControl.mock.calls[0][0].element;
+    const rectangleButton = controlElement.querySelector('[data-geometry-type="Box"]');
+    fireEvent.click(rectangleButton);
+
+    const draw = Draw.mock.instances[0];
+    const source = VectorSource.mock.instances.at(-1);
+    const layer = OpenLayersVectorLayer.mock.instances.at(-1);
+    expect(draw.options.type).toBe('Circle');
+    expect(draw.options.geometryFunction).toEqual(expect.any(Function));
+    expect(createBox).toHaveBeenCalledTimes(1);
+    expect(map.addInteraction).toHaveBeenCalledWith(draw);
+
+    const feature = { id: 'study-area' };
+    draw.listeners.drawend({ feature });
+    expect(setProps).toHaveBeenCalledWith(
+      expect.objectContaining({
+        drawnGeoJSON: expect.objectContaining({ type: 'Feature' }),
+      }),
+    );
+
+    fireEvent.click(rectangleButton);
+    await waitFor(() => expect(rectangleButton).toHaveAttribute('aria-pressed', 'false'));
+    await waitFor(() => expect(map.removeInteraction).toHaveBeenCalledWith(draw));
+    expect(map.removeLayer).not.toHaveBeenCalledWith(layer);
+    expect(source.clear).not.toHaveBeenCalled();
+
+    unmount();
+    expect(map.removeControl).toHaveBeenCalledTimes(1);
+    expect(map.removeLayer).toHaveBeenCalledWith(layer);
+    expect(source.clear).toHaveBeenCalled();
   });
 });

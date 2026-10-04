@@ -20,17 +20,25 @@ ComponentType = typing.Union[
 ]
 
 
-class DrawInteraction(Component):
-    """A DrawInteraction component.
-Draw and validate OpenLayers features, then publish their serialized geometry to Dash.
+class DrawControl(Component):
+    """A DrawControl component.
+Provide interactive map tools for drawing and serializing spatial study areas.
 
 Keyword arguments:
 
 - id (string; optional):
-    The ID used to identify this component in Dash callbacks.
+    Component ID used to identify this drawing control and its
+    callback outputs.
 
-- geometryType (a value equal to: 'Point', 'LineString', 'Polygon', 'Circle', 'Box'; default 'Polygon'):
-    Geometry type drawn by this interaction.
+- geometryTypes (list of a value equal to: 'Point', 'LineString', 'Polygon', 'Box's; default ['Point', 'LineString', 'Polygon', 'Box']):
+    Drawing modes displayed in the control: Point, LineString,
+    Polygon, and Box (rectangle).
+
+- position (a value equal to: 'top-left', 'top-right', 'bottom-left', 'bottom-right'; default 'top-left'):
+    Corner of the map where the drawing tools are displayed.
+
+- title (string; default 'Draw'):
+    Accessible toolbar label and visible heading.
 
 - drawnGeoJSON (dict; optional):
     Read-only GeoJSON Feature emitted only when geometry validation
@@ -59,13 +67,15 @@ Keyword arguments:
     _children_props: typing.List[str] = []
     _base_nodes = ['children']
     _namespace = 'dash_openlayers'
-    _type = 'DrawInteraction'
+    _type = 'DrawControl'
 
 
     def __init__(
         self,
         id: typing.Optional[typing.Union[str, dict]] = None,
-        geometryType: typing.Optional[Literal["Point", "LineString", "Polygon", "Circle", "Box"]] = None,
+        geometryTypes: typing.Optional[typing.Sequence[Literal["Point", "LineString", "Polygon", "Box"]]] = None,
+        position: typing.Optional[Literal["top-left", "top-right", "bottom-left", "bottom-right"]] = None,
+        title: typing.Optional[str] = None,
         drawnGeoJSON: typing.Optional[dict] = None,
         drawnWKT: typing.Optional[str] = None,
         drawnTopoJSON: typing.Optional[dict] = None,
@@ -75,15 +85,15 @@ Keyword arguments:
         snapTolerance: typing.Optional[NumberType] = None,
         **kwargs
     ):
-        self._prop_names = ['id', 'geometryType', 'drawnGeoJSON', 'drawnWKT', 'drawnTopoJSON', 'geometryValidation', 'snapToVertex', 'snapToEdge', 'snapTolerance']
+        self._prop_names = ['id', 'geometryTypes', 'position', 'title', 'drawnGeoJSON', 'drawnWKT', 'drawnTopoJSON', 'geometryValidation', 'snapToVertex', 'snapToEdge', 'snapTolerance']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'geometryType', 'drawnGeoJSON', 'drawnWKT', 'drawnTopoJSON', 'geometryValidation', 'snapToVertex', 'snapToEdge', 'snapTolerance']
+        self.available_properties = ['id', 'geometryTypes', 'position', 'title', 'drawnGeoJSON', 'drawnWKT', 'drawnTopoJSON', 'geometryValidation', 'snapToVertex', 'snapToEdge', 'snapTolerance']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()
         _locals.update(kwargs)  # For wildcard attrs and excess named props
         args = {k: _locals[k] for k in _explicit_args}
 
-        super(DrawInteraction, self).__init__(**args)
+        super(DrawControl, self).__init__(**args)
 
-setattr(DrawInteraction, "__init__", _explicitize_args(DrawInteraction.__init__))
+setattr(DrawControl, "__init__", _explicitize_args(DrawControl.__init__))

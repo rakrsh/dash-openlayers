@@ -1,4 +1,5 @@
 import Map from './lib/components/Map.react';
+import DrawControl from './lib/components/DrawControl.react';
 import DrawInteraction from './lib/components/DrawInteraction.react';
 import ImageWMS from './lib/components/ImageWMS.react';
 import LayerControl from './lib/components/LayerControl.react';
@@ -17,6 +18,7 @@ import { exportFeature, exportFeatures, readFeatures } from './lib/utils/feature
 
 export {
   Map,
+  DrawControl,
   DrawInteraction,
   ImageWMS,
   LayerControl,
