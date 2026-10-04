@@ -581,6 +581,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#popup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Popup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#selectinteraction" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -794,6 +805,17 @@
     <span class="md-ellipsis">
       
         ModifyInteraction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#popup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Popup
       
     </span>
   </a>
@@ -1195,6 +1217,68 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>dict</code></td>
 <td>—</td>
 <td>Read-only: topology validation result from the last modification.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="popup"><code>Popup</code></h2>
+<p>Render Dash content in an OpenLayers overlay anchored to a map coordinate.</p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>The ID used to identify this component in Dash callbacks.</td>
+</tr>
+<tr>
+<td><code>children</code></td>
+<td><code>Dash component</code></td>
+<td>—</td>
+<td>Dash children rendered inside the overlay element.</td>
+</tr>
+<tr>
+<td><code>position</code></td>
+<td><code>list[number]</code></td>
+<td><code>null</code></td>
+<td>Overlay position as [x, y] in the map view projection; null hides the popup.</td>
+</tr>
+<tr>
+<td><code>positioning</code></td>
+<td><code>'bottom-left' \| 'bottom-center' \| 'bottom-right' \| 'center-left' \| 'center-center' \| 'center-right' \| 'top-left' \| 'top-center' \| 'top-right'</code></td>
+<td><code>'bottom-center'</code></td>
+<td>Overlay alignment relative to its position coordinate.</td>
+</tr>
+<tr>
+<td><code>offset</code></td>
+<td><code>list[number]</code></td>
+<td><code>[0, 0]</code></td>
+<td>Pixel offset [x, y] applied to the overlay.</td>
+</tr>
+<tr>
+<td><code>autoPan</code></td>
+<td><code>bool</code></td>
+<td><code>false</code></td>
+<td>Pan the map when positioning the overlay would place it outside the viewport.</td>
+</tr>
+<tr>
+<td><code>className</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>CSS class applied to the popup content element.</td>
+</tr>
+<tr>
+<td><code>style</code></td>
+<td><code>dict</code></td>
+<td><code>null</code></td>
+<td>Inline CSS style applied to the popup content element.</td>
 </tr>
 </tbody>
 </table>

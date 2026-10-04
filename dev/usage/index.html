@@ -472,6 +472,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#popups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Popups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#point-clustering-and-decluttering" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -647,6 +658,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#popups" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Popups
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#point-clustering-and-decluttering" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -709,6 +731,31 @@ templates:</p>
     <span class="n">children</span><span class="o">=</span><span class="p">[</span>
         <span class="n">dol</span><span class="o">.</span><span class="n">TileLayer</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="s2">"OSM"</span><span class="p">),</span>
         <span class="n">dol</span><span class="o">.</span><span class="n">TileLayer</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="s2">"https://tiles.example.com/</span><span class="si">{z}</span><span class="s2">/</span><span class="si">{x}</span><span class="s2">/</span><span class="si">{y}</span><span class="s2">.png"</span><span class="p">),</span>
+    <span class="p">],</span>
+    <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
+<span class="p">)</span>
+</code></pre></div>
+<h2 id="popups">Popups</h2>
+<p>Add <code>Popup</code> as a <code>Map</code> child to render Dash content at a coordinate. The
+coordinate uses <code>[x, y]</code> units in the map view projection. Set <code>position</code> to
+<code>None</code> to hide the popup; <code>autoPan=True</code> keeps it in view when it is positioned.
+Use <code>className</code> or <code>style</code> to customize the popup content.</p>
+<div class="highlight"><pre><span></span><code><span class="n">dol</span><span class="o">.</span><span class="n">Map</span><span class="p">(</span>
+    <span class="nb">id</span><span class="o">=</span><span class="s2">"popup-map"</span><span class="p">,</span>
+    <span class="n">center</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+    <span class="n">zoom</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span>
+    <span class="n">children</span><span class="o">=</span><span class="p">[</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">TileLayer</span><span class="p">(</span><span class="n">source</span><span class="o">=</span><span class="s2">"OSM"</span><span class="p">),</span>
+        <span class="n">dol</span><span class="o">.</span><span class="n">Popup</span><span class="p">(</span>
+            <span class="nb">id</span><span class="o">=</span><span class="s2">"place-popup"</span><span class="p">,</span>
+            <span class="n">position</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">],</span>
+            <span class="n">positioning</span><span class="o">=</span><span class="s2">"bottom-center"</span><span class="p">,</span>
+            <span class="n">offset</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">12</span><span class="p">],</span>
+            <span class="n">autoPan</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">className</span><span class="o">=</span><span class="s2">"place-popup"</span><span class="p">,</span>
+            <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"backgroundColor"</span><span class="p">:</span> <span class="s2">"white"</span><span class="p">,</span> <span class="s2">"padding"</span><span class="p">:</span> <span class="s2">"8px 12px"</span><span class="p">},</span>
+            <span class="n">children</span><span class="o">=</span><span class="n">html</span><span class="o">.</span><span class="n">Div</span><span class="p">([</span><span class="n">html</span><span class="o">.</span><span class="n">Strong</span><span class="p">(</span><span class="s2">"Null Island"</span><span class="p">),</span> <span class="n">html</span><span class="o">.</span><span class="n">P</span><span class="p">(</span><span class="s2">"0, 0"</span><span class="p">)]),</span>
+        <span class="p">),</span>
     <span class="p">],</span>
     <span class="n">style</span><span class="o">=</span><span class="p">{</span><span class="s2">"height"</span><span class="p">:</span> <span class="s2">"500px"</span><span class="p">},</span>
 <span class="p">)</span>
