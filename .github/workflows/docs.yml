@@ -4,6 +4,11 @@ permissions:
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: Version to deploy, for example 0.0.2
+        required: true
+        type: string
   push:
     branches: [ main ]
   release:
@@ -47,6 +52,7 @@ jobs:
         env:
           REPO: ${{ github.repository }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION_INPUT: ${{ inputs.version }}
         run: |
           set -e
           if [ "${{ github.event_name }}" = "push" ]; then
@@ -54,13 +60,17 @@ jobs:
             uv run mike deploy dev --push --branch=gh-pages
           fi
 
-          if [ "${{ github.event_name }}" = "release" ]; then
-            TAG_NAME="$GITHUB_REF_NAME"
-            VERSION=${TAG_NAME#v}
+          if [ "${{ github.event_name }}" = "release" ] || [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            if [ "${{ github.event_name }}" = "release" ]; then
+              TAG_NAME="$GITHUB_REF_NAME"
+              VERSION=${TAG_NAME#v}
+            else
+              VERSION="$VERSION_INPUT"
+            fi
             MAJMIN=$(echo "$VERSION" | awk -F. '{print $1"."$2}')
 
             echo "Deploying version: $VERSION and major.minor alias: $MAJMIN"
-            uv run mike deploy "$VERSION" --push --branch=gh-pages
-            uv run mike alias "$VERSION" "$MAJMIN" latest --push --branch=gh-pages
+            uv run mike deploy "$VERSION" --allow-empty --push --branch=gh-pages
+            uv run mike alias --update-aliases "$VERSION" "$MAJMIN" latest --push --branch=gh-pages
             uv run mike set-default latest --push --branch=gh-pages
           fi
