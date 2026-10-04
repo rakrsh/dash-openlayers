@@ -556,7 +556,6 @@ def test_map_center_zoom_syncs_both_directions(dash_duo):
                 center=[0, 0],
                 zoom=2,
                 children=[
-                    dol.TileLayer(source="OSM"),
                     dol.VectorLayer(
                         id="sync-features",
                         geojson={
@@ -605,20 +604,8 @@ def test_map_center_zoom_syncs_both_directions(dash_duo):
     dash_duo.start_server(app)
     viewport = dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
     dash_duo.wait_for_element("#map canvas", timeout=15)
-    print(
-        "Initial layer state:",
-        dash_duo.driver.execute_script(
-            "return [...document.querySelectorAll('#map .ol-layer')].map(layer => "
-            "({html: layer.innerHTML, className: layer.className}));"
-        ),
-    )
-    print("Initial browser console:", dash_duo.driver.get_log("browser"))
     vector_canvas = WebDriverWait(dash_duo.driver, 15).until(
-        lambda driver: (
-            canvases[-1]
-            if len(canvases := driver.find_elements(By.CSS_SELECTOR, "#map .ol-layer canvas")) > 1
-            else False
-        )
+        lambda driver: driver.find_element(By.CSS_SELECTOR, "#map .ol-layer canvas")
     )
 
     dash_duo.find_element("#set-view").click()
@@ -628,14 +615,12 @@ def test_map_center_zoom_syncs_both_directions(dash_duo):
             == {"center": target_center, "zoom": target_zoom}
         )
     )
-    current_vector_canvas = dash_duo.driver.find_elements(By.CSS_SELECTOR, "#map .ol-layer canvas")[
-        -1
-    ]
+    current_vector_canvas = dash_duo.driver.find_element(By.CSS_SELECTOR, "#map .ol-layer canvas")
     assert current_vector_canvas == vector_canvas
     assert dash_duo.driver.execute_script(
         """
-        const canvas = document.querySelectorAll('#map .ol-layer canvas');
-        const context = canvas[canvas.length - 1]?.getContext('2d');
+        const canvas = document.querySelector('#map .ol-layer canvas');
+        const context = canvas?.getContext('2d');
         if (!context) return false;
         const pixels = context.getImageData(0, 0, context.canvas.width, context.canvas.height).data;
         return pixels.some((value, index) => index % 4 === 3 && value > 0);
