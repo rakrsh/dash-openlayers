@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
+import GeoJSON from 'ol/format/GeoJSON';
 import VectorLayer from 'ol/layer/Vector';
+import { unByKey } from 'ol/Observable';
 import Cluster from 'ol/source/Cluster';
 import VectorSource from 'ol/source/Vector';
 import CircleStyle from 'ol/style/Circle';
@@ -18,15 +20,24 @@ const VectorLayerComponent = ({
   data,
   geojson,
   wkt,
+  url,
+  format,
+  dataProjection,
   style,
   clusterDistance = 0,
   clusterMinDistance = 0,
   declutter = false,
+  setProps,
 }) => {
   const map = useMap();
   const sourceRef = useRef(null);
   const layerRef = useRef(null);
   const clusterSourceRef = useRef(null);
+  const setPropsRef = useRef(setProps);
+
+  useEffect(() => {
+    setPropsRef.current = setProps;
+  }, [setProps]);
 
   useEffect(() => {
     const source = new VectorSource();
@@ -50,8 +61,45 @@ const VectorLayerComponent = ({
     layerRef.current = layer;
     map.addLayer(layer);
 
+    const getHitFeature = (pixel) => {
+      let hitFeature = null;
+      map.forEachFeatureAtPixel(
+        pixel,
+        (feature) => {
+          hitFeature = feature.get('features')?.[0] ?? feature;
+          return hitFeature;
+        },
+        { layerFilter: (candidate) => candidate === layer },
+      );
+      return hitFeature;
+    };
+    const serializeFeature = (feature) =>
+      feature
+        ? new GeoJSON().writeFeatureObject(feature, {
+            featureProjection: map.getView().getProjection(),
+            dataProjection: 'EPSG:4326',
+          })
+        : null;
+    const clickKey = map.on('singleclick', (event) => {
+      const feature = getHitFeature(event.pixel);
+      if (setPropsRef.current) {
+        setPropsRef.current({ clickedFeature: serializeFeature(feature) });
+      }
+    });
+    let hoveredFeature = null;
+    const pointerMoveKey = map.on('pointermove', (event) => {
+      if (event.dragging) return;
+      const feature = getHitFeature(event.pixel);
+      if (feature === hoveredFeature) return;
+      hoveredFeature = feature;
+      if (setPropsRef.current) {
+        setPropsRef.current({ hoveredFeature: serializeFeature(feature) });
+      }
+    });
+
     return () => {
       map.removeLayer(layer);
+      unByKey([clickKey, pointerMoveKey]);
       layerRef.current = null;
       if (clusterSourceRef.current) {
         clusterSourceRef.current.setSource(null);
@@ -128,19 +176,67 @@ const VectorLayerComponent = ({
     source.clear();
     const useWKT = typeof wkt === 'string' && wkt.trim().length > 0;
     const featureData = useWKT ? wkt : (data ?? geojson);
-    if (!featureData) return;
+    if (!featureData && !url) {
+      if (setPropsRef.current) {
+        setPropsRef.current({ featureCount: 0, loadError: null });
+      }
+      return undefined;
+    }
 
     const readOptions = {
       featureProjection: map.getView().getProjection(),
     };
-    if (useWKT) readOptions.dataProjection = 'EPSG:4326';
+    if (dataProjection) {
+      readOptions.dataProjection = dataProjection;
+    } else if (useWKT) {
+      readOptions.dataProjection = 'EPSG:4326';
+    }
 
-    const features = readFeatures(featureData, {
-      format: useWKT ? 'WKT' : 'GeoJSON',
-      ...readOptions,
-    });
-    source.addFeatures(features);
-  }, [data, geojson, id, map, wkt]);
+    const reportSuccess = (features) => {
+      source.addFeatures(features);
+      if (setPropsRef.current) {
+        setPropsRef.current({ featureCount: features.length, loadError: null });
+      }
+    };
+    const reportError = (error) => {
+      source.clear();
+      if (setPropsRef.current) {
+        setPropsRef.current({
+          featureCount: 0,
+          loadError: error instanceof Error ? error.message : String(error),
+        });
+      }
+    };
+
+    if (featureData) {
+      try {
+        reportSuccess(
+          readFeatures(featureData, {
+            format: useWKT ? 'WKT' : format,
+            ...readOptions,
+          }),
+        );
+      } catch (error) {
+        reportError(error);
+      }
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const loadURL = async () => {
+      try {
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) throw new Error(`Vector data request failed: ${response.status}`);
+        const responseData = await response.text();
+        if (controller.signal.aborted) return;
+        reportSuccess(readFeatures(responseData, { format, ...readOptions }));
+      } catch (error) {
+        if (!controller.signal.aborted) reportError(error);
+      }
+    };
+    loadURL();
+    return () => controller.abort();
+  }, [data, dataProjection, format, geojson, id, map, url, wkt]);
 
   return null;
 };
@@ -149,6 +245,9 @@ VectorLayerComponent.defaultProps = {
   data: null,
   geojson: null,
   wkt: null,
+  url: null,
+  format: 'GeoJSON',
+  dataProjection: null,
   style: null,
   clusterDistance: 0,
   clusterMinDistance: 0,
@@ -164,6 +263,12 @@ VectorLayerComponent.propTypes = {
   geojson: PropTypes.object,
   /** WKT geometry string in [x, y] order; takes precedence over `data` and `geojson` when non-empty. */
   wkt: PropTypes.string,
+  /** Remote URL for vector data; used when data, geojson, and wkt are not provided. */
+  url: PropTypes.string,
+  /** Data format for data or url: GeoJSON, TopoJSON, KML, or WKT. */
+  format: PropTypes.oneOf(['GeoJSON', 'TopoJSON', 'KML', 'WKT']),
+  /** Projection of input coordinates; defaults to EPSG:4326 unless GeoJSON embeds a CRS. */
+  dataProjection: PropTypes.string,
   /** OpenLayers flat style object or rule array; supports icon, fill, stroke, feature filters, and resolution expressions. */
   style: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
   /** Point clustering distance in screen pixels; set to 0 to disable clustering. */
@@ -172,6 +277,14 @@ VectorLayerComponent.propTypes = {
   clusterMinDistance: PropTypes.number,
   /** Enable label decluttering, or provide a shared group name to declutter with other layers. */
   declutter: PropTypes.oneOfType([PropTypes.bool, PropTypes.string]),
+  /** Read-only: GeoJSON Feature under the pointer, with coordinates in EPSG:4326. */
+  hoveredFeature: PropTypes.object,
+  /** Read-only: GeoJSON Feature clicked on this layer, with coordinates in EPSG:4326. */
+  clickedFeature: PropTypes.object,
+  /** Read-only: number of features in the loaded source. */
+  featureCount: PropTypes.number,
+  /** Read-only: message from the last failed data load, or null after success. */
+  loadError: PropTypes.string,
   /** Dash-supplied callback used to write component state back to the layout. */
   setProps: PropTypes.func,
 };
