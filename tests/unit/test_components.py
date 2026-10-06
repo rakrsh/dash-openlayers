@@ -363,6 +363,22 @@ def test_vector_layer_serializes_geojson_data(data):
     }
 
 
+def test_vector_layer_serializes_remote_format_and_projection_props():
+    component = dol.VectorLayer(
+        id="remote-features",
+        url="https://data.example/features.kml",
+        format="KML",
+        dataProjection="EPSG:27700",
+    )
+
+    assert component.to_plotly_json()["props"] == {
+        "id": "remote-features",
+        "url": "https://data.example/features.kml",
+        "format": "KML",
+        "dataProjection": "EPSG:27700",
+    }
+
+
 def test_webgl_points_layer_serializes_data_style_and_hit_detection():
     data = '{"type":"FeatureCollection","features":[]}'
     style = {

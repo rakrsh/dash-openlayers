@@ -22,7 +22,7 @@ ComponentType = typing.Union[
 
 class VectorLayer(Component):
     """A VectorLayer component.
-Render GeoJSON features in a canvas-backed OpenLayers vector layer.
+Load and interact with GeoJSON, TopoJSON, KML, or WKT vector data in an OpenLayers vector layer.
 
 Keyword arguments:
 
@@ -43,6 +43,17 @@ Keyword arguments:
     WKT geometry string in [x, y] order; takes precedence over `data`
     and `geojson` when non-empty.
 
+- url (string; optional):
+    Remote URL for vector data; used when data, geojson, and wkt are
+    not provided.
+
+- format (a value equal to: 'GeoJSON', 'TopoJSON', 'KML', 'WKT'; default 'GeoJSON'):
+    Data format for data or url: GeoJSON, TopoJSON, KML, or WKT.
+
+- dataProjection (string; optional):
+    Projection of input coordinates; defaults to EPSG:4326 unless
+    GeoJSON embeds a CRS.
+
 - clusterDistance (number; default 0):
     Point clustering distance in screen pixels; set to 0 to disable
     clustering.
@@ -53,7 +64,22 @@ Keyword arguments:
 
 - declutter (boolean | string; default False):
     Enable label decluttering, or provide a shared group name to
-    declutter with other layers."""
+    declutter with other layers.
+
+- hoveredFeature (dict; optional):
+    Read-only: GeoJSON Feature under the pointer, with coordinates in
+    EPSG:4326.
+
+- clickedFeature (dict; optional):
+    Read-only: GeoJSON Feature clicked on this layer, with coordinates
+    in EPSG:4326.
+
+- featureCount (number; optional):
+    Read-only: number of features in the loaded source.
+
+- loadError (string; optional):
+    Read-only: message from the last failed data load, or None after
+    success."""
     _children_props: typing.List[str] = []
     _base_nodes = ['children']
     _namespace = 'dash_openlayers'
@@ -66,15 +92,22 @@ Keyword arguments:
         data: typing.Optional[typing.Union[str, dict]] = None,
         geojson: typing.Optional[dict] = None,
         wkt: typing.Optional[str] = None,
+        url: typing.Optional[str] = None,
+        format: typing.Optional[Literal["GeoJSON", "TopoJSON", "KML", "WKT"]] = None,
+        dataProjection: typing.Optional[str] = None,
         style: typing.Optional[typing.Any] = None,
         clusterDistance: typing.Optional[NumberType] = None,
         clusterMinDistance: typing.Optional[NumberType] = None,
         declutter: typing.Optional[typing.Union[bool, str]] = None,
+        hoveredFeature: typing.Optional[dict] = None,
+        clickedFeature: typing.Optional[dict] = None,
+        featureCount: typing.Optional[NumberType] = None,
+        loadError: typing.Optional[str] = None,
         **kwargs
     ):
-        self._prop_names = ['id', 'data', 'geojson', 'wkt', 'style', 'clusterDistance', 'clusterMinDistance', 'declutter']
+        self._prop_names = ['id', 'data', 'geojson', 'wkt', 'url', 'format', 'dataProjection', 'style', 'clusterDistance', 'clusterMinDistance', 'declutter', 'hoveredFeature', 'clickedFeature', 'featureCount', 'loadError']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'data', 'geojson', 'wkt', 'style', 'clusterDistance', 'clusterMinDistance', 'declutter']
+        self.available_properties = ['id', 'data', 'geojson', 'wkt', 'url', 'format', 'dataProjection', 'style', 'clusterDistance', 'clusterMinDistance', 'declutter', 'hoveredFeature', 'clickedFeature', 'featureCount', 'loadError']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()

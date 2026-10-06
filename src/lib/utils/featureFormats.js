@@ -1,12 +1,20 @@
 import GeoJSON from 'ol/format/GeoJSON';
+import KML from 'ol/format/KML';
+import TopoJSON from 'ol/format/TopoJSON';
 import WKT from 'ol/format/WKT';
 import { topology } from 'topojson-server';
 
 const TOPOJSON_QUANTIZATION = 1e5;
 
 export const readFeatures = (data, { format = 'GeoJSON', ...options } = {}) => {
-  if (format === 'GeoJSON') return new GeoJSON().readFeatures(data, options);
-  if (format === 'WKT') return new WKT().readFeatures(data, options);
+  const formats = {
+    GeoJSON,
+    KML,
+    TopoJSON,
+    WKT,
+  };
+  const FeatureFormat = formats[format];
+  if (FeatureFormat) return new FeatureFormat().readFeatures(data, options);
   throw new Error(`Unsupported feature format: ${format}`);
 };
 

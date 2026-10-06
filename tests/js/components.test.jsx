@@ -31,6 +31,8 @@ import Tile from 'ol/layer/Tile';
 import OSM from 'ol/source/OSM';
 import XYZ from 'ol/source/XYZ';
 import GeoJSON from 'ol/format/GeoJSON';
+import KML from 'ol/format/KML';
+import TopoJSON from 'ol/format/TopoJSON';
 import WKT from 'ol/format/WKT';
 import Cluster from 'ol/source/Cluster';
 import OpenLayersVectorLayer from 'ol/layer/Vector';
@@ -182,6 +184,20 @@ jest.mock('ol/format/WKT', () => ({
     this.readFeatures = jest.fn(() => [{ id: 'wkt-feature' }]);
     this.writeFeature = jest.fn(() => 'POINT (10 45)');
     this.writeFeatures = jest.fn(() => 'GEOMETRYCOLLECTION EMPTY');
+  }),
+}));
+
+jest.mock('ol/format/TopoJSON', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockTopoJSON() {
+    this.readFeatures = jest.fn(() => [{ id: 'topojson-feature' }]);
+  }),
+}));
+
+jest.mock('ol/format/KML', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockKML() {
+    this.readFeatures = jest.fn(() => [{ id: 'kml-feature' }]);
   }),
 }));
 
@@ -402,16 +418,33 @@ describe('feature format helpers', () => {
 
     readFeatures('POINT (10 45)', { format: 'WKT', ...options });
     expect(WKT.mock.instances.at(-1).readFeatures).toHaveBeenCalledWith('POINT (10 45)', options);
+
+    readFeatures('{"type":"Topology"}', { format: 'TopoJSON', ...options });
+    expect(TopoJSON.mock.instances.at(-1).readFeatures).toHaveBeenCalledWith(
+      '{"type":"Topology"}',
+      options,
+    );
+    readFeatures('<kml />', { format: 'KML', ...options });
+    expect(KML.mock.instances.at(-1).readFeatures).toHaveBeenCalledWith('<kml />', options);
   });
 
   it('rejects unsupported input formats', () => {
-    expect(() => readFeatures('{}', { format: 'TopoJSON' })).toThrow(
-      'Unsupported feature format: TopoJSON',
+    expect(() => readFeatures('{}', { format: 'Shapefile' })).toThrow(
+      'Unsupported feature format: Shapefile',
     );
   });
 });
 
 const makeMap = () => ({
+  listeners: {},
+  hitFeature: null,
+  on: jest.fn(function on(event, listener) {
+    this.listeners[event] = listener;
+    return { event, listener };
+  }),
+  forEachFeatureAtPixel: jest.fn(function forEachFeatureAtPixel(pixel, callback) {
+    if (this.hitFeature) callback(this.hitFeature);
+  }),
   addLayer: jest.fn(),
   removeLayer: jest.fn(),
   addOverlay: jest.fn(),
@@ -954,6 +987,108 @@ describe('VectorLayer', () => {
       featureProjection: 'EPSG:3857',
     });
     expect(source.addFeatures).toHaveBeenCalledWith([{ id: 'wkt-feature' }]);
+  });
+
+  it('loads remote formats into the existing source and reports failures', async () => {
+    const map = makeMap();
+    const setProps = jest.fn();
+    global.fetch = jest
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        text: jest.fn().mockResolvedValue('<kml />'),
+      })
+      .mockResolvedValueOnce({ ok: false, status: 503 });
+    const { rerender } = render(
+      <OLContext.Provider value={map}>
+        <VectorLayer
+          id="remote-features"
+          url="https://data.example/features.kml"
+          format="KML"
+          dataProjection="EPSG:27700"
+          setProps={setProps}
+        />
+      </OLContext.Provider>,
+    );
+
+    const source = VectorSource.mock.instances.at(-1);
+    const layer = OpenLayersVectorLayer.mock.instances.at(-1);
+    const initialRequestSignal = global.fetch.mock.calls[0][1].signal;
+    await waitFor(() =>
+      expect(setProps).toHaveBeenCalledWith({ featureCount: 1, loadError: null }),
+    );
+    expect(KML.mock.instances.at(-1).readFeatures).toHaveBeenCalledWith('<kml />', {
+      featureProjection: 'EPSG:3857',
+      dataProjection: 'EPSG:27700',
+    });
+    expect(source.addFeatures).toHaveBeenCalledWith([{ id: 'kml-feature' }]);
+
+    rerender(
+      <OLContext.Provider value={map}>
+        <VectorLayer
+          id="remote-features"
+          url="https://data.example/other.kml"
+          format="KML"
+          dataProjection="EPSG:27700"
+          setProps={setProps}
+        />
+      </OLContext.Provider>,
+    );
+    await waitFor(() =>
+      expect(setProps).toHaveBeenCalledWith({
+        featureCount: 0,
+        loadError: 'Vector data request failed: 503',
+      }),
+    );
+    expect(initialRequestSignal.aborted).toBe(true);
+    expect(VectorSource).toHaveBeenCalledTimes(1);
+    expect(OpenLayersVectorLayer).toHaveBeenCalledTimes(1);
+    expect(map.addLayer).toHaveBeenCalledWith(layer);
+  });
+
+  it('publishes clicked and hovered features as GeoJSON and removes map listeners', () => {
+    const map = makeMap();
+    const setProps = jest.fn();
+    const feature = { get: jest.fn(() => undefined) };
+    const { unmount } = render(
+      <OLContext.Provider value={map}>
+        <VectorLayer id="features" setProps={setProps} />
+      </OLContext.Provider>,
+    );
+    map.hitFeature = feature;
+
+    map.listeners.singleclick({ pixel: [10, 20] });
+    expect(setProps).toHaveBeenCalledWith({
+      clickedFeature: {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [10, 45] },
+        properties: {},
+      },
+    });
+    map.listeners.pointermove({ pixel: [10, 20], dragging: false });
+    expect(setProps).toHaveBeenLastCalledWith({
+      hoveredFeature: {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [10, 45] },
+        properties: {},
+      },
+    });
+    const setPropsCount = setProps.mock.calls.length;
+    map.listeners.pointermove({ pixel: [10, 20], dragging: true });
+    map.listeners.pointermove({ pixel: [10, 20], dragging: false });
+    expect(setProps).toHaveBeenCalledTimes(setPropsCount);
+
+    map.hitFeature = null;
+    map.listeners.pointermove({ pixel: [10, 20], dragging: false });
+    expect(setProps).toHaveBeenLastCalledWith({ hoveredFeature: null });
+    map.hitFeature = null;
+    map.listeners.singleclick({ pixel: [10, 20] });
+    expect(setProps).toHaveBeenLastCalledWith({ clickedFeature: null });
+    unmount();
+    expect(unByKey).toHaveBeenCalledWith([
+      expect.objectContaining({ event: 'singleclick' }),
+      expect.objectContaining({ event: 'pointermove' }),
+    ]);
   });
 
   it('clears the source when GeoJSON is removed', () => {

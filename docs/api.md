@@ -143,7 +143,7 @@ Render a tiled OGC Web Map Service layer.
 
 ## `VectorLayer`
 
-Render GeoJSON features in a canvas-backed OpenLayers vector layer.
+Load and interact with GeoJSON, TopoJSON, KML, or WKT vector data in an OpenLayers vector layer.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -151,10 +151,17 @@ Render GeoJSON features in a canvas-backed OpenLayers vector layer.
 | `data` | `string \| dict` | `null` | GeoJSON Feature or FeatureCollection as an object or JSON string; embedded CRS metadata is honored, otherwise coordinates default to EPSG:4326. Takes precedence over geojson. |
 | `geojson` | `dict` | `null` | Backward-compatible GeoJSON Feature or FeatureCollection object alias for `data`. |
 | `wkt` | `string` | `null` | WKT geometry string in [x, y] order; takes precedence over `data` and `geojson` when non-empty. |
+| `url` | `string` | `null` | Remote URL for vector data; used when data, geojson, and wkt are not provided. |
+| `format` | `'GeoJSON' \| 'TopoJSON' \| 'KML' \| 'WKT'` | `'GeoJSON'` | Data format for data or url: GeoJSON, TopoJSON, KML, or WKT. |
+| `dataProjection` | `string` | `null` | Projection of input coordinates; defaults to EPSG:4326 unless GeoJSON embeds a CRS. |
 | `style` | `dict \| list[dict]` | `null` | OpenLayers flat style object or rule array; supports icon, fill, stroke, feature filters, and resolution expressions. |
 | `clusterDistance` | `number` | `0` | Point clustering distance in screen pixels; set to 0 to disable clustering. |
 | `clusterMinDistance` | `number` | `0` | Minimum distance in screen pixels between clusters; capped at clusterDistance. |
 | `declutter` | `bool \| string` | `false` | Enable label decluttering, or provide a shared group name to declutter with other layers. |
+| `hoveredFeature` | `dict` | — | Read-only: GeoJSON Feature under the pointer, with coordinates in EPSG:4326. |
+| `clickedFeature` | `dict` | — | Read-only: GeoJSON Feature clicked on this layer, with coordinates in EPSG:4326. |
+| `featureCount` | `number` | — | Read-only: number of features in the loaded source. |
+| `loadError` | `string` | — | Read-only: message from the last failed data load, or null after success. |
 
 ## `VectorTileLayer`
 

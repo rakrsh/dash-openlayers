@@ -753,7 +753,7 @@
     }
   },
   "src/lib/components/VectorLayer.react.js": {
-    "description": "Render GeoJSON features in a canvas-backed OpenLayers vector layer.",
+    "description": "Load and interact with GeoJSON, TopoJSON, KML, or WKT vector data in an OpenLayers vector layer.",
     "displayName": "VectorLayerComponent",
     "methods": [],
     "props": {
@@ -800,6 +800,57 @@
         },
         "required": false,
         "description": "WKT geometry string in [x, y] order; takes precedence over `data` and `geojson` when non-empty.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "url": {
+        "type": {
+          "name": "string"
+        },
+        "required": false,
+        "description": "Remote URL for vector data; used when data, geojson, and wkt are not provided.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "format": {
+        "type": {
+          "name": "enum",
+          "value": [
+            {
+              "value": "'GeoJSON'",
+              "computed": false
+            },
+            {
+              "value": "'TopoJSON'",
+              "computed": false
+            },
+            {
+              "value": "'KML'",
+              "computed": false
+            },
+            {
+              "value": "'WKT'",
+              "computed": false
+            }
+          ]
+        },
+        "required": false,
+        "description": "Data format for data or url: GeoJSON, TopoJSON, KML, or WKT.",
+        "defaultValue": {
+          "value": "'GeoJSON'",
+          "computed": false
+        }
+      },
+      "dataProjection": {
+        "type": {
+          "name": "string"
+        },
+        "required": false,
+        "description": "Projection of input coordinates; defaults to EPSG:4326 unless GeoJSON embeds a CRS.",
         "defaultValue": {
           "value": "null",
           "computed": false
@@ -867,6 +918,34 @@
           "value": "false",
           "computed": false
         }
+      },
+      "hoveredFeature": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Read-only: GeoJSON Feature under the pointer, with coordinates in EPSG:4326."
+      },
+      "clickedFeature": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Read-only: GeoJSON Feature clicked on this layer, with coordinates in EPSG:4326."
+      },
+      "featureCount": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Read-only: number of features in the loaded source."
+      },
+      "loadError": {
+        "type": {
+          "name": "string"
+        },
+        "required": false,
+        "description": "Read-only: message from the last failed data load, or null after success."
       },
       "setProps": {
         "type": {
