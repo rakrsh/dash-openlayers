@@ -429,8 +429,8 @@ describe('feature format helpers', () => {
   });
 
   it('rejects unsupported input formats', () => {
-    expect(() => readFeatures('{}', { format: 'TopoJSON' })).toThrow(
-      'Unsupported feature format: TopoJSON',
+    expect(() => readFeatures('{}', { format: 'Shapefile' })).toThrow(
+      'Unsupported feature format: Shapefile',
     );
   });
 });
@@ -1013,6 +1013,7 @@ describe('VectorLayer', () => {
 
     const source = VectorSource.mock.instances.at(-1);
     const layer = OpenLayersVectorLayer.mock.instances.at(-1);
+    const initialRequestSignal = global.fetch.mock.calls[0][1].signal;
     await waitFor(() =>
       expect(setProps).toHaveBeenCalledWith({ featureCount: 1, loadError: null }),
     );
@@ -1039,6 +1040,7 @@ describe('VectorLayer', () => {
         loadError: 'Vector data request failed: 503',
       }),
     );
+    expect(initialRequestSignal.aborted).toBe(true);
     expect(VectorSource).toHaveBeenCalledTimes(1);
     expect(OpenLayersVectorLayer).toHaveBeenCalledTimes(1);
     expect(map.addLayer).toHaveBeenCalledWith(layer);
@@ -1048,7 +1050,7 @@ describe('VectorLayer', () => {
     const map = makeMap();
     const setProps = jest.fn();
     const feature = { get: jest.fn(() => undefined) };
-    render(
+    const { unmount } = render(
       <OLContext.Provider value={map}>
         <VectorLayer id="features" setProps={setProps} />
       </OLContext.Provider>,
@@ -1079,6 +1081,14 @@ describe('VectorLayer', () => {
     map.hitFeature = null;
     map.listeners.pointermove({ pixel: [10, 20], dragging: false });
     expect(setProps).toHaveBeenLastCalledWith({ hoveredFeature: null });
+    map.hitFeature = null;
+    map.listeners.singleclick({ pixel: [10, 20] });
+    expect(setProps).toHaveBeenLastCalledWith({ clickedFeature: null });
+    unmount();
+    expect(unByKey).toHaveBeenCalledWith([
+      expect.objectContaining({ event: 'singleclick' }),
+      expect.objectContaining({ event: 'pointermove' }),
+    ]);
   });
 
   it('clears the source when GeoJSON is removed', () => {
