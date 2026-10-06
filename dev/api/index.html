@@ -1561,7 +1561,7 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 </tbody>
 </table>
 <h2 id="vectorlayer"><code>VectorLayer</code></h2>
-<p>Render GeoJSON features in a canvas-backed OpenLayers vector layer.</p>
+<p>Load and interact with GeoJSON, TopoJSON, KML, or WKT vector data in an OpenLayers vector layer.</p>
 <table>
 <thead>
 <tr>
@@ -1597,6 +1597,24 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td>WKT geometry string in [x, y] order; takes precedence over <code>data</code> and <code>geojson</code> when non-empty.</td>
 </tr>
 <tr>
+<td><code>url</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>Remote URL for vector data; used when data, geojson, and wkt are not provided.</td>
+</tr>
+<tr>
+<td><code>format</code></td>
+<td><code>'GeoJSON' \| 'TopoJSON' \| 'KML' \| 'WKT'</code></td>
+<td><code>'GeoJSON'</code></td>
+<td>Data format for data or url: GeoJSON, TopoJSON, KML, or WKT.</td>
+</tr>
+<tr>
+<td><code>dataProjection</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>Projection of input coordinates; defaults to EPSG:4326 unless GeoJSON embeds a CRS.</td>
+</tr>
+<tr>
 <td><code>style</code></td>
 <td><code>dict \| list[dict]</code></td>
 <td><code>null</code></td>
@@ -1619,6 +1637,30 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>bool \| string</code></td>
 <td><code>false</code></td>
 <td>Enable label decluttering, or provide a shared group name to declutter with other layers.</td>
+</tr>
+<tr>
+<td><code>hoveredFeature</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: GeoJSON Feature under the pointer, with coordinates in EPSG:4326.</td>
+</tr>
+<tr>
+<td><code>clickedFeature</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: GeoJSON Feature clicked on this layer, with coordinates in EPSG:4326.</td>
+</tr>
+<tr>
+<td><code>featureCount</code></td>
+<td><code>number</code></td>
+<td>—</td>
+<td>Read-only: number of features in the loaded source.</td>
+</tr>
+<tr>
+<td><code>loadError</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>Read-only: message from the last failed data load, or null after success.</td>
 </tr>
 </tbody>
 </table>
