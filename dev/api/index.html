@@ -1618,7 +1618,19 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>style</code></td>
 <td><code>dict \| list[dict]</code></td>
 <td><code>null</code></td>
-<td>OpenLayers flat style object or rule array; supports icon, fill, stroke, feature filters, and resolution expressions.</td>
+<td>OpenLayers flat style or declarative style dictionary with fillColor, strokeColor, strokeWidth, radius, opacity, marker, and ordered rules. Each rule uses property, operator (==, !=, &gt;, &gt;=, &lt;, &lt;=, in, or notIn), value, and style. A marker may be a URL, an SVG string, or circle.</td>
+</tr>
+<tr>
+<td><code>hoverStyle</code></td>
+<td><code>dict</code></td>
+<td><code>null</code></td>
+<td>Declarative feature style applied while the pointer is over a feature; supports fillColor, strokeColor, strokeWidth, radius, opacity, marker, and property rules.</td>
+</tr>
+<tr>
+<td><code>selectedStyle</code></td>
+<td><code>dict</code></td>
+<td><code>null</code></td>
+<td>Declarative feature style applied to the most recently clicked feature; supports fillColor, strokeColor, strokeWidth, radius, opacity, marker, and property rules.</td>
 </tr>
 <tr>
 <td><code>clusterDistance</code></td>
