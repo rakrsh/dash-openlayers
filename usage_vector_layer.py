@@ -59,7 +59,37 @@ app.layout = html.Div(
             id="map",
             center=[0, 0],
             zoom=4,
-            children=[dol.VectorLayer(id="vector-layer", geojson=FEATURES)],
+            children=[
+                dol.VectorLayer(
+                    id="vector-layer",
+                    geojson=FEATURES,
+                    style={
+                        "fillColor": "#d5e8e2",
+                        "strokeColor": "#1f6a5e",
+                        "strokeWidth": 2,
+                        "radius": 7,
+                        "rules": [
+                            {
+                                "property": "name",
+                                "operator": "==",
+                                "value": "Point",
+                                "style": {
+                                    "marker": {
+                                        "svg": (
+                                            '<svg xmlns="http://www.w3.org/2000/svg" '
+                                            'width="24" height="24" viewBox="0 0 24 24">'
+                                            '<circle cx="12" cy="12" r="9" fill="#d66f41" '
+                                            'stroke="#ffffff" stroke-width="2"/></svg>'
+                                        )
+                                    }
+                                },
+                            }
+                        ],
+                    },
+                    hoverStyle={"fillColor": "#ffd166", "strokeWidth": 3, "radius": 9},
+                    selectedStyle={"fillColor": "#ef476f", "strokeColor": "#ffffff"},
+                )
+            ],
             style={"height": "600px", "width": "100%"},
         ),
     ]

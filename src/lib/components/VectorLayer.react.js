@@ -8,11 +8,12 @@ import VectorSource from 'ol/source/Vector';
 import CircleStyle from 'ol/style/Circle';
 import Fill from 'ol/style/Fill';
 import Stroke from 'ol/style/Stroke';
-import Style from 'ol/style/Style';
+import Style, { toFunction } from 'ol/style/Style';
 import Text from 'ol/style/Text';
 import { useMap } from '../context/OLContext';
 import { getEditHistory } from '../utils/editHistory';
 import { readFeatures } from '../utils/featureFormats';
+import { createVectorStyle } from '../utils/vectorStyle';
 
 /** Render GeoJSON features in a canvas-backed OpenLayers vector layer. */
 const VectorLayerComponent = ({
@@ -24,6 +25,8 @@ const VectorLayerComponent = ({
   format,
   dataProjection,
   style,
+  hoverStyle,
+  selectedStyle,
   clusterDistance = 0,
   clusterMinDistance = 0,
   declutter = false,
@@ -34,6 +37,8 @@ const VectorLayerComponent = ({
   const layerRef = useRef(null);
   const clusterSourceRef = useRef(null);
   const setPropsRef = useRef(setProps);
+  const hoveredFeatureRef = useRef(null);
+  const selectedFeatureRef = useRef(null);
 
   useEffect(() => {
     setPropsRef.current = setProps;
@@ -82,16 +87,18 @@ const VectorLayerComponent = ({
         : null;
     const clickKey = map.on('singleclick', (event) => {
       const feature = getHitFeature(event.pixel);
+      selectedFeatureRef.current = feature;
+      layer.changed();
       if (setPropsRef.current) {
         setPropsRef.current({ clickedFeature: serializeFeature(feature) });
       }
     });
-    let hoveredFeature = null;
     const pointerMoveKey = map.on('pointermove', (event) => {
       if (event.dragging) return;
       const feature = getHitFeature(event.pixel);
-      if (feature === hoveredFeature) return;
-      hoveredFeature = feature;
+      if (feature === hoveredFeatureRef.current) return;
+      hoveredFeatureRef.current = feature;
+      layer.changed();
       if (setPropsRef.current) {
         setPropsRef.current({ hoveredFeature: serializeFeature(feature) });
       }
@@ -100,6 +107,8 @@ const VectorLayerComponent = ({
     return () => {
       map.removeLayer(layer);
       unByKey([clickKey, pointerMoveKey]);
+      hoveredFeatureRef.current = null;
+      selectedFeatureRef.current = null;
       layerRef.current = null;
       if (clusterSourceRef.current) {
         clusterSourceRef.current.setSource(null);
@@ -136,7 +145,29 @@ const VectorLayerComponent = ({
     const layer = layerRef.current;
     if (!layer) return () => {};
 
-    layer.setStyle(style ?? undefined);
+    const baseStyle = createVectorStyle(style);
+    const hover = createVectorStyle(hoverStyle);
+    const selected = createVectorStyle(selectedStyle);
+    layer.setStyle(baseStyle ?? undefined);
+    if (hover || selected) {
+      const baseStyleFunction = layer.getStyleFunction();
+      const hoverStyleFunction =
+        hover == null ? null : typeof hover === 'function' ? hover : toFunction(hover);
+      const selectedStyleFunction =
+        selected == null ? null : typeof selected === 'function' ? selected : toFunction(selected);
+      const stateStyleFunction = (feature, resolution) => {
+        const features = feature.get('features');
+        const styledFeature = features?.length === 1 ? features[0] : feature;
+        if (styledFeature === selectedFeatureRef.current && selectedStyleFunction) {
+          return selectedStyleFunction(styledFeature, resolution);
+        }
+        if (styledFeature === hoveredFeatureRef.current && hoverStyleFunction) {
+          return hoverStyleFunction(styledFeature, resolution);
+        }
+        return baseStyleFunction(styledFeature, resolution);
+      };
+      layer.setStyle(stateStyleFunction);
+    }
     if (clusterDistance > 0) {
       const baseStyleFunction = layer.getStyleFunction();
       const clusterStyles = new Map();
@@ -167,7 +198,7 @@ const VectorLayerComponent = ({
     }
 
     return () => layer.setStyle(style ?? undefined);
-  }, [clusterDistance, declutter, id, map, style]);
+  }, [clusterDistance, declutter, hoverStyle, id, map, selectedStyle, style]);
 
   useEffect(() => {
     const source = sourceRef.current;
@@ -249,6 +280,8 @@ VectorLayerComponent.defaultProps = {
   format: 'GeoJSON',
   dataProjection: null,
   style: null,
+  hoverStyle: null,
+  selectedStyle: null,
   clusterDistance: 0,
   clusterMinDistance: 0,
   declutter: false,
@@ -269,8 +302,12 @@ VectorLayerComponent.propTypes = {
   format: PropTypes.oneOf(['GeoJSON', 'TopoJSON', 'KML', 'WKT']),
   /** Projection of input coordinates; defaults to EPSG:4326 unless GeoJSON embeds a CRS. */
   dataProjection: PropTypes.string,
-  /** OpenLayers flat style object or rule array; supports icon, fill, stroke, feature filters, and resolution expressions. */
+  /** OpenLayers flat style or declarative dictionary with fillColor, strokeColor, strokeWidth, radius, opacity, marker, and property rules. */
   style: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
+  /** Declarative style dictionary applied while a feature is under the pointer; supports the same fields as `style`. */
+  hoverStyle: PropTypes.object,
+  /** Declarative style dictionary applied to the feature most recently clicked; supports the same fields as `style`. */
+  selectedStyle: PropTypes.object,
   /** Point clustering distance in screen pixels; set to 0 to disable clustering. */
   clusterDistance: PropTypes.number,
   /** Minimum distance in screen pixels between clusters; capped at clusterDistance. */

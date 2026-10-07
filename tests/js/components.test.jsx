@@ -17,6 +17,7 @@ import WFSLayer from '../../src/lib/components/WFSLayer.react';
 import { OLContext, useMap } from '../../src/lib/context/OLContext';
 import { getEditHistory } from '../../src/lib/utils/editHistory';
 import { exportFeature, exportFeatures, readFeatures } from '../../src/lib/utils/featureFormats';
+import { createVectorStyle } from '../../src/lib/utils/vectorStyle';
 import Snap from 'ol/interaction/Snap';
 import Map from 'ol/Map';
 import Overlay from 'ol/Overlay';
@@ -277,6 +278,7 @@ jest.mock('ol/layer/Vector', () => ({
   default: jest.fn().mockImplementation(function MockVectorLayer(options) {
     this.options = options;
     this.properties = {};
+    this.changed = jest.fn();
     this.set = jest.fn((key, value) => {
       this.properties[key] = value;
     });
@@ -306,6 +308,29 @@ jest.mock('ol/style/Circle', () => ({
   }),
 }));
 
+jest.mock('ol/style/Icon', () => ({
+  __esModule: true,
+  default: jest.fn().mockImplementation(function MockIcon(options) {
+    this.options = options;
+  }),
+}));
+
+jest.mock('ol/color', () => ({
+  asArray: jest.fn((color) => {
+    if (Array.isArray(color)) return color;
+    const hex = color.match(/^#([0-9a-f]{6})$/i);
+    if (hex) {
+      return [
+        parseInt(hex[1].slice(0, 2), 16),
+        parseInt(hex[1].slice(2, 4), 16),
+        parseInt(hex[1].slice(4, 6), 16),
+        1,
+      ];
+    }
+    return [0, 0, 0, 1];
+  }),
+}));
+
 jest.mock('ol/style/Fill', () => ({
   __esModule: true,
   default: jest.fn().mockImplementation(function MockFill(options) {
@@ -322,6 +347,7 @@ jest.mock('ol/style/Stroke', () => ({
 
 jest.mock('ol/style/Style', () => ({
   __esModule: true,
+  toFunction: jest.fn((style) => (typeof style === 'function' ? style : () => [style])),
   default: jest.fn().mockImplementation(function MockStyle(options) {
     this.options = options;
   }),
@@ -1089,6 +1115,66 @@ describe('VectorLayer', () => {
       expect.objectContaining({ event: 'singleclick' }),
       expect.objectContaining({ event: 'pointermove' }),
     ]);
+  });
+
+  it('applies hover and selected styles as map interactions change feature state', () => {
+    const map = makeMap();
+    const hoveredFeature = { get: jest.fn(() => undefined) };
+    const selectedFeature = { get: jest.fn(() => undefined) };
+    render(
+      <OLContext.Provider value={map}>
+        <VectorLayer
+          hoverStyle={{ fillColor: '#ffaa00' }}
+          selectedStyle={{ fillColor: '#00aa55' }}
+        />
+      </OLContext.Provider>,
+    );
+
+    const layer = OpenLayersVectorLayer.mock.instances.at(-1);
+    const styleFunction = layer.styleFunction;
+    map.hitFeature = hoveredFeature;
+    map.listeners.pointermove({ pixel: [1, 2], dragging: false });
+    expect(styleFunction(hoveredFeature, 1)[0].options.fill.options.color).toBe('#ffaa00');
+
+    map.hitFeature = selectedFeature;
+    map.listeners.singleclick({ pixel: [1, 2] });
+    expect(styleFunction(selectedFeature, 1)[0].options.fill.options.color).toBe('#00aa55');
+    expect(layer.changed).toHaveBeenCalledTimes(2);
+
+    map.hitFeature = null;
+    map.listeners.singleclick({ pixel: [1, 2] });
+    expect(styleFunction(selectedFeature, 1)).toEqual([{ name: 'base-style' }]);
+  });
+
+  it('compiles declarative property rules, opacity, and custom markers', () => {
+    const style = createVectorStyle({
+      fillColor: '#336699',
+      strokeColor: '#ffffff',
+      strokeWidth: 2,
+      radius: 8,
+      opacity: 0.5,
+      rules: [
+        {
+          property: 'rate',
+          operator: '>=',
+          value: 50,
+          style: { fillColor: '#cc0000' },
+        },
+      ],
+    });
+    const fallbackStyle = style({ get: () => 20 }, 1);
+    const matchingStyle = style({ get: () => 80 }, 1);
+    const svgStyle = createVectorStyle({
+      marker: { svg: '<svg xmlns="http://www.w3.org/2000/svg"></svg>' },
+    });
+    const urlStyle = createVectorStyle({ marker: 'https://example.com/marker.png' });
+
+    expect(fallbackStyle[0].options.fill.options.color).toEqual([51, 102, 153, 0.5]);
+    expect(fallbackStyle[0].options.stroke.options.width).toBe(2);
+    expect(fallbackStyle[0].options.image.options.radius).toBe(8);
+    expect(matchingStyle[0].options.fill.options.color).toBe('#cc0000');
+    expect(svgStyle.options.image.options.src).toContain('data:image/svg+xml');
+    expect(urlStyle.options.image.options.src).toBe('https://example.com/marker.png');
   });
 
   it('clears the source when GeoJSON is removed', () => {

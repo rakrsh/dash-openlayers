@@ -872,7 +872,29 @@
           ]
         },
         "required": false,
-        "description": "OpenLayers flat style object or rule array; supports icon, fill, stroke, feature filters, and resolution expressions.",
+        "description": "OpenLayers flat style or declarative style dictionary with fillColor, strokeColor, strokeWidth, radius, opacity, marker, and ordered rules. Each rule uses property, operator (==, !=, >, >=, <, <=, in, or notIn), value, and style. A marker may be a URL, an SVG string, or circle.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "hoverStyle": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Declarative feature style applied while the pointer is over a feature; supports fillColor, strokeColor, strokeWidth, radius, opacity, marker, and property rules.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "selectedStyle": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Declarative feature style applied to the most recently clicked feature; supports fillColor, strokeColor, strokeWidth, radius, opacity, marker, and property rules.",
         "defaultValue": {
           "value": "null",
           "computed": false

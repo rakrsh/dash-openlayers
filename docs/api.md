@@ -154,7 +154,9 @@ Load and interact with GeoJSON, TopoJSON, KML, or WKT vector data in an OpenLaye
 | `url` | `string` | `null` | Remote URL for vector data; used when data, geojson, and wkt are not provided. |
 | `format` | `'GeoJSON' \| 'TopoJSON' \| 'KML' \| 'WKT'` | `'GeoJSON'` | Data format for data or url: GeoJSON, TopoJSON, KML, or WKT. |
 | `dataProjection` | `string` | `null` | Projection of input coordinates; defaults to EPSG:4326 unless GeoJSON embeds a CRS. |
-| `style` | `dict \| list[dict]` | `null` | OpenLayers flat style object or rule array; supports icon, fill, stroke, feature filters, and resolution expressions. |
+| `style` | `dict \| list[dict]` | `null` | OpenLayers flat style or declarative style dictionary with fillColor, strokeColor, strokeWidth, radius, opacity, marker, and ordered rules. Each rule uses property, operator (==, !=, >, >=, <, <=, in, or notIn), value, and style. A marker may be a URL, an SVG string, or circle. |
+| `hoverStyle` | `dict` | `null` | Declarative feature style applied while the pointer is over a feature; supports fillColor, strokeColor, strokeWidth, radius, opacity, marker, and property rules. |
+| `selectedStyle` | `dict` | `null` | Declarative feature style applied to the most recently clicked feature; supports fillColor, strokeColor, strokeWidth, radius, opacity, marker, and property rules. |
 | `clusterDistance` | `number` | `0` | Point clustering distance in screen pixels; set to 0 to disable clustering. |
 | `clusterMinDistance` | `number` | `0` | Minimum distance in screen pixels between clusters; capped at clusterDistance. |
 | `declutter` | `bool \| string` | `false` | Enable label decluttering, or provide a shared group name to declutter with other layers. |

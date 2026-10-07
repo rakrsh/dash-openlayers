@@ -54,6 +54,16 @@ Keyword arguments:
     Projection of input coordinates; defaults to EPSG:4326 unless
     GeoJSON embeds a CRS.
 
+- hoverStyle (dict; optional):
+    Declarative feature style applied while the pointer is over a
+    feature; supports fillColor, strokeColor, strokeWidth, radius,
+    opacity, marker, and property rules.
+
+- selectedStyle (dict; optional):
+    Declarative feature style applied to the most recently clicked
+    feature; supports fillColor, strokeColor, strokeWidth, radius,
+    opacity, marker, and property rules.
+
 - clusterDistance (number; default 0):
     Point clustering distance in screen pixels; set to 0 to disable
     clustering.
@@ -96,6 +106,8 @@ Keyword arguments:
         format: typing.Optional[Literal["GeoJSON", "TopoJSON", "KML", "WKT"]] = None,
         dataProjection: typing.Optional[str] = None,
         style: typing.Optional[typing.Any] = None,
+        hoverStyle: typing.Optional[dict] = None,
+        selectedStyle: typing.Optional[dict] = None,
         clusterDistance: typing.Optional[NumberType] = None,
         clusterMinDistance: typing.Optional[NumberType] = None,
         declutter: typing.Optional[typing.Union[bool, str]] = None,
@@ -105,9 +117,9 @@ Keyword arguments:
         loadError: typing.Optional[str] = None,
         **kwargs
     ):
-        self._prop_names = ['id', 'data', 'geojson', 'wkt', 'url', 'format', 'dataProjection', 'style', 'clusterDistance', 'clusterMinDistance', 'declutter', 'hoveredFeature', 'clickedFeature', 'featureCount', 'loadError']
+        self._prop_names = ['id', 'data', 'geojson', 'wkt', 'url', 'format', 'dataProjection', 'style', 'hoverStyle', 'selectedStyle', 'clusterDistance', 'clusterMinDistance', 'declutter', 'hoveredFeature', 'clickedFeature', 'featureCount', 'loadError']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'data', 'geojson', 'wkt', 'url', 'format', 'dataProjection', 'style', 'clusterDistance', 'clusterMinDistance', 'declutter', 'hoveredFeature', 'clickedFeature', 'featureCount', 'loadError']
+        self.available_properties = ['id', 'data', 'geojson', 'wkt', 'url', 'format', 'dataProjection', 'style', 'hoverStyle', 'selectedStyle', 'clusterDistance', 'clusterMinDistance', 'declutter', 'hoveredFeature', 'clickedFeature', 'featureCount', 'loadError']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()
