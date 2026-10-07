@@ -54,7 +54,10 @@ function _iterableToArrayLimit(r, l) {
       f = true,
       o = false;
     try {
-      if (i = (t = t.call(r)).next, 0 === l) ; else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0);
+      if (i = (t = t.call(r)).next, 0 === l) {
+        if (Object(t) !== t) return;
+        f = !1;
+      } else for (; !(f = (e = i.call(t)).done) && (a.push(e.value), a.length !== l); f = !0);
     } catch (r) {
       o = true, n = r;
     } finally {
@@ -65817,13 +65820,13 @@ function equalArc(arcA, arcB) {
   return ia === ib && ja === jb;
 }
 
-var _excluded = ["format"];
+var _excluded$1 = ["format"];
 var TOPOJSON_QUANTIZATION = 1e5;
 var readFeatures = function readFeatures(data) {
   var _ref = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {},
     _ref$format = _ref.format,
     format = _ref$format === void 0 ? 'GeoJSON' : _ref$format,
-    options = _objectWithoutProperties(_ref, _excluded);
+    options = _objectWithoutProperties(_ref, _excluded$1);
   var formats = {
     GeoJSON,
     KML,
@@ -77537,6 +77540,136 @@ class Cluster extends VectorSource {
   }
 }
 
+var _excluded = ["rules"];
+var DECLARATIVE_STYLE_KEYS = ['fillColor', 'strokeColor', 'strokeWidth', 'radius', 'opacity', 'marker', 'icon', 'rules'];
+var colorWithOpacity = (color, opacity) => {
+  if (color == null || opacity == null || opacity >= 1) return color;
+  var _asArray = asArray(color),
+    _asArray2 = _slicedToArray(_asArray, 4),
+    red = _asArray2[0],
+    green = _asArray2[1],
+    blue = _asArray2[2],
+    _asArray2$ = _asArray2[3],
+    alpha = _asArray2$ === void 0 ? 1 : _asArray2$;
+  return [red, green, blue, alpha * opacity];
+};
+var markerOptions = (marker, opacity) => {
+  var _options$svg, _options$url, _options$opacity;
+  if (!marker) return null;
+  if (marker === 'circle') return {};
+  var options = typeof marker === 'string' ? {
+    src: marker
+  } : _objectSpread2({}, marker);
+  var svg = (_options$svg = options.svg) !== null && _options$svg !== void 0 ? _options$svg : typeof options.src === 'string' && options.src.trimStart().startsWith('<svg') ? options.src : null;
+  var src = svg ? "data:image/svg+xml;charset=utf-8,".concat(encodeURIComponent(svg)) : (_options$url = options.url) !== null && _options$url !== void 0 ? _options$url : options.src;
+  if (!src) return null;
+  var iconOptions = _objectSpread2({}, options);
+  delete iconOptions.svg;
+  delete iconOptions.url;
+  return _objectSpread2(_objectSpread2({}, iconOptions), {}, {
+    src,
+    opacity: (_options$opacity = options.opacity) !== null && _options$opacity !== void 0 ? _options$opacity : opacity
+  });
+};
+var toOpenLayersStyle = config => {
+  if (!config || typeof config !== 'object' || Array.isArray(config)) return config;
+  var fillColor = config.fillColor,
+    strokeColor = config.strokeColor,
+    strokeWidth = config.strokeWidth,
+    radius = config.radius,
+    _config$opacity = config.opacity,
+    opacity = _config$opacity === void 0 ? 1 : _config$opacity,
+    marker = config.marker,
+    icon = config.icon;
+  var image = markerOptions(marker !== null && marker !== void 0 ? marker : icon, opacity);
+  var fill = fillColor == null ? undefined : new Fill({
+    color: colorWithOpacity(fillColor, opacity)
+  });
+  var stroke = strokeColor == null ? undefined : new Stroke({
+    color: colorWithOpacity(strokeColor, opacity),
+    width: strokeWidth
+  });
+  var isCircleMarker = image && !image.src;
+  var circleFill = isCircleMarker && !fill ? new Fill({
+    color: colorWithOpacity('#3399CC', opacity)
+  }) : fill;
+  var circleStroke = isCircleMarker && !stroke ? new Stroke({
+    color: colorWithOpacity('#ffffff', opacity),
+    width: 1.5
+  }) : stroke;
+  var imageStyle = image ? image.src ? new Icon(image) : new CircleStyle({
+    radius: radius !== null && radius !== void 0 ? radius : 6,
+    fill: circleFill,
+    stroke: circleStroke
+  }) : radius == null ? undefined : new CircleStyle({
+    radius,
+    fill,
+    stroke
+  });
+  return new Style({
+    fill,
+    stroke,
+    image: imageStyle
+  });
+};
+var matchesRule = (feature, rule) => {
+  var _rule$operator;
+  if (!rule || typeof rule.property !== 'string') return false;
+  var actual = feature.get(rule.property);
+  var expected = rule.value;
+  switch ((_rule$operator = rule.operator) !== null && _rule$operator !== void 0 ? _rule$operator : '==') {
+    case '=':
+    case '==':
+    case '===':
+      return actual === expected;
+    case '!=':
+    case '!==':
+      return actual !== expected;
+    case '>':
+      return actual > expected;
+    case '>=':
+      return actual >= expected;
+    case '<':
+      return actual < expected;
+    case '<=':
+      return actual <= expected;
+    case 'in':
+      return Array.isArray(expected) && expected.includes(actual);
+    case 'notIn':
+      return Array.isArray(expected) && !expected.includes(actual);
+    default:
+      return false;
+  }
+};
+var isDeclarativeStyle = style => style && typeof style === 'object' && !Array.isArray(style) && DECLARATIVE_STYLE_KEYS.some(key => Object.hasOwn(style, key));
+var createVectorStyle = style => {
+  if (!isDeclarativeStyle(style)) return style;
+  var _style$rules = style.rules,
+    rules = _style$rules === void 0 ? [] : _style$rules,
+    defaultConfig = _objectWithoutProperties(style, _excluded);
+  var defaultStyle = toOpenLayersStyle(defaultConfig);
+  if (!Array.isArray(rules) || rules.length === 0) return defaultStyle;
+  var compiledRules = rules.map(rule => {
+    var _rule$style;
+    return {
+      matches: feature => matchesRule(feature, rule),
+      styleFunction: toFunction(toOpenLayersStyle((_rule$style = rule.style) !== null && _rule$style !== void 0 ? _rule$style : Object.fromEntries(Object.entries(rule).filter(_ref => {
+        var _ref2 = _slicedToArray(_ref, 1),
+          key = _ref2[0];
+        return !['property', 'operator', 'value'].includes(key);
+      }))))
+    };
+  });
+  var defaultStyleFunction = toFunction(defaultStyle);
+  return (feature, resolution) => {
+    var matchedRule = compiledRules.find(_ref3 => {
+      var matches = _ref3.matches;
+      return matches(feature);
+    });
+    return matchedRule ? matchedRule.styleFunction(feature, resolution) : defaultStyleFunction(feature, resolution);
+  };
+};
+
 /** Render GeoJSON features in a canvas-backed OpenLayers vector layer. */
 var VectorLayerComponent = _ref => {
   var id = _ref.id,
@@ -77547,6 +77680,8 @@ var VectorLayerComponent = _ref => {
     format = _ref.format,
     dataProjection = _ref.dataProjection,
     style = _ref.style,
+    hoverStyle = _ref.hoverStyle,
+    selectedStyle = _ref.selectedStyle,
     _ref$clusterDistance = _ref.clusterDistance,
     clusterDistance = _ref$clusterDistance === void 0 ? 0 : _ref$clusterDistance,
     _ref$clusterMinDistan = _ref.clusterMinDistance,
@@ -77559,6 +77694,8 @@ var VectorLayerComponent = _ref => {
   var layerRef = useRef(null);
   var clusterSourceRef = useRef(null);
   var setPropsRef = useRef(setProps);
+  var hoveredFeatureRef = useRef(null);
+  var selectedFeatureRef = useRef(null);
   useEffect(() => {
     setPropsRef.current = setProps;
   }, [setProps]);
@@ -77600,18 +77737,20 @@ var VectorLayerComponent = _ref => {
     }) : null;
     var clickKey = map.on('singleclick', event => {
       var feature = getHitFeature(event.pixel);
+      selectedFeatureRef.current = feature;
+      layer.changed();
       if (setPropsRef.current) {
         setPropsRef.current({
           clickedFeature: serializeFeature(feature)
         });
       }
     });
-    var hoveredFeature = null;
     var pointerMoveKey = map.on('pointermove', event => {
       if (event.dragging) return;
       var feature = getHitFeature(event.pixel);
-      if (feature === hoveredFeature) return;
-      hoveredFeature = feature;
+      if (feature === hoveredFeatureRef.current) return;
+      hoveredFeatureRef.current = feature;
+      layer.changed();
       if (setPropsRef.current) {
         setPropsRef.current({
           hoveredFeature: serializeFeature(feature)
@@ -77621,6 +77760,8 @@ var VectorLayerComponent = _ref => {
     return () => {
       map.removeLayer(layer);
       unByKey([clickKey, pointerMoveKey]);
+      hoveredFeatureRef.current = null;
+      selectedFeatureRef.current = null;
       layerRef.current = null;
       if (clusterSourceRef.current) {
         clusterSourceRef.current.setSource(null);
@@ -77651,14 +77792,34 @@ var VectorLayerComponent = _ref => {
   useEffect(() => {
     var layer = layerRef.current;
     if (!layer) return () => {};
-    layer.setStyle(style !== null && style !== void 0 ? style : undefined);
-    if (clusterDistance > 0) {
+    var baseStyle = createVectorStyle(style);
+    var hover = createVectorStyle(hoverStyle);
+    var selected = createVectorStyle(selectedStyle);
+    layer.setStyle(baseStyle !== null && baseStyle !== void 0 ? baseStyle : undefined);
+    if (hover || selected) {
       var baseStyleFunction = layer.getStyleFunction();
+      var hoverStyleFunction = hover == null ? null : typeof hover === 'function' ? hover : toFunction(hover);
+      var selectedStyleFunction = selected == null ? null : typeof selected === 'function' ? selected : toFunction(selected);
+      var stateStyleFunction = (feature, resolution) => {
+        var features = feature.get('features');
+        var styledFeature = (features === null || features === void 0 ? void 0 : features.length) === 1 ? features[0] : feature;
+        if (styledFeature === selectedFeatureRef.current && selectedStyleFunction) {
+          return selectedStyleFunction(styledFeature, resolution);
+        }
+        if (styledFeature === hoveredFeatureRef.current && hoverStyleFunction) {
+          return hoverStyleFunction(styledFeature, resolution);
+        }
+        return baseStyleFunction(styledFeature, resolution);
+      };
+      layer.setStyle(stateStyleFunction);
+    }
+    if (clusterDistance > 0) {
+      var _baseStyleFunction = layer.getStyleFunction();
       var clusterStyles = new Map();
       layer.setStyle((clusterFeature, resolution) => {
         var features = clusterFeature.get('features');
-        if (!features) return baseStyleFunction(clusterFeature, resolution);
-        if (features.length === 1) return baseStyleFunction(features[0], resolution);
+        if (!features) return _baseStyleFunction(clusterFeature, resolution);
+        if (features.length === 1) return _baseStyleFunction(features[0], resolution);
         var count = features.length;
         if (!clusterStyles.has(count)) {
           clusterStyles.set(count, new Style({
@@ -77684,7 +77845,7 @@ var VectorLayerComponent = _ref => {
       });
     }
     return () => layer.setStyle(style !== null && style !== void 0 ? style : undefined);
-  }, [clusterDistance, declutter, id, map, style]);
+  }, [clusterDistance, declutter, hoverStyle, id, map, selectedStyle, style]);
   useEffect(() => {
     var source = sourceRef.current;
     if (!source) return;
@@ -77770,6 +77931,8 @@ VectorLayerComponent.defaultProps = {
   format: 'GeoJSON',
   dataProjection: null,
   style: null,
+  hoverStyle: null,
+  selectedStyle: null,
   clusterDistance: 0,
   clusterMinDistance: 0,
   declutter: false
@@ -77789,8 +77952,12 @@ VectorLayerComponent.propTypes = {
   format: PropTypes.oneOf(['GeoJSON', 'TopoJSON', 'KML', 'WKT']),
   /** Projection of input coordinates; defaults to EPSG:4326 unless GeoJSON embeds a CRS. */
   dataProjection: PropTypes.string,
-  /** OpenLayers flat style object or rule array; supports icon, fill, stroke, feature filters, and resolution expressions. */
+  /** OpenLayers flat style or declarative dictionary with fillColor, strokeColor, strokeWidth, radius, opacity, marker, and property rules. */
   style: PropTypes.oneOfType([PropTypes.object, PropTypes.array]),
+  /** Declarative style dictionary applied while a feature is under the pointer; supports the same fields as `style`. */
+  hoverStyle: PropTypes.object,
+  /** Declarative style dictionary applied to the feature most recently clicked; supports the same fields as `style`. */
+  selectedStyle: PropTypes.object,
   /** Point clustering distance in screen pixels; set to 0 to disable clustering. */
   clusterDistance: PropTypes.number,
   /** Minimum distance in screen pixels between clusters; capped at clusterDistance. */
