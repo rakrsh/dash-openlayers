@@ -41,6 +41,7 @@ import VectorSource from 'ol/source/Vector';
 import MVT from 'ol/format/MVT';
 import OpenLayersVectorTileLayer from 'ol/layer/VectorTile';
 import VectorTileSource from 'ol/source/VectorTile';
+import { stylefunction } from 'ol-mapbox-style';
 import WMTSCapabilities from 'ol/format/WMTSCapabilities';
 import WMTS, { optionsFromCapabilities } from 'ol/source/WMTS';
 import ImageLayer from 'ol/layer/Image';
@@ -386,6 +387,10 @@ jest.mock('ol/layer/VectorTile', () => ({
     this.set = jest.fn();
     this.setStyle = jest.fn();
   }),
+}));
+
+jest.mock('ol-mapbox-style', () => ({
+  stylefunction: jest.fn(),
 }));
 
 jest.mock('ol/source/VectorTile', () => ({
@@ -1380,6 +1385,55 @@ describe('VectorTileLayer', () => {
       </OLContext.Provider>,
     );
     expect(map.addLayer).toHaveBeenCalledTimes(1);
+  });
+
+  it('applies a Mapbox GL style to its vector source', () => {
+    const map = makeMap();
+    const mapboxStyle = {
+      version: 8,
+      sources: { streets: { type: 'vector' } },
+      layers: [],
+    };
+    render(
+      <OLContext.Provider value={map}>
+        <VectorTileLayer url="https://tiles.example/{z}/{x}/{y}.pbf" mapboxStyle={mapboxStyle} />
+      </OLContext.Provider>,
+    );
+
+    expect(stylefunction).toHaveBeenCalledWith(
+      OpenLayersVectorTileLayer.mock.instances[0],
+      mapboxStyle,
+      'streets',
+    );
+  });
+
+  it('reports clicked and hovered vector-tile feature attributes to Dash', () => {
+    const map = makeMap();
+    const setProps = jest.fn();
+    const feature = {
+      getId: jest.fn(() => 'road-1'),
+      getProperties: jest.fn(() => ({ name: 'Main Street', kind: 'road', geometry: {} })),
+    };
+    map.hitFeature = feature;
+    render(
+      <OLContext.Provider value={map}>
+        <VectorTileLayer
+          id="vector-tiles"
+          url="https://tiles.example/{z}/{x}/{y}.pbf"
+          setProps={setProps}
+        />
+      </OLContext.Provider>,
+    );
+
+    map.listeners.pointermove({ pixel: [10, 20], dragging: false });
+    map.listeners.singleclick({ pixel: [10, 20] });
+
+    expect(setProps).toHaveBeenNthCalledWith(1, {
+      hoveredFeature: { id: 'road-1', properties: { name: 'Main Street', kind: 'road' } },
+    });
+    expect(setProps).toHaveBeenNthCalledWith(2, {
+      clickedFeature: { id: 'road-1', properties: { name: 'Main Street', kind: 'road' } },
+    });
   });
 });
 

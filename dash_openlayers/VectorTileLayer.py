@@ -22,7 +22,7 @@ ComponentType = typing.Union[
 
 class VectorTileLayer(Component):
     """A VectorTileLayer component.
-Render Mapbox Vector Tiles from an MVT endpoint with an OpenLayers flat style.
+Render MVT/PBF vector tiles with OpenLayers flat styles or Mapbox GL style documents and report clicked or hovered feature attributes.
 
 Keyword arguments:
 
@@ -43,7 +43,22 @@ Keyword arguments:
 
 - attributions (string | list of strings; optional):
     Attribution text or a list of attribution strings for the tile
-    provider."""
+    provider.
+
+- mapboxStyle (dict; optional):
+    Mapbox GL Style document used to style this layer's vector source.
+
+- mapboxSource (string; optional):
+    Vector source key within mapboxStyle; inferred when that document
+    contains one vector source.
+
+- clickedFeature (dict; optional):
+    Read-only: attributes of the vector-tile feature clicked on this
+    layer, or None.
+
+- hoveredFeature (dict; optional):
+    Read-only: attributes of the vector-tile feature currently under
+    the pointer, or None."""
     _children_props: typing.List[str] = []
     _base_nodes = ['children']
     _namespace = 'dash_openlayers'
@@ -58,11 +73,15 @@ Keyword arguments:
         projection: typing.Optional[str] = None,
         attributions: typing.Optional[typing.Union[str, typing.Sequence[str]]] = None,
         style: typing.Optional[typing.Any] = None,
+        mapboxStyle: typing.Optional[dict] = None,
+        mapboxSource: typing.Optional[str] = None,
+        clickedFeature: typing.Optional[dict] = None,
+        hoveredFeature: typing.Optional[dict] = None,
         **kwargs
     ):
-        self._prop_names = ['id', 'url', 'urls', 'projection', 'attributions', 'style']
+        self._prop_names = ['id', 'url', 'urls', 'projection', 'attributions', 'style', 'mapboxStyle', 'mapboxSource', 'clickedFeature', 'hoveredFeature']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'url', 'urls', 'projection', 'attributions', 'style']
+        self.available_properties = ['id', 'url', 'urls', 'projection', 'attributions', 'style', 'mapboxStyle', 'mapboxSource', 'clickedFeature', 'hoveredFeature']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()
