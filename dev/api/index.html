@@ -1677,7 +1677,7 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 </tbody>
 </table>
 <h2 id="vectortilelayer"><code>VectorTileLayer</code></h2>
-<p>Render Mapbox Vector Tiles from an MVT endpoint with an OpenLayers flat style.</p>
+<p>Render MVT/PBF vector tiles with OpenLayers flat styles or Mapbox GL style documents and report clicked or hovered feature attributes.</p>
 <table>
 <thead>
 <tr>
@@ -1722,7 +1722,31 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>style</code></td>
 <td><code>dict</code></td>
 <td><code>null</code></td>
-<td>OpenLayers flat-style object used to style MVT features.</td>
+<td>OpenLayers flat-style object used to style MVT features; ignored when mapboxStyle is provided.</td>
+</tr>
+<tr>
+<td><code>mapboxStyle</code></td>
+<td><code>dict</code></td>
+<td><code>null</code></td>
+<td>Mapbox GL Style document used to style this layer's vector source.</td>
+</tr>
+<tr>
+<td><code>mapboxSource</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>Vector source key within mapboxStyle; inferred when that document contains one vector source.</td>
+</tr>
+<tr>
+<td><code>clickedFeature</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: attributes of the vector-tile feature clicked on this layer, or null.</td>
+</tr>
+<tr>
+<td><code>hoveredFeature</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: attributes of the vector-tile feature currently under the pointer, or null.</td>
 </tr>
 </tbody>
 </table>
