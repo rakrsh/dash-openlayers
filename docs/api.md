@@ -167,7 +167,7 @@ Load and interact with GeoJSON, TopoJSON, KML, or WKT vector data in an OpenLaye
 
 ## `VectorTileLayer`
 
-Render Mapbox Vector Tiles from an MVT endpoint with an OpenLayers flat style.
+Render MVT/PBF vector tiles with OpenLayers flat styles or Mapbox GL style documents and report clicked or hovered feature attributes.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -176,7 +176,11 @@ Render Mapbox Vector Tiles from an MVT endpoint with an OpenLayers flat style.
 | `urls` | `list[string]` | `null` | Alternative MVT URL templates for load balancing; takes precedence over url. |
 | `projection` | `string` | `'EPSG:3857'` | Projection of the vector tile grid; use the CRS served by the tile endpoint. |
 | `attributions` | `string \| list[string]` | `null` | Attribution text or a list of attribution strings for the tile provider. |
-| `style` | `dict` | `null` | OpenLayers flat-style object used to style MVT features. |
+| `style` | `dict` | `null` | OpenLayers flat-style object used to style MVT features; ignored when mapboxStyle is provided. |
+| `mapboxStyle` | `dict` | `null` | Mapbox GL Style document used to style this layer's vector source. |
+| `mapboxSource` | `string` | `null` | Vector source key within mapboxStyle; inferred when that document contains one vector source. |
+| `clickedFeature` | `dict` | — | Read-only: attributes of the vector-tile feature clicked on this layer, or null. |
+| `hoveredFeature` | `dict` | — | Read-only: attributes of the vector-tile feature currently under the pointer, or null. |
 
 ## `WFSLayer`
 

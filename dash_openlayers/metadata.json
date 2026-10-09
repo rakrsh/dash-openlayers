@@ -979,7 +979,7 @@
     }
   },
   "src/lib/components/VectorTileLayer.react.js": {
-    "description": "Render Mapbox Vector Tiles from an MVT endpoint with an OpenLayers flat style.",
+    "description": "Render MVT/PBF vector tiles with OpenLayers flat styles or Mapbox GL style documents and report clicked or hovered feature attributes.",
     "displayName": "VectorTileLayer",
     "methods": [],
     "props": {
@@ -1053,11 +1053,47 @@
           "name": "object"
         },
         "required": false,
-        "description": "OpenLayers flat-style object used to style MVT features.",
+        "description": "OpenLayers flat-style object used to style MVT features; ignored when mapboxStyle is provided.",
         "defaultValue": {
           "value": "null",
           "computed": false
         }
+      },
+      "mapboxStyle": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Mapbox GL Style document used to style this layer's vector source.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "mapboxSource": {
+        "type": {
+          "name": "string"
+        },
+        "required": false,
+        "description": "Vector source key within mapboxStyle; inferred when that document contains one vector source.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "clickedFeature": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Read-only: attributes of the vector-tile feature clicked on this layer, or null."
+      },
+      "hoveredFeature": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Read-only: attributes of the vector-tile feature currently under the pointer, or null."
       },
       "setProps": {
         "type": {
