@@ -172,6 +172,12 @@ def test_component_props_serialize():
                 projection="EPSG:3857",
                 attributions="Tile provider",
                 style={"fill-color": "#6b9b83"},
+                mapboxStyle={
+                    "version": 8,
+                    "sources": {"streets": {"type": "vector"}},
+                    "layers": [],
+                },
+                mapboxSource="streets",
             ),
             {
                 "id": "vector-tiles",
@@ -179,6 +185,12 @@ def test_component_props_serialize():
                 "projection": "EPSG:3857",
                 "attributions": "Tile provider",
                 "style": {"fill-color": "#6b9b83"},
+                "mapboxStyle": {
+                    "version": 8,
+                    "sources": {"streets": {"type": "vector"}},
+                    "layers": [],
+                },
+                "mapboxSource": "streets",
             },
             "VectorTileLayer",
         ),
