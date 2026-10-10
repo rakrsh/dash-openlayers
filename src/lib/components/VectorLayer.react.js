@@ -14,6 +14,7 @@ import { useMap } from '../context/OLContext';
 import { getEditHistory } from '../utils/editHistory';
 import { readFeatures } from '../utils/featureFormats';
 import { createVectorStyle } from '../utils/vectorStyle';
+import { applyLayerProperties, useLayerProperties } from '../utils/layerProperties';
 
 /** Render GeoJSON features in a canvas-backed OpenLayers vector layer. */
 const VectorLayerComponent = ({
@@ -30,11 +31,15 @@ const VectorLayerComponent = ({
   clusterDistance = 0,
   clusterMinDistance = 0,
   declutter = false,
+  visible = true,
+  opacity = 1,
+  zIndex,
   setProps,
 }) => {
   const map = useMap();
   const sourceRef = useRef(null);
   const layerRef = useRef(null);
+  const layerPropertiesRef = useLayerProperties(layerRef, visible, opacity, zIndex);
   const clusterSourceRef = useRef(null);
   const setPropsRef = useRef(setProps);
   const hoveredFeatureRef = useRef(null);
@@ -63,6 +68,7 @@ const VectorLayerComponent = ({
     layer.set('dashId', id);
     layer.set('dashLayerControl', true);
     layer.set('dashVectorSource', source);
+    applyLayerProperties(layer, layerPropertiesRef.current);
     layerRef.current = layer;
     map.addLayer(layer);
 
@@ -115,7 +121,7 @@ const VectorLayerComponent = ({
         clusterSourceRef.current = null;
       }
     };
-  }, [declutter, id, map]);
+  }, [declutter, id, layerPropertiesRef, map]);
 
   useEffect(() => {
     const source = sourceRef.current;
@@ -285,6 +291,8 @@ VectorLayerComponent.defaultProps = {
   clusterDistance: 0,
   clusterMinDistance: 0,
   declutter: false,
+  visible: true,
+  opacity: 1,
 };
 
 VectorLayerComponent.propTypes = {
@@ -314,6 +322,12 @@ VectorLayerComponent.propTypes = {
   clusterMinDistance: PropTypes.number,
   /** Enable label decluttering, or provide a shared group name to declutter with other layers. */
   declutter: PropTypes.oneOfType([PropTypes.bool, PropTypes.string]),
+  /** Whether this layer is rendered; updates the OpenLayers layer immediately. */
+  visible: PropTypes.bool,
+  /** Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. */
+  opacity: PropTypes.number,
+  /** Integer stacking order; omitted values preserve OpenLayers layer ordering. */
+  zIndex: PropTypes.number,
   /** Read-only: GeoJSON Feature under the pointer, with coordinates in EPSG:4326. */
   hoveredFeature: PropTypes.object,
   /** Read-only: GeoJSON Feature clicked on this layer, with coordinates in EPSG:4326. */

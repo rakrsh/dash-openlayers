@@ -4,6 +4,7 @@ import WebGLPointsLayer from 'ol/layer/WebGLPoints';
 import VectorSource from 'ol/source/Vector';
 import { useMap } from '../context/OLContext';
 import { readFeatures } from '../utils/featureFormats';
+import { applyLayerProperties, useLayerProperties } from '../utils/layerProperties';
 
 const DEFAULT_STYLE = {
   'circle-radius': 5,
@@ -11,9 +12,19 @@ const DEFAULT_STYLE = {
 };
 
 /** Render large GeoJSON point datasets with the OpenLayers WebGL renderer. */
-const WebGLPointsLayerComponent = ({ id, data, style, disableHitDetection = false }) => {
+const WebGLPointsLayerComponent = ({
+  id,
+  data,
+  style,
+  disableHitDetection = false,
+  visible = true,
+  opacity = 1,
+  zIndex,
+}) => {
   const map = useMap();
   const sourceRef = useRef(null);
+  const layerRef = useRef(null);
+  const layerPropertiesRef = useLayerProperties(layerRef, visible, opacity, zIndex);
 
   useEffect(() => {
     if (!map) return undefined;
@@ -38,13 +49,16 @@ const WebGLPointsLayerComponent = ({ id, data, style, disableHitDetection = fals
     });
     layer.set('dashId', id);
     layer.set('dashLayerControl', true);
+    applyLayerProperties(layer, layerPropertiesRef.current);
+    layerRef.current = layer;
     map.addLayer(layer);
 
     return () => {
       map.removeLayer(layer);
       layer.dispose();
+      layerRef.current = null;
     };
-  }, [disableHitDetection, id, map, style]);
+  }, [disableHitDetection, id, layerPropertiesRef, map, style]);
 
   useEffect(() => {
     const source = sourceRef.current;
@@ -66,6 +80,8 @@ WebGLPointsLayerComponent.defaultProps = {
   data: null,
   style: null,
   disableHitDetection: false,
+  visible: true,
+  opacity: 1,
 };
 
 WebGLPointsLayerComponent.propTypes = {
@@ -77,6 +93,12 @@ WebGLPointsLayerComponent.propTypes = {
   style: PropTypes.object,
   /** Disable WebGL feature hit detection for a small rendering performance gain. */
   disableHitDetection: PropTypes.bool,
+  /** Whether this layer is rendered; updates the OpenLayers layer immediately. */
+  visible: PropTypes.bool,
+  /** Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. */
+  opacity: PropTypes.number,
+  /** Integer stacking order; omitted values preserve OpenLayers layer ordering. */
+  zIndex: PropTypes.number,
   /** Dash-supplied callback used to write component state back to the layout. */
   setProps: PropTypes.func,
 };

@@ -18,6 +18,7 @@ import WFSLayer from '../../src/lib/components/WFSLayer.react';
 import { OLContext, useMap } from '../../src/lib/context/OLContext';
 import { getEditHistory } from '../../src/lib/utils/editHistory';
 import { exportFeature, exportFeatures, readFeatures } from '../../src/lib/utils/featureFormats';
+import { applyLayerProperties } from '../../src/lib/utils/layerProperties';
 import { createVectorStyle } from '../../src/lib/utils/vectorStyle';
 import Snap from 'ol/interaction/Snap';
 import Map from 'ol/Map';
@@ -143,6 +144,9 @@ jest.mock('ol/layer/Tile', () => ({
   default: jest.fn().mockImplementation(function MockTile(options) {
     this.options = options;
     this.set = jest.fn();
+    this.setVisible = jest.fn();
+    this.setOpacity = jest.fn();
+    this.setZIndex = jest.fn();
   }),
 }));
 
@@ -151,6 +155,9 @@ jest.mock('ol/layer/Image', () => ({
   default: jest.fn().mockImplementation(function MockImageLayer(options) {
     this.options = options;
     this.set = jest.fn();
+    this.setVisible = jest.fn();
+    this.setOpacity = jest.fn();
+    this.setZIndex = jest.fn();
   }),
 }));
 
@@ -311,6 +318,9 @@ jest.mock('ol/layer/Vector', () => ({
     this.set = jest.fn((key, value) => {
       this.properties[key] = value;
     });
+    this.setVisible = jest.fn();
+    this.setOpacity = jest.fn();
+    this.setZIndex = jest.fn();
     this.get = jest.fn((key) => this.properties[key]);
     this.setSource = jest.fn();
     this.styleFunction = jest.fn(() => [{ name: 'base-style' }]);
@@ -326,6 +336,9 @@ jest.mock('ol/layer/WebGLPoints', () => ({
   default: jest.fn().mockImplementation(function MockWebGLPointsLayer(options) {
     this.options = options;
     this.set = jest.fn();
+    this.setVisible = jest.fn();
+    this.setOpacity = jest.fn();
+    this.setZIndex = jest.fn();
     this.dispose = jest.fn();
   }),
 }));
@@ -416,6 +429,9 @@ jest.mock('ol/layer/VectorTile', () => ({
   default: jest.fn().mockImplementation(function MockVectorTileLayer(options) {
     this.options = options;
     this.set = jest.fn();
+    this.setVisible = jest.fn();
+    this.setOpacity = jest.fn();
+    this.setZIndex = jest.fn();
     this.setStyle = jest.fn();
   }),
 }));
@@ -495,6 +511,26 @@ describe('feature format helpers', () => {
     expect(() => readFeatures('{}', { format: 'Shapefile' })).toThrow(
       'Unsupported feature format: Shapefile',
     );
+  });
+});
+
+describe('layer property helpers', () => {
+  it('rejects invalid opacity and non-integer z-index values', () => {
+    const layer = {
+      setVisible: jest.fn(),
+      setOpacity: jest.fn(),
+      setZIndex: jest.fn(),
+    };
+
+    expect(() => applyLayerProperties(layer, { visible: true, opacity: 1.1 })).toThrow(
+      'Layer opacity must be a finite number between 0 and 1.',
+    );
+    expect(() => applyLayerProperties(layer, { visible: true, opacity: 0.5, zIndex: 1.5 })).toThrow(
+      'Layer zIndex must be an integer.',
+    );
+    expect(layer.setVisible).toHaveBeenCalledWith(true);
+    expect(layer.setOpacity).toHaveBeenCalledWith(0.5);
+    expect(layer.setZIndex).not.toHaveBeenCalled();
   });
 });
 
@@ -918,9 +954,38 @@ describe('TileLayer', () => {
     expect(Tile).toHaveBeenCalledWith({ source: OSM.mock.instances[0] });
     const layer = Tile.mock.instances[0];
     expect(map.addLayer).toHaveBeenCalledWith(layer);
+    expect(layer.setVisible).toHaveBeenCalledWith(true);
+    expect(layer.setOpacity).toHaveBeenCalledWith(1);
+    expect(layer.setZIndex).not.toHaveBeenCalled();
 
     unmount();
     expect(map.removeLayer).toHaveBeenCalledWith(layer);
+  });
+
+  it('updates visibility, opacity, and stacking order without replacing the layer', () => {
+    const map = makeMap();
+    const renderLayer = (visible, opacity, zIndex) => (
+      <OLContext.Provider value={map}>
+        <TileLayer
+          source="OSM"
+          visible={visible}
+          opacity={opacity}
+          zIndex={zIndex}
+        />
+      </OLContext.Provider>
+    );
+    const { rerender } = render(renderLayer(false, 0.4, 2));
+    const layer = Tile.mock.instances[0];
+
+    expect(layer.setVisible).toHaveBeenCalledWith(false);
+    expect(layer.setOpacity).toHaveBeenCalledWith(0.4);
+    expect(layer.setZIndex).toHaveBeenCalledWith(2);
+
+    rerender(renderLayer(true, 0.8, 5));
+    expect(Tile).toHaveBeenCalledTimes(1);
+    expect(layer.setVisible).toHaveBeenLastCalledWith(true);
+    expect(layer.setOpacity).toHaveBeenLastCalledWith(0.8);
+    expect(layer.setZIndex).toHaveBeenLastCalledWith(5);
   });
 
   it('replaces its source when the URL prop changes', () => {
@@ -967,6 +1032,27 @@ describe('WebGLPointsLayer', () => {
       'circle-radius': 5,
       'circle-fill-color': '#3399cc',
     });
+  });
+
+  it('updates visibility, opacity, and stacking order without recreating the WebGL layer', () => {
+    const map = makeMap();
+    const renderLayer = (visible, opacity, zIndex) => (
+      <OLContext.Provider value={map}>
+        <WebGLPointsLayerComponent visible={visible} opacity={opacity} zIndex={zIndex} />
+      </OLContext.Provider>
+    );
+    const { rerender } = render(renderLayer(false, 0.5, 2));
+    const layer = OpenLayersWebGLPointsLayer.mock.instances[0];
+
+    expect(layer.setVisible).toHaveBeenCalledWith(false);
+    expect(layer.setOpacity).toHaveBeenCalledWith(0.5);
+    expect(layer.setZIndex).toHaveBeenCalledWith(2);
+
+    rerender(renderLayer(true, 0.75, 8));
+    expect(OpenLayersWebGLPointsLayer).toHaveBeenCalledTimes(1);
+    expect(layer.setVisible).toHaveBeenLastCalledWith(true);
+    expect(layer.setOpacity).toHaveBeenLastCalledWith(0.75);
+    expect(layer.setZIndex).toHaveBeenLastCalledWith(8);
   });
 
   it('loads GeoJSON, updates its stable source, and disposes replaced and removed layers', () => {
@@ -1042,6 +1128,27 @@ describe('WebGLPointsLayer', () => {
 });
 
 describe('VectorLayer', () => {
+  it('updates visibility, opacity, and stacking order on the existing vector layer', () => {
+    const map = makeMap();
+    const renderLayer = (visible, opacity, zIndex) => (
+      <OLContext.Provider value={map}>
+        <VectorLayer visible={visible} opacity={opacity} zIndex={zIndex} />
+      </OLContext.Provider>
+    );
+    const { rerender } = render(renderLayer(false, 0.35, 1));
+    const layer = OpenLayersVectorLayer.mock.instances.at(-1);
+
+    expect(layer.setVisible).toHaveBeenCalledWith(false);
+    expect(layer.setOpacity).toHaveBeenCalledWith(0.35);
+    expect(layer.setZIndex).toHaveBeenCalledWith(1);
+
+    rerender(renderLayer(true, 0.9, 4));
+    expect(OpenLayersVectorLayer).toHaveBeenCalledTimes(1);
+    expect(layer.setVisible).toHaveBeenLastCalledWith(true);
+    expect(layer.setOpacity).toHaveBeenLastCalledWith(0.9);
+    expect(layer.setZIndex).toHaveBeenLastCalledWith(4);
+  });
+
   it('loads GeoJSON into a projected vector layer and updates it when props change', () => {
     const map = makeMap();
     const initialGeoJSON = {
@@ -1445,6 +1552,32 @@ describe('VectorLayer', () => {
 });
 
 describe('VectorTileLayer', () => {
+  it('updates visibility, opacity, and stacking order without replacing the layer', () => {
+    const map = makeMap();
+    const renderLayer = (visible, opacity, zIndex) => (
+      <OLContext.Provider value={map}>
+        <VectorTileLayer
+          url="https://tiles.example/{z}/{x}/{y}.pbf"
+          visible={visible}
+          opacity={opacity}
+          zIndex={zIndex}
+        />
+      </OLContext.Provider>
+    );
+    const { rerender } = render(renderLayer(false, 0.45, 3));
+    const layer = OpenLayersVectorTileLayer.mock.instances[0];
+
+    expect(layer.setVisible).toHaveBeenCalledWith(false);
+    expect(layer.setOpacity).toHaveBeenCalledWith(0.45);
+    expect(layer.setZIndex).toHaveBeenCalledWith(3);
+
+    rerender(renderLayer(true, 0.95, 7));
+    expect(OpenLayersVectorTileLayer).toHaveBeenCalledTimes(1);
+    expect(layer.setVisible).toHaveBeenLastCalledWith(true);
+    expect(layer.setOpacity).toHaveBeenLastCalledWith(0.95);
+    expect(layer.setZIndex).toHaveBeenLastCalledWith(7);
+  });
+
   it('adds an MVT layer with source projection, attribution, and style, then clears it on unmount', () => {
     const map = makeMap();
     const style = { 'fill-color': '#6b9b83', 'stroke-width': 1 };
@@ -1581,6 +1714,9 @@ describe('WFSLayer', () => {
           url="https://maps.example.com/wfs?token=abc"
           typeNames="workspace:roads"
           params={params}
+          visible={false}
+          opacity={0.55}
+          zIndex={1}
           setProps={setProps}
         />
       </OLContext.Provider>,
@@ -1599,6 +1735,9 @@ describe('WFSLayer', () => {
     expect(requestURL.searchParams.get('CQL_FILTER')).toBe('status=active');
     expect(layer.set).toHaveBeenCalledWith('dashId', 'roads');
     expect(map.addLayer).toHaveBeenCalledWith(layer);
+    expect(layer.setVisible).toHaveBeenCalledWith(false);
+    expect(layer.setOpacity).toHaveBeenCalledWith(0.55);
+    expect(layer.setZIndex).toHaveBeenCalledWith(1);
 
     await waitFor(() =>
       expect(setProps).toHaveBeenCalledWith({ featureCount: 1, loadError: null }),
@@ -1610,11 +1749,17 @@ describe('WFSLayer', () => {
           url="https://maps.example.com/wfs?token=abc"
           typeNames="workspace:roads"
           params={params}
+          visible
+          opacity={0.85}
+          zIndex={4}
           setProps={setProps}
         />
       </OLContext.Provider>,
     );
     expect(global.fetch).toHaveBeenCalledTimes(1);
+    expect(layer.setVisible).toHaveBeenLastCalledWith(true);
+    expect(layer.setOpacity).toHaveBeenLastCalledWith(0.85);
+    expect(layer.setZIndex).toHaveBeenLastCalledWith(4);
     expect(source.addFeatures).toHaveBeenCalledWith([{ id: 'feature' }]);
     expect(GeoJSON.mock.instances.at(-1).readFeatures).toHaveBeenCalledWith(featureCollection, {
       dataProjection: 'EPSG:4326',
@@ -1639,13 +1784,14 @@ describe('WMTSLayer', () => {
       tileGrid: { matrixIds: ['0'] },
       dimensions: { TIME: '2025-01-01' },
     };
+    const wmtsDimensions = { TIME: '2026-01-01' };
     global.fetch = jest.fn().mockResolvedValue({
       ok: true,
       text: jest.fn().mockResolvedValue('<Capabilities />'),
     });
     optionsFromCapabilities.mockReturnValue(sourceOptions);
 
-    const { unmount } = render(
+    const { rerender, unmount } = render(
       <OLContext.Provider value={map}>
         <WMTSLayer
           id="wmts"
@@ -1656,8 +1802,11 @@ describe('WMTSLayer', () => {
           style="default"
           format="image/png"
           requestEncoding="KVP"
-          dimensions={{ TIME: '2026-01-01' }}
+          dimensions={wmtsDimensions}
           attributions="Tile provider"
+          visible={false}
+          opacity={0.65}
+          zIndex={2}
         />
       </OLContext.Provider>,
     );
@@ -1688,6 +1837,32 @@ describe('WMTSLayer', () => {
     });
     expect(tileLayer.set).toHaveBeenCalledWith('dashId', 'wmts');
     expect(map.addLayer).toHaveBeenCalledWith(tileLayer);
+    expect(tileLayer.setVisible).toHaveBeenCalledWith(false);
+    expect(tileLayer.setOpacity).toHaveBeenCalledWith(0.65);
+    expect(tileLayer.setZIndex).toHaveBeenCalledWith(2);
+
+    rerender(
+      <OLContext.Provider value={map}>
+        <WMTSLayer
+          id="wmts"
+          url="https://tiles.example/wmts?SERVICE=WMTS&REQUEST=GetCapabilities"
+          layer="roads"
+          matrixSet="EPSG:3857"
+          projection="EPSG:3857"
+          style="default"
+          format="image/png"
+          requestEncoding="KVP"
+          dimensions={wmtsDimensions}
+          attributions="Tile provider"
+          visible
+          opacity={0.3}
+          zIndex={9}
+        />
+      </OLContext.Provider>,
+    );
+    expect(tileLayer.setVisible).toHaveBeenLastCalledWith(true);
+    expect(tileLayer.setOpacity).toHaveBeenLastCalledWith(0.3);
+    expect(tileLayer.setZIndex).toHaveBeenLastCalledWith(9);
 
     unmount();
     expect(map.removeLayer).toHaveBeenCalledWith(tileLayer);
@@ -1727,6 +1902,9 @@ describe('WMS layers', () => {
           url="https://maps.example.com/geoserver/wms"
           params={initialParams}
           serverType="geoserver"
+          visible={false}
+          opacity={0.6}
+          zIndex={2}
         />
       </OLContext.Provider>,
     );
@@ -1741,6 +1919,9 @@ describe('WMS layers', () => {
     expect(layer.options).toEqual({ source });
     expect(layer.set).toHaveBeenCalledWith('dashId', 'tile-wms');
     expect(map.addLayer).toHaveBeenCalledWith(layer);
+    expect(layer.setVisible).toHaveBeenCalledWith(false);
+    expect(layer.setOpacity).toHaveBeenCalledWith(0.6);
+    expect(layer.setZIndex).toHaveBeenCalledWith(2);
 
     const updatedParams = { LAYERS: 'workspace:parcels', STYLES: 'outline' };
     rerender(
@@ -1750,11 +1931,17 @@ describe('WMS layers', () => {
           url="https://maps.example.com/geoserver/wms"
           params={updatedParams}
           serverType="geoserver"
+          visible
+          opacity={0.25}
+          zIndex={5}
         />
       </OLContext.Provider>,
     );
     expect(source.updateParams).toHaveBeenCalledWith(updatedParams);
     expect(TileWMSSource).toHaveBeenCalledTimes(1);
+    expect(layer.setVisible).toHaveBeenLastCalledWith(true);
+    expect(layer.setOpacity).toHaveBeenLastCalledWith(0.25);
+    expect(layer.setZIndex).toHaveBeenLastCalledWith(5);
 
     unmount();
     expect(map.removeLayer).toHaveBeenCalledWith(layer);
@@ -1770,6 +1957,9 @@ describe('WMS layers', () => {
           url="https://maps.example.com/wms"
           params={params}
           serverType="qgis"
+          visible={false}
+          opacity={0.7}
+          zIndex={3}
         />
       </OLContext.Provider>,
     );
@@ -1783,6 +1973,9 @@ describe('WMS layers', () => {
     });
     expect(layer.options).toEqual({ source });
     expect(map.addLayer).toHaveBeenCalledWith(layer);
+    expect(layer.setVisible).toHaveBeenCalledWith(false);
+    expect(layer.setOpacity).toHaveBeenCalledWith(0.7);
+    expect(layer.setZIndex).toHaveBeenCalledWith(3);
 
     const updatedParams = { LAYERS: 'workspace:buildings' };
     rerender(
@@ -1792,11 +1985,17 @@ describe('WMS layers', () => {
           url="https://maps.example.com/wms"
           params={updatedParams}
           serverType="qgis"
+          visible
+          opacity={0.2}
+          zIndex={6}
         />
       </OLContext.Provider>,
     );
     expect(source.updateParams).toHaveBeenCalledWith(updatedParams);
     expect(ImageWMSSource).toHaveBeenCalledTimes(1);
+    expect(layer.setVisible).toHaveBeenLastCalledWith(true);
+    expect(layer.setOpacity).toHaveBeenLastCalledWith(0.2);
+    expect(layer.setZIndex).toHaveBeenLastCalledWith(6);
 
     unmount();
     expect(map.removeLayer).toHaveBeenCalledWith(layer);

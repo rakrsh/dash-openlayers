@@ -58,6 +58,9 @@ Render a single-image OGC Web Map Service layer.
 | `url` | `string` | `null` | OGC WMS endpoint URL. |
 | `params` | `dict` | `{}` | WMS request parameters, including LAYERS; changes refresh the source. |
 | `serverType` | `'carmentaserver' \| 'geoserver' \| 'mapserver' \| 'qgis'` | `null` | WMS server type used for vendor-specific HiDPI request parameters. |
+| `visible` | `bool` | `true` | Whether this layer is rendered; updates the OpenLayers layer immediately. |
+| `opacity` | `number` | `1` | Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. |
+| `zIndex` | `number` | — | Integer stacking order; omitted values preserve OpenLayers layer ordering. |
 
 ## `LayerControl`
 
@@ -158,6 +161,9 @@ Render OpenStreetMap or custom XYZ tiles on the map.
 | `id` | `string` | — | The ID used to identify this layer in Dash callbacks. |
 | `source` | `string` | `null` | Built-in tile source identifier. Currently supports "OSM". |
 | `url` | `string` | `null` | URL template for a custom XYZ tile source, e.g. 'https://tiles.example.com/{z}/{x}/{y}.png'. |
+| `visible` | `bool` | `true` | Whether this layer is rendered; updates the OpenLayers layer immediately. |
+| `opacity` | `number` | `1` | Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. |
+| `zIndex` | `number` | — | Integer stacking order; omitted values preserve OpenLayers layer ordering. |
 
 ## `TileWMS`
 
@@ -169,6 +175,9 @@ Render a tiled OGC Web Map Service layer.
 | `url` | `string` | `null` | OGC WMS endpoint URL. |
 | `params` | `dict` | `{}` | WMS request parameters, including LAYERS; changes refresh the source. |
 | `serverType` | `'carmentaserver' \| 'geoserver' \| 'mapserver' \| 'qgis'` | `null` | WMS server type used for vendor-specific HiDPI request parameters. |
+| `visible` | `bool` | `true` | Whether this layer is rendered; updates the OpenLayers layer immediately. |
+| `opacity` | `number` | `1` | Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. |
+| `zIndex` | `number` | — | Integer stacking order; omitted values preserve OpenLayers layer ordering. |
 
 ## `VectorLayer`
 
@@ -189,6 +198,9 @@ Load and interact with GeoJSON, TopoJSON, KML, or WKT vector data in an OpenLaye
 | `clusterDistance` | `number` | `0` | Point clustering distance in screen pixels; set to 0 to disable clustering. |
 | `clusterMinDistance` | `number` | `0` | Minimum distance in screen pixels between clusters; capped at clusterDistance. |
 | `declutter` | `bool \| string` | `false` | Enable label decluttering, or provide a shared group name to declutter with other layers. |
+| `visible` | `bool` | `true` | Whether this layer is rendered; updates the OpenLayers layer immediately. |
+| `opacity` | `number` | `1` | Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. |
+| `zIndex` | `number` | — | Integer stacking order; omitted values preserve OpenLayers layer ordering. |
 | `hoveredFeature` | `dict` | — | Read-only: GeoJSON Feature under the pointer, with coordinates in EPSG:4326. |
 | `clickedFeature` | `dict` | — | Read-only: GeoJSON Feature clicked on this layer, with coordinates in EPSG:4326. |
 | `featureCount` | `number` | — | Read-only: number of features in the loaded source. |
@@ -208,6 +220,9 @@ Render MVT/PBF vector tiles with OpenLayers flat styles or Mapbox GL style docum
 | `style` | `dict` | `null` | OpenLayers flat-style object used to style MVT features; ignored when mapboxStyle is provided. |
 | `mapboxStyle` | `dict` | `null` | Mapbox GL Style document used to style this layer's vector source. |
 | `mapboxSource` | `string` | `null` | Vector source key within mapboxStyle; inferred when that document contains one vector source. |
+| `visible` | `bool` | `true` | Whether this layer is rendered; updates the OpenLayers layer immediately. |
+| `opacity` | `number` | `1` | Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. |
+| `zIndex` | `number` | — | Integer stacking order; omitted values preserve OpenLayers layer ordering. |
 | `clickedFeature` | `dict` | — | Read-only: attributes of the vector-tile feature clicked on this layer, or null. |
 | `hoveredFeature` | `dict` | — | Read-only: attributes of the vector-tile feature currently under the pointer, or null. |
 
@@ -224,6 +239,9 @@ Load WFS GeoJSON features into an editable vector layer.
 | `srsName` | `string` | `'EPSG:4326'` | Coordinate reference system requested from the service and used to parse response coordinates. |
 | `outputFormat` | `string` | `'application/json'` | WFS response format; the component currently parses GeoJSON responses. |
 | `params` | `dict` | `{}` | Additional GetFeature query parameters, such as count, bbox, or CQL_FILTER. |
+| `visible` | `bool` | `true` | Whether this layer is rendered; updates the OpenLayers layer immediately. |
+| `opacity` | `number` | `1` | Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. |
+| `zIndex` | `number` | — | Integer stacking order; omitted values preserve OpenLayers layer ordering. |
 | `featureCount` | `number` | — | Read-only: number of features loaded by the last successful request. |
 | `loadError` | `string` | — | Read-only: message from the last failed request, or null after success. |
 
@@ -243,6 +261,9 @@ Render a WMTS layer using its service capabilities to configure the tile grid.
 | `requestEncoding` | `'KVP' \| 'REST'` | `null` | WMTS request encoding, either KVP or REST. |
 | `dimensions` | `dict` | `null` | Values for advertised WMTS dimensions, such as TIME or ELEVATION. |
 | `attributions` | `string \| list[string]` | `null` | Attribution text or a list of attribution strings for the tile provider. |
+| `visible` | `bool` | `true` | Whether this layer is rendered; updates the OpenLayers layer immediately. |
+| `opacity` | `number` | `1` | Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. |
+| `zIndex` | `number` | — | Integer stacking order; omitted values preserve OpenLayers layer ordering. |
 
 ## `WebGLPointsLayer`
 
@@ -254,3 +275,6 @@ Render large GeoJSON point datasets with the OpenLayers WebGL renderer.
 | `data` | `string \| dict` | `null` | GeoJSON Point or MultiPoint FeatureCollection as an object or JSON string; embedded CRS metadata is honored, otherwise coordinates default to EPSG:4326. |
 | `style` | `dict` | `null` | OpenLayers WebGL style object; expressions such as get, match, and interpolate style feature properties. Changing the style recreates the layer; the default style is blue circles. |
 | `disableHitDetection` | `bool` | `false` | Disable WebGL feature hit detection for a small rendering performance gain. |
+| `visible` | `bool` | `true` | Whether this layer is rendered; updates the OpenLayers layer immediately. |
+| `opacity` | `number` | `1` | Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. |
+| `zIndex` | `number` | — | Integer stacking order; omitted values preserve OpenLayers layer ordering. |

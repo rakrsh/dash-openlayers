@@ -34,7 +34,19 @@ Keyword arguments:
 
 - url (string; optional):
     URL template for a custom XYZ tile source, e.g.
-    'https://tiles.example.com/{z}/{x}/{y}.png'."""
+    'https://tiles.example.com/{z}/{x}/{y}.png'.
+
+- visible (boolean; default True):
+    Whether this layer is rendered; updates the OpenLayers layer
+    immediately.
+
+- opacity (number; default 1):
+    Layer opacity from 0 (transparent) to 1 (opaque); updates
+    immediately.
+
+- zIndex (number; optional):
+    Integer stacking order; omitted values preserve OpenLayers layer
+    ordering."""
     _children_props: typing.List[str] = []
     _base_nodes = ['children']
     _namespace = 'dash_openlayers'
@@ -46,11 +58,14 @@ Keyword arguments:
         id: typing.Optional[typing.Union[str, dict]] = None,
         source: typing.Optional[str] = None,
         url: typing.Optional[str] = None,
+        visible: typing.Optional[bool] = None,
+        opacity: typing.Optional[NumberType] = None,
+        zIndex: typing.Optional[NumberType] = None,
         **kwargs
     ):
-        self._prop_names = ['id', 'source', 'url']
+        self._prop_names = ['id', 'source', 'url', 'visible', 'opacity', 'zIndex']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'source', 'url']
+        self.available_properties = ['id', 'source', 'url', 'visible', 'opacity', 'zIndex']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()

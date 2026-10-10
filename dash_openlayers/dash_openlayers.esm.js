@@ -71440,14 +71440,62 @@ class ImageWMS extends ImageSource {
   }
 }
 
+var applyLayerProperties = (layer, _ref) => {
+  var visible = _ref.visible,
+    opacity = _ref.opacity,
+    zIndex = _ref.zIndex;
+  if (visible !== null && visible !== undefined) {
+    if (typeof visible !== 'boolean') throw new TypeError('Layer visible must be a boolean.');
+    layer.setVisible(visible);
+  }
+  if (opacity !== null && opacity !== undefined) {
+    if (!Number.isFinite(opacity) || opacity < 0 || opacity > 1) {
+      throw new RangeError('Layer opacity must be a finite number between 0 and 1.');
+    }
+    layer.setOpacity(opacity);
+  }
+  if (zIndex !== null && zIndex !== undefined) {
+    if (!Number.isInteger(zIndex)) throw new TypeError('Layer zIndex must be an integer.');
+    layer.setZIndex(zIndex);
+  }
+};
+var useLayerProperties = (layerRef, visible, opacity, zIndex) => {
+  var propertiesRef = useRef({
+    visible,
+    opacity,
+    zIndex
+  });
+  useEffect(() => {
+    propertiesRef.current = {
+      visible,
+      opacity,
+      zIndex
+    };
+    var layer = layerRef.current;
+    if (layer) applyLayerProperties(layer, {
+      visible,
+      opacity,
+      zIndex
+    });
+  }, [layerRef, visible, opacity, zIndex]);
+  return propertiesRef;
+};
+
 /** Render a single-image OGC Web Map Service layer. */
 var ImageWMSLayer = _ref => {
   var id = _ref.id,
     url = _ref.url,
     params = _ref.params,
-    serverType = _ref.serverType;
+    serverType = _ref.serverType,
+    _ref$visible = _ref.visible,
+    visible = _ref$visible === void 0 ? true : _ref$visible,
+    _ref$opacity = _ref.opacity,
+    opacity = _ref$opacity === void 0 ? 1 : _ref$opacity,
+    zIndex = _ref.zIndex;
   var map = useMap();
   var sourceRef = useRef(null);
+  var layerRef = useRef(null);
+  var layerPropertiesRef = useLayerProperties(layerRef, visible, opacity, zIndex);
   var paramsRef = useRef(params);
   useEffect(() => {
     paramsRef.current = params;
@@ -71467,19 +71515,24 @@ var ImageWMSLayer = _ref => {
     });
     layer.set('dashId', id);
     layer.set('dashLayerControl', true);
+    applyLayerProperties(layer, layerPropertiesRef.current);
     sourceRef.current = source;
+    layerRef.current = layer;
     map.addLayer(layer);
     return () => {
       map.removeLayer(layer);
       sourceRef.current = null;
+      layerRef.current = null;
     };
-  }, [id, map, serverType, url]);
+  }, [id, layerPropertiesRef, map, serverType, url]);
   return null;
 };
 ImageWMSLayer.defaultProps = {
   url: null,
   params: {},
-  serverType: null
+  serverType: null,
+  visible: true,
+  opacity: 1
 };
 ImageWMSLayer.propTypes = {
   /** Component ID used to identify this layer in the Dash layout. */
@@ -71490,6 +71543,12 @@ ImageWMSLayer.propTypes = {
   params: PropTypes.object,
   /** WMS server type used for vendor-specific HiDPI request parameters. */
   serverType: PropTypes.oneOf(['carmentaserver', 'geoserver', 'mapserver', 'qgis']),
+  /** Whether this layer is rendered; updates the OpenLayers layer immediately. */
+  visible: PropTypes.bool,
+  /** Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. */
+  opacity: PropTypes.number,
+  /** Integer stacking order; omitted values preserve OpenLayers layer ordering. */
+  zIndex: PropTypes.number,
   /** Dash-supplied callback used to write component state back to the layout. */
   setProps: PropTypes.func
 };
@@ -77660,8 +77719,15 @@ class OSM extends XYZ {
 var TileLayer = _ref => {
   var id = _ref.id,
     source = _ref.source,
-    url = _ref.url;
+    url = _ref.url,
+    _ref$visible = _ref.visible,
+    visible = _ref$visible === void 0 ? true : _ref$visible,
+    _ref$opacity = _ref.opacity,
+    opacity = _ref$opacity === void 0 ? 1 : _ref$opacity,
+    zIndex = _ref.zIndex;
   var map = useMap();
+  var layerRef = useRef(null);
+  var layerPropertiesRef = useLayerProperties(layerRef, visible, opacity, zIndex);
   useEffect(() => {
     var tileSource = url ? new XYZ({
       url
@@ -77672,14 +77738,21 @@ var TileLayer = _ref => {
     });
     tileLayer.set('dashId', id);
     tileLayer.set('dashLayerControl', true);
+    applyLayerProperties(tileLayer, layerPropertiesRef.current);
+    layerRef.current = tileLayer;
     map.addLayer(tileLayer);
-    return () => map.removeLayer(tileLayer);
-  }, [id, map, source, url]);
+    return () => {
+      map.removeLayer(tileLayer);
+      layerRef.current = null;
+    };
+  }, [id, layerPropertiesRef, map, source, url]);
   return null;
 };
 TileLayer.defaultProps = {
   source: null,
-  url: null
+  url: null,
+  visible: true,
+  opacity: 1
 };
 TileLayer.propTypes = {
   /** The ID used to identify this component in Dash callbacks. */
@@ -77688,6 +77761,12 @@ TileLayer.propTypes = {
   source: PropTypes.string,
   /** URL template for a custom XYZ tile source, e.g. "https://tiles.example.com/{z}/{x}/{y}.png". */
   url: PropTypes.string,
+  /** Whether this layer is rendered; updates the OpenLayers layer immediately. */
+  visible: PropTypes.bool,
+  /** Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. */
+  opacity: PropTypes.number,
+  /** Integer stacking order; omitted values preserve OpenLayers layer ordering. */
+  zIndex: PropTypes.number,
   /** Dash-supplied callback used to write component state back to the layout. */
   setProps: PropTypes.func
 };
@@ -78094,9 +78173,16 @@ var TileWMSLayer = _ref => {
   var id = _ref.id,
     url = _ref.url,
     params = _ref.params,
-    serverType = _ref.serverType;
+    serverType = _ref.serverType,
+    _ref$visible = _ref.visible,
+    visible = _ref$visible === void 0 ? true : _ref$visible,
+    _ref$opacity = _ref.opacity,
+    opacity = _ref$opacity === void 0 ? 1 : _ref$opacity,
+    zIndex = _ref.zIndex;
   var map = useMap();
   var sourceRef = useRef(null);
+  var layerRef = useRef(null);
+  var layerPropertiesRef = useLayerProperties(layerRef, visible, opacity, zIndex);
   var paramsRef = useRef(params);
   useEffect(() => {
     paramsRef.current = params;
@@ -78116,19 +78202,24 @@ var TileWMSLayer = _ref => {
     });
     layer.set('dashId', id);
     layer.set('dashLayerControl', true);
+    applyLayerProperties(layer, layerPropertiesRef.current);
     sourceRef.current = source;
+    layerRef.current = layer;
     map.addLayer(layer);
     return () => {
       map.removeLayer(layer);
       sourceRef.current = null;
+      layerRef.current = null;
     };
-  }, [id, map, serverType, url]);
+  }, [id, layerPropertiesRef, map, serverType, url]);
   return null;
 };
 TileWMSLayer.defaultProps = {
   url: null,
   params: {},
-  serverType: null
+  serverType: null,
+  visible: true,
+  opacity: 1
 };
 TileWMSLayer.propTypes = {
   /** Component ID used to identify this layer in the Dash layout. */
@@ -78139,6 +78230,12 @@ TileWMSLayer.propTypes = {
   params: PropTypes.object,
   /** WMS server type used for vendor-specific HiDPI request parameters. */
   serverType: PropTypes.oneOf(['carmentaserver', 'geoserver', 'mapserver', 'qgis']),
+  /** Whether this layer is rendered; updates the OpenLayers layer immediately. */
+  visible: PropTypes.bool,
+  /** Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. */
+  opacity: PropTypes.number,
+  /** Integer stacking order; omitted values preserve OpenLayers layer ordering. */
+  zIndex: PropTypes.number,
   /** Dash-supplied callback used to write component state back to the layout. */
   setProps: PropTypes.func
 };
@@ -78611,10 +78708,16 @@ var VectorLayerComponent = _ref => {
     clusterMinDistance = _ref$clusterMinDistan === void 0 ? 0 : _ref$clusterMinDistan,
     _ref$declutter = _ref.declutter,
     declutter = _ref$declutter === void 0 ? false : _ref$declutter,
+    _ref$visible = _ref.visible,
+    visible = _ref$visible === void 0 ? true : _ref$visible,
+    _ref$opacity = _ref.opacity,
+    opacity = _ref$opacity === void 0 ? 1 : _ref$opacity,
+    zIndex = _ref.zIndex,
     setProps = _ref.setProps;
   var map = useMap();
   var sourceRef = useRef(null);
   var layerRef = useRef(null);
+  var layerPropertiesRef = useLayerProperties(layerRef, visible, opacity, zIndex);
   var clusterSourceRef = useRef(null);
   var setPropsRef = useRef(setProps);
   var hoveredFeatureRef = useRef(null);
@@ -78641,6 +78744,7 @@ var VectorLayerComponent = _ref => {
     layer.set('dashId', id);
     layer.set('dashLayerControl', true);
     layer.set('dashVectorSource', source);
+    applyLayerProperties(layer, layerPropertiesRef.current);
     layerRef.current = layer;
     map.addLayer(layer);
     var getHitFeature = pixel => {
@@ -78691,7 +78795,7 @@ var VectorLayerComponent = _ref => {
         clusterSourceRef.current = null;
       }
     };
-  }, [declutter, id, map]);
+  }, [declutter, id, layerPropertiesRef, map]);
   useEffect(() => {
     var source = sourceRef.current;
     var layer = layerRef.current;
@@ -78858,7 +78962,9 @@ VectorLayerComponent.defaultProps = {
   selectedStyle: null,
   clusterDistance: 0,
   clusterMinDistance: 0,
-  declutter: false
+  declutter: false,
+  visible: true,
+  opacity: 1
 };
 VectorLayerComponent.propTypes = {
   /** Dash component ID; also used by ModifyInteraction to target this vector layer. */
@@ -78887,6 +78993,12 @@ VectorLayerComponent.propTypes = {
   clusterMinDistance: PropTypes.number,
   /** Enable label decluttering, or provide a shared group name to declutter with other layers. */
   declutter: PropTypes.oneOfType([PropTypes.bool, PropTypes.string]),
+  /** Whether this layer is rendered; updates the OpenLayers layer immediately. */
+  visible: PropTypes.bool,
+  /** Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. */
+  opacity: PropTypes.number,
+  /** Integer stacking order; omitted values preserve OpenLayers layer ordering. */
+  zIndex: PropTypes.number,
   /** Read-only: GeoJSON Feature under the pointer, with coordinates in EPSG:4326. */
   hoveredFeature: PropTypes.object,
   /** Read-only: GeoJSON Feature clicked on this layer, with coordinates in EPSG:4326. */
@@ -92187,9 +92299,15 @@ var VectorTileLayer = _ref => {
     style = _ref.style,
     mapboxStyle = _ref.mapboxStyle,
     mapboxSource = _ref.mapboxSource,
+    _ref$visible = _ref.visible,
+    visible = _ref$visible === void 0 ? true : _ref$visible,
+    _ref$opacity = _ref.opacity,
+    opacity = _ref$opacity === void 0 ? 1 : _ref$opacity,
+    zIndex = _ref.zIndex,
     setProps = _ref.setProps;
   var map = useMap();
   var layerRef = useRef(null);
+  var layerPropertiesRef = useLayerProperties(layerRef, visible, opacity, zIndex);
   var setPropsRef = useRef(setProps);
   var hoveredFeatureRef = useRef(null);
   useEffect(() => {
@@ -92213,6 +92331,7 @@ var VectorTileLayer = _ref => {
     });
     layer.set('dashId', id);
     layer.set('dashLayerControl', true);
+    applyLayerProperties(layer, layerPropertiesRef.current);
     layerRef.current = layer;
     map.addLayer(layer);
     var getHitFeature = pixel => {
@@ -92263,7 +92382,7 @@ var VectorTileLayer = _ref => {
       hoveredFeatureRef.current = null;
       layerRef.current = null;
     };
-  }, [attributions, id, map, projection, url, urls]);
+  }, [attributions, id, layerPropertiesRef, map, projection, url, urls]);
   useEffect(() => {
     var layer = layerRef.current;
     if (!layer) return;
@@ -92292,7 +92411,9 @@ VectorTileLayer.defaultProps = {
   attributions: null,
   style: null,
   mapboxStyle: null,
-  mapboxSource: null
+  mapboxSource: null,
+  visible: true,
+  opacity: 1
 };
 VectorTileLayer.propTypes = {
   /** Component ID used to identify this layer in the Dash layout. */
@@ -92311,6 +92432,12 @@ VectorTileLayer.propTypes = {
   mapboxStyle: PropTypes.object,
   /** Vector source key within mapboxStyle; inferred when that document contains one vector source. */
   mapboxSource: PropTypes.string,
+  /** Whether this layer is rendered; updates the OpenLayers layer immediately. */
+  visible: PropTypes.bool,
+  /** Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. */
+  opacity: PropTypes.number,
+  /** Integer stacking order; omitted values preserve OpenLayers layer ordering. */
+  zIndex: PropTypes.number,
   /** Read-only: attributes of the vector-tile feature clicked on this layer, or null. */
   clickedFeature: PropTypes.object,
   /** Read-only: attributes of the vector-tile feature currently under the pointer, or null. */
@@ -98934,9 +99061,16 @@ var WebGLPointsLayerComponent = _ref => {
     data = _ref.data,
     style = _ref.style,
     _ref$disableHitDetect = _ref.disableHitDetection,
-    disableHitDetection = _ref$disableHitDetect === void 0 ? false : _ref$disableHitDetect;
+    disableHitDetection = _ref$disableHitDetect === void 0 ? false : _ref$disableHitDetect,
+    _ref$visible = _ref.visible,
+    visible = _ref$visible === void 0 ? true : _ref$visible,
+    _ref$opacity = _ref.opacity,
+    opacity = _ref$opacity === void 0 ? 1 : _ref$opacity,
+    zIndex = _ref.zIndex;
   var map = useMap();
   var sourceRef = useRef(null);
+  var layerRef = useRef(null);
+  var layerPropertiesRef = useLayerProperties(layerRef, visible, opacity, zIndex);
   useEffect(() => {
     if (!map) return undefined;
     var source = new VectorSource();
@@ -98956,12 +99090,15 @@ var WebGLPointsLayerComponent = _ref => {
     });
     layer.set('dashId', id);
     layer.set('dashLayerControl', true);
+    applyLayerProperties(layer, layerPropertiesRef.current);
+    layerRef.current = layer;
     map.addLayer(layer);
     return () => {
       map.removeLayer(layer);
       layer.dispose();
+      layerRef.current = null;
     };
-  }, [disableHitDetection, id, map, style]);
+  }, [disableHitDetection, id, layerPropertiesRef, map, style]);
   useEffect(() => {
     var source = sourceRef.current;
     if (!map || !source) return;
@@ -98977,7 +99114,9 @@ var WebGLPointsLayerComponent = _ref => {
 WebGLPointsLayerComponent.defaultProps = {
   data: null,
   style: null,
-  disableHitDetection: false
+  disableHitDetection: false,
+  visible: true,
+  opacity: 1
 };
 WebGLPointsLayerComponent.propTypes = {
   /** Component ID used to identify this layer in the Dash layout. */
@@ -98988,6 +99127,12 @@ WebGLPointsLayerComponent.propTypes = {
   style: PropTypes.object,
   /** Disable WebGL feature hit detection for a small rendering performance gain. */
   disableHitDetection: PropTypes.bool,
+  /** Whether this layer is rendered; updates the OpenLayers layer immediately. */
+  visible: PropTypes.bool,
+  /** Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. */
+  opacity: PropTypes.number,
+  /** Integer stacking order; omitted values preserve OpenLayers layer ordering. */
+  zIndex: PropTypes.number,
   /** Dash-supplied callback used to write component state back to the layout. */
   setProps: PropTypes.func
 };
@@ -99009,8 +99154,15 @@ var WFSLayer = _ref => {
     outputFormat = _ref$outputFormat === void 0 ? 'application/json' : _ref$outputFormat,
     _ref$params = _ref.params,
     params = _ref$params === void 0 ? EMPTY_PARAMS : _ref$params,
+    _ref$visible = _ref.visible,
+    visible = _ref$visible === void 0 ? true : _ref$visible,
+    _ref$opacity = _ref.opacity,
+    opacity = _ref$opacity === void 0 ? 1 : _ref$opacity,
+    zIndex = _ref.zIndex,
     setProps = _ref.setProps;
   var map = useMap();
+  var layerRef = useRef(null);
+  var layerPropertiesRef = useLayerProperties(layerRef, visible, opacity, zIndex);
   var setPropsRef = useRef(setProps);
   useEffect(() => {
     setPropsRef.current = setProps;
@@ -99024,6 +99176,8 @@ var WFSLayer = _ref => {
     layer.set('dashId', id);
     layer.set('dashLayerControl', true);
     layer.set('dashVectorSource', source);
+    applyLayerProperties(layer, layerPropertiesRef.current);
+    layerRef.current = layer;
     map.addLayer(layer);
     var controller = new AbortController();
     var requestURL = new URL(url, document.baseURI);
@@ -99078,8 +99232,9 @@ var WFSLayer = _ref => {
       controller.abort();
       map.removeLayer(layer);
       source.clear();
+      layerRef.current = null;
     };
-  }, [id, map, outputFormat, params, srsName, typeNames, url, version]);
+  }, [id, layerPropertiesRef, map, outputFormat, params, srsName, typeNames, url, version]);
   return null;
 };
 WFSLayer.defaultProps = {
@@ -99088,7 +99243,9 @@ WFSLayer.defaultProps = {
   version: '2.0.0',
   srsName: 'EPSG:4326',
   outputFormat: 'application/json',
-  params: {}
+  params: {},
+  visible: true,
+  opacity: 1
 };
 WFSLayer.propTypes = {
   /** The ID used to identify this component and layer in Dash callbacks. */
@@ -99105,6 +99262,12 @@ WFSLayer.propTypes = {
   outputFormat: PropTypes.string,
   /** Additional GetFeature query parameters, such as count, bbox, or CQL_FILTER. */
   params: PropTypes.object,
+  /** Whether this layer is rendered; updates the OpenLayers layer immediately. */
+  visible: PropTypes.bool,
+  /** Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. */
+  opacity: PropTypes.number,
+  /** Integer stacking order; omitted values preserve OpenLayers layer ordering. */
+  zIndex: PropTypes.number,
   /** Read-only: number of features loaded by the last successful request. */
   featureCount: PropTypes.number,
   /** Read-only: message from the last failed request, or null after success. */
@@ -100482,8 +100645,15 @@ var WMTSLayer = _ref => {
     format = _ref.format,
     requestEncoding = _ref.requestEncoding,
     dimensions = _ref.dimensions,
-    attributions = _ref.attributions;
+    attributions = _ref.attributions,
+    _ref$visible = _ref.visible,
+    visible = _ref$visible === void 0 ? true : _ref$visible,
+    _ref$opacity = _ref.opacity,
+    opacity = _ref$opacity === void 0 ? 1 : _ref$opacity,
+    zIndex = _ref.zIndex;
   var map = useMap();
+  var layerRef = useRef(null);
+  var layerPropertiesRef = useLayerProperties(layerRef, visible, opacity, zIndex);
   useEffect(() => {
     if (!map || !url || !layer) return undefined;
     var disposed = false;
@@ -100519,6 +100689,8 @@ var WMTSLayer = _ref => {
         });
         tileLayer.set('dashId', id);
         tileLayer.set('dashLayerControl', true);
+        applyLayerProperties(tileLayer, layerPropertiesRef.current);
+        layerRef.current = tileLayer;
         map.addLayer(tileLayer);
       });
       return function loadLayer() {
@@ -100532,8 +100704,9 @@ var WMTSLayer = _ref => {
       disposed = true;
       if (tileLayer) map.removeLayer(tileLayer);
       if (source) source.clear();
+      layerRef.current = null;
     };
-  }, [attributions, dimensions, format, id, layer, map, matrixSet, projection, requestEncoding, style, url]);
+  }, [attributions, dimensions, format, id, layerPropertiesRef, layer, map, matrixSet, projection, requestEncoding, style, url]);
   return null;
 };
 WMTSLayer.defaultProps = {
@@ -100545,7 +100718,9 @@ WMTSLayer.defaultProps = {
   format: null,
   requestEncoding: null,
   dimensions: null,
-  attributions: null
+  attributions: null,
+  visible: true,
+  opacity: 1
 };
 WMTSLayer.propTypes = {
   /** Component ID used to identify this layer in the Dash layout. */
@@ -100568,6 +100743,12 @@ WMTSLayer.propTypes = {
   dimensions: PropTypes.object,
   /** Attribution text or a list of attribution strings for the tile provider. */
   attributions: PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)]),
+  /** Whether this layer is rendered; updates the OpenLayers layer immediately. */
+  visible: PropTypes.bool,
+  /** Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. */
+  opacity: PropTypes.number,
+  /** Integer stacking order; omitted values preserve OpenLayers layer ordering. */
+  zIndex: PropTypes.number,
   /** Dash-supplied callback used to write component state back to the layout. */
   setProps: PropTypes.func
 };

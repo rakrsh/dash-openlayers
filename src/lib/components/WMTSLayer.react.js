@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import WMTSCapabilities from 'ol/format/WMTSCapabilities';
 import Tile from 'ol/layer/Tile';
 import WMTS, { optionsFromCapabilities } from 'ol/source/WMTS';
 import { useMap } from '../context/OLContext';
+import { applyLayerProperties, useLayerProperties } from '../utils/layerProperties';
 
 /** Render a WMTS layer using its service capabilities to configure the tile grid. */
 const WMTSLayer = ({
@@ -17,8 +18,13 @@ const WMTSLayer = ({
   requestEncoding,
   dimensions,
   attributions,
+  visible = true,
+  opacity = 1,
+  zIndex,
 }) => {
   const map = useMap();
+  const layerRef = useRef(null);
+  const layerPropertiesRef = useLayerProperties(layerRef, visible, opacity, zIndex);
 
   useEffect(() => {
     if (!map || !url || !layer) return undefined;
@@ -56,6 +62,8 @@ const WMTSLayer = ({
       tileLayer = new Tile({ source });
       tileLayer.set('dashId', id);
       tileLayer.set('dashLayerControl', true);
+      applyLayerProperties(tileLayer, layerPropertiesRef.current);
+      layerRef.current = tileLayer;
       map.addLayer(tileLayer);
     };
 
@@ -67,12 +75,14 @@ const WMTSLayer = ({
       disposed = true;
       if (tileLayer) map.removeLayer(tileLayer);
       if (source) source.clear();
+      layerRef.current = null;
     };
   }, [
     attributions,
     dimensions,
     format,
     id,
+    layerPropertiesRef,
     layer,
     map,
     matrixSet,
@@ -95,6 +105,8 @@ WMTSLayer.defaultProps = {
   requestEncoding: null,
   dimensions: null,
   attributions: null,
+  visible: true,
+  opacity: 1,
 };
 
 WMTSLayer.propTypes = {
@@ -118,6 +130,12 @@ WMTSLayer.propTypes = {
   dimensions: PropTypes.object,
   /** Attribution text or a list of attribution strings for the tile provider. */
   attributions: PropTypes.oneOfType([PropTypes.string, PropTypes.arrayOf(PropTypes.string)]),
+  /** Whether this layer is rendered; updates the OpenLayers layer immediately. */
+  visible: PropTypes.bool,
+  /** Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. */
+  opacity: PropTypes.number,
+  /** Integer stacking order; omitted values preserve OpenLayers layer ordering. */
+  zIndex: PropTypes.number,
   /** Dash-supplied callback used to write component state back to the layout. */
   setProps: PropTypes.func,
 };

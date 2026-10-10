@@ -3,11 +3,14 @@ import PropTypes from 'prop-types';
 import Tile from 'ol/layer/Tile';
 import TileWMSSource from 'ol/source/TileWMS';
 import { useMap } from '../context/OLContext';
+import { applyLayerProperties, useLayerProperties } from '../utils/layerProperties';
 
 /** Render a tiled OGC Web Map Service layer. */
-const TileWMSLayer = ({ id, url, params, serverType }) => {
+const TileWMSLayer = ({ id, url, params, serverType, visible = true, opacity = 1, zIndex }) => {
   const map = useMap();
   const sourceRef = useRef(null);
+  const layerRef = useRef(null);
+  const layerPropertiesRef = useLayerProperties(layerRef, visible, opacity, zIndex);
   const paramsRef = useRef(params);
 
   useEffect(() => {
@@ -24,14 +27,17 @@ const TileWMSLayer = ({ id, url, params, serverType }) => {
     const layer = new Tile({ source });
     layer.set('dashId', id);
     layer.set('dashLayerControl', true);
+    applyLayerProperties(layer, layerPropertiesRef.current);
     sourceRef.current = source;
+    layerRef.current = layer;
     map.addLayer(layer);
 
     return () => {
       map.removeLayer(layer);
       sourceRef.current = null;
+      layerRef.current = null;
     };
-  }, [id, map, serverType, url]);
+  }, [id, layerPropertiesRef, map, serverType, url]);
 
   return null;
 };
@@ -40,6 +46,8 @@ TileWMSLayer.defaultProps = {
   url: null,
   params: {},
   serverType: null,
+  visible: true,
+  opacity: 1,
 };
 
 TileWMSLayer.propTypes = {
@@ -51,6 +59,12 @@ TileWMSLayer.propTypes = {
   params: PropTypes.object,
   /** WMS server type used for vendor-specific HiDPI request parameters. */
   serverType: PropTypes.oneOf(['carmentaserver', 'geoserver', 'mapserver', 'qgis']),
+  /** Whether this layer is rendered; updates the OpenLayers layer immediately. */
+  visible: PropTypes.bool,
+  /** Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. */
+  opacity: PropTypes.number,
+  /** Integer stacking order; omitted values preserve OpenLayers layer ordering. */
+  zIndex: PropTypes.number,
   /** Dash-supplied callback used to write component state back to the layout. */
   setProps: PropTypes.func,
 };
