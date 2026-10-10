@@ -475,7 +475,7 @@
           }
         },
         "required": false,
-        "description": "Map view center as [x, y] in projection's units (e.g. [lon, lat] for EPSG:4326, [x, y] in meters for EPSG:3857/projected CRSs). Bidirectional: updates on moveend and can be set from Python.",
+        "description": "Map view center as [longitude, latitude] in EPSG:4326. Bidirectional: updated after debounced viewport movement and animated when set from Python.",
         "defaultValue": {
           "value": "[0, 0]",
           "computed": false
@@ -486,9 +486,34 @@
           "name": "number"
         },
         "required": false,
-        "description": "Map zoom level. Bidirectional: updates on moveend and can be set from Python.",
+        "description": "Map zoom level. Bidirectional: updated after debounced viewport movement and animated from Python.",
         "defaultValue": {
           "value": "2",
+          "computed": false
+        }
+      },
+      "bounds": {
+        "type": {
+          "name": "arrayOf",
+          "value": {
+            "name": "number"
+          }
+        },
+        "required": false,
+        "description": "View extent as [minLongitude, minLatitude, maxLongitude, maxLatitude] in EPSG:4326; animated when set.",
+        "defaultValue": {
+          "value": "null",
+          "computed": false
+        }
+      },
+      "debounce": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Debounce delay for viewport callback updates, in milliseconds.",
+        "defaultValue": {
+          "value": "300",
           "computed": false
         }
       },
@@ -540,6 +565,16 @@
         },
         "required": false,
         "description": "Read-only: set on `singleclick` with `{ coordinate: [x, y], latLon: [lat, lon] }`."
+      },
+      "bbox": {
+        "type": {
+          "name": "arrayOf",
+          "value": {
+            "name": "number"
+          }
+        },
+        "required": false,
+        "description": "Read-only: current visible extent as [minLongitude, minLatitude, maxLongitude, maxLatitude] in EPSG:4326."
       },
       "undo": {
         "type": {

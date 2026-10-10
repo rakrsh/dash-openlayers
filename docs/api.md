@@ -77,12 +77,15 @@ Create an OpenLayers map and synchronize its view and click events with Dash.
 | --- | --- | --- | --- |
 | `id` | `string` | — | The ID used to identify this component in Dash callbacks. |
 | `children` | `Dash component` | — | OpenLayers layer and interaction components rendered inside this map. |
-| `center` | `list[number]` | `[0, 0]` | Map view center as [x, y] in projection's units (e.g. [lon, lat] for EPSG:4326, [x, y] in meters for EPSG:3857/projected CRSs). Bidirectional: updates on moveend and can be set from Python. |
-| `zoom` | `number` | `2` | Map zoom level. Bidirectional: updates on moveend and can be set from Python. |
+| `center` | `list[number]` | `[0, 0]` | Map view center as [longitude, latitude] in EPSG:4326. Bidirectional: updated after debounced viewport movement and animated when set from Python. |
+| `zoom` | `number` | `2` | Map zoom level. Bidirectional: updated after debounced viewport movement and animated from Python. |
+| `bounds` | `list[number]` | `null` | View extent as [minLongitude, minLatitude, maxLongitude, maxLatitude] in EPSG:4326; animated when set. |
+| `debounce` | `number` | `300` | Debounce delay for viewport callback updates, in milliseconds. |
 | `projection` | `string` | `'EPSG:3857'` | EPSG code the view is rendered in, e.g. 'EPSG:3857' or a custom code registered via `proj4Defs`. |
 | `proj4Defs` | `list[dict]` | `[]` | Custom proj4 projection definitions to register before the view is constructed, e.g. [{ code: 'EPSG:27700', def: '+proj=tmerc ...' }]. |
 | `style` | `dict` | — | Inline CSS style object applied to the map container div. |
 | `clickData` | `dict` | — | Read-only: set on `singleclick` with `{ coordinate: [x, y], latLon: [lat, lon] }`. |
+| `bbox` | `list[number]` | — | Read-only: current visible extent as [minLongitude, minLatitude, maxLongitude, maxLatitude] in EPSG:4326. |
 | `undo` | `number` | `0` | Increment to undo the latest draw or modify operation on this map. |
 | `redo` | `number` | `0` | Increment to redo the latest undone draw or modify operation on this map. |
 | `canUndo` | `bool` | — | Read-only: whether this map's edit history has an operation to undo. |

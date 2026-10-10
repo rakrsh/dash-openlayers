@@ -358,7 +358,7 @@ def test_vector_layer_renders_geopandas_geojson_string_and_property_styles(dash_
     app = dash.Dash(__name__)
     app.layout = dol.Map(
         id="map",
-        center=[1_000_000, 2_000_000],
+        center=[8.9831528, 17.6789142],
         zoom=5,
         children=[dol.VectorLayer(id="features", data=geojson_text, style=style)],
         style={"height": "400px", "width": "600px"},
@@ -745,7 +745,7 @@ def test_wkt_vector_layer_exports_modified_formats(dash_duo):
 
 
 def test_map_center_zoom_syncs_both_directions(dash_duo):
-    target_center = [1_000_000, 2_000_000]
+    target_center = [8.9831528, 17.6789142]
     target_zoom = 5
     app = dash.Dash(__name__)
     app.layout = dash.html.Div(
@@ -793,9 +793,10 @@ def test_map_center_zoom_syncs_both_directions(dash_duo):
         Output("view-state", "children"),
         Input("map", "center"),
         Input("map", "zoom"),
+        Input("map", "bbox"),
     )
-    def show_view_state(center, zoom):
-        return json.dumps({"center": center, "zoom": zoom})
+    def show_view_state(center, zoom, bbox):
+        return json.dumps({"center": center, "zoom": zoom, "bbox": bbox})
 
     @app.callback(Output("click-state", "children"), Input("map", "clickData"))
     def show_click_state(click_data):
@@ -808,12 +809,21 @@ def test_map_center_zoom_syncs_both_directions(dash_duo):
         lambda driver: driver.find_element(By.CSS_SELECTOR, "#map .ol-layer canvas")
     )
 
+    previous_bbox = json.loads(dash_duo.find_element("#view-state").text)["bbox"]
     dash_duo.find_element("#set-view").click()
-    WebDriverWait(dash_duo.driver, 15).until(
-        lambda driver: (
-            json.loads(driver.find_element(By.ID, "view-state").text)
-            == {"center": target_center, "zoom": target_zoom}
-        )
+
+    def view_matches_target(driver):
+        state = json.loads(driver.find_element(By.ID, "view-state").text)
+        bbox = state["bbox"]
+        bbox_center = [(bbox[0] + bbox[2]) / 2, (bbox[1] + bbox[3]) / 2] if bbox else None
+        return state["zoom"] == target_zoom and bbox != previous_bbox and bbox_center is not None
+
+    WebDriverWait(dash_duo.driver, 15).until(view_matches_target)
+    settled_state = json.loads(dash_duo.find_element("#view-state").text)
+    settled_state = json.loads(dash_duo.find_element("#view-state").text)
+    assert all(
+        abs(actual - expected) < 1e-5
+        for actual, expected in zip(settled_state["center"], target_center)
     )
     current_vector_canvas = dash_duo.driver.find_element(By.CSS_SELECTOR, "#map .ol-layer canvas")
     assert current_vector_canvas == vector_canvas
@@ -830,8 +840,8 @@ def test_map_center_zoom_syncs_both_directions(dash_duo):
     viewport.click()
     dash_duo.wait_for_contains_text("#click-state", '"coordinate"', timeout=10)
     click_data = json.loads(dash_duo.find_element("#click-state").text)
-    assert abs(click_data["coordinate"][0] - target_center[0]) < 10_000
-    assert abs(click_data["coordinate"][1] - target_center[1]) < 10_000
+    assert settled_state["bbox"][0] <= click_data["latLon"][1] <= settled_state["bbox"][2]
+    assert settled_state["bbox"][1] <= click_data["latLon"][0] <= settled_state["bbox"][3]
 
     (
         ActionChains(dash_duo.driver)
@@ -869,7 +879,7 @@ def test_map_registers_custom_projection(dash_duo):
         [
             dol.Map(
                 id="map",
-                center=[530_000, 180_000],
+                center=[-0.128, 51.503],
                 zoom=10,
                 projection="EPSG:27700",
                 proj4Defs=[

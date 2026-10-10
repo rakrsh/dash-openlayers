@@ -34,13 +34,20 @@ Keyword arguments:
     map.
 
 - center (list of numbers; default [0, 0]):
-    Map view center as [x, y] in projection's units (e.g. [lon, lat]
-    for EPSG:4326, [x, y] in meters for EPSG:3857/projected CRSs).
-    Bidirectional: updates on moveend and can be set from Python.
+    Map view center as [longitude, latitude] in EPSG:4326.
+    Bidirectional: updated after debounced viewport movement and
+    animated when set from Python.
 
 - zoom (number; default 2):
-    Map zoom level. Bidirectional: updates on moveend and can be set
-    from Python.
+    Map zoom level. Bidirectional: updated after debounced viewport
+    movement and animated from Python.
+
+- bounds (list of numbers; optional):
+    View extent as [minLongitude, minLatitude, maxLongitude,
+    maxLatitude] in EPSG:4326; animated when set.
+
+- debounce (number; default 300):
+    Debounce delay for viewport callback updates, in milliseconds.
 
 - projection (string; default 'EPSG:3857'):
     EPSG code the view is rendered in, e.g. 'EPSG:3857' or a custom
@@ -60,6 +67,10 @@ Keyword arguments:
 - clickData (dict; optional):
     Read-only: set on `singleclick` with `{ coordinate: [x, y],
     latLon: [lat, lon] }`.
+
+- bbox (list of numbers; optional):
+    Read-only: current visible extent as [minLongitude, minLatitude,
+    maxLongitude, maxLatitude] in EPSG:4326.
 
 - undo (number; default 0):
     Increment to undo the latest draw or modify operation on this map.
@@ -94,19 +105,22 @@ Keyword arguments:
         id: typing.Optional[typing.Union[str, dict]] = None,
         center: typing.Optional[typing.Sequence[NumberType]] = None,
         zoom: typing.Optional[NumberType] = None,
+        bounds: typing.Optional[typing.Sequence[NumberType]] = None,
+        debounce: typing.Optional[NumberType] = None,
         projection: typing.Optional[str] = None,
         proj4Defs: typing.Optional[typing.Sequence["Proj4Defs"]] = None,
         style: typing.Optional[typing.Any] = None,
         clickData: typing.Optional[dict] = None,
+        bbox: typing.Optional[typing.Sequence[NumberType]] = None,
         undo: typing.Optional[NumberType] = None,
         redo: typing.Optional[NumberType] = None,
         canUndo: typing.Optional[bool] = None,
         canRedo: typing.Optional[bool] = None,
         **kwargs
     ):
-        self._prop_names = ['id', 'children', 'center', 'zoom', 'projection', 'proj4Defs', 'style', 'clickData', 'undo', 'redo', 'canUndo', 'canRedo']
+        self._prop_names = ['id', 'children', 'center', 'zoom', 'bounds', 'debounce', 'projection', 'proj4Defs', 'style', 'clickData', 'bbox', 'undo', 'redo', 'canUndo', 'canRedo']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'children', 'center', 'zoom', 'projection', 'proj4Defs', 'style', 'clickData', 'undo', 'redo', 'canUndo', 'canRedo']
+        self.available_properties = ['id', 'children', 'center', 'zoom', 'bounds', 'debounce', 'projection', 'proj4Defs', 'style', 'clickData', 'bbox', 'undo', 'redo', 'canUndo', 'canRedo']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()
