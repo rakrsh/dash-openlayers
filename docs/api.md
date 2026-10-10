@@ -82,6 +82,19 @@ Create an OpenLayers map and synchronize its view and click events with Dash.
 | `canUndo` | `bool` | — | Read-only: whether this map's edit history has an operation to undo. |
 | `canRedo` | `bool` | — | Read-only: whether this map's edit history has an operation to redo. |
 
+## `MeasureControl`
+
+Draw lines and polygons with live geodesic length and area measurements.
+
+| Prop | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | `string` | — | Component ID used to identify this measurement control in Dash. |
+| `units` | `'metric' \| 'imperial'` | `'metric'` | Measurement units: metric uses meters, kilometers, and hectares; imperial uses feet, miles, and acres. |
+| `clearMeasurements` | `number` | `0` | Increment to clear all completed and in-progress measurements. |
+| `position` | `'top-left' \| 'top-right' \| 'bottom-left' \| 'bottom-right'` | `'top-left'` | Corner of the map where the measurement toolbar is displayed. |
+| `title` | `string` | `'Measure'` | Accessible toolbar label and visible heading. |
+| `style` | `dict` | — | Inline styles applied to the toolbar control container. |
+
 ## `ModifyInteraction`
 
 Allow editing vertices in a VectorLayer and report the updated features.

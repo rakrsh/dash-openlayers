@@ -28,6 +28,7 @@ module.exports = {
     'src/lib/components/TileWMS.react.js',
     'src/lib/components/ImageWMS.react.js',
     'src/lib/components/DrawInteraction.react.js',
+    'src/lib/components/MeasureControl.react.js',
   ],
   coverageThreshold: {
     [path.join(__dirname, 'src/lib/components/Map.react.js')]: { statements: 80 },
@@ -38,6 +39,7 @@ module.exports = {
     [path.join(__dirname, 'src/lib/components/TileWMS.react.js')]: { statements: 80 },
     [path.join(__dirname, 'src/lib/components/ImageWMS.react.js')]: { statements: 80 },
     [path.join(__dirname, 'src/lib/components/DrawInteraction.react.js')]: { statements: 80 },
+    [path.join(__dirname, 'src/lib/components/MeasureControl.react.js')]: { statements: 80 },
   },
   coverageReporters: ['text', 'lcov'],
 };

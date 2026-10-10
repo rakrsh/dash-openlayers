@@ -2,6 +2,7 @@ import React from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import MapComponent from '../../src/lib/components/Map.react';
 import DrawControl from '../../src/lib/components/DrawControl.react';
+import MeasureControl from '../../src/lib/components/MeasureControl.react';
 import TileLayer from '../../src/lib/components/TileLayer.react';
 import VectorLayer from '../../src/lib/components/VectorLayer.react';
 import VectorTileLayer from '../../src/lib/components/VectorTileLayer.react';
@@ -26,6 +27,7 @@ import { toLonLat } from 'ol/proj';
 import { registerProjections } from '../../src/lib/utils/projection';
 import Draw, { createBox } from 'ol/interaction/Draw';
 import { fromCircle } from 'ol/geom/Polygon';
+import { getArea, getLength } from 'ol/sphere';
 import Modify from 'ol/interaction/Modify';
 import Select from 'ol/interaction/Select';
 import { unByKey } from 'ol/Observable';
@@ -220,6 +222,11 @@ jest.mock('ol/interaction/Draw', () => ({
 
 jest.mock('ol/geom/Polygon', () => ({
   fromCircle: jest.fn(),
+}));
+
+jest.mock('ol/sphere', () => ({
+  getArea: jest.fn(() => 25000),
+  getLength: jest.fn(() => 1500),
 }));
 
 jest.mock('ol/interaction/Modify', () => ({
@@ -2072,5 +2079,110 @@ describe('DrawControl', () => {
 
     fireEvent.click(controlElement.querySelector('[data-geometry-type="Point"]'));
     expect(setProps).toHaveBeenLastCalledWith({ activeDrawMode: 'Point' });
+  });
+});
+
+describe('MeasureControl', () => {
+  it('updates live geodesic distance in selected units and clears from its toolbar', () => {
+    const map = makeMap();
+    const { unmount, rerender } = render(
+      <OLContext.Provider value={map}>
+        <MeasureControl id="measure" units="metric" clearMeasurements={0} />
+      </OLContext.Provider>,
+    );
+
+    const control = map.addControl.mock.calls[0][0];
+    const distanceButton = control.element.querySelector('[data-measure-type="LineString"]');
+    fireEvent.click(distanceButton);
+
+    const draw = Draw.mock.instances[0];
+    const source = VectorSource.mock.instances[0];
+    const geometry = {
+      listeners: {},
+      getCoordinates: () => [
+        [0, 0],
+        [1, 1],
+      ],
+      on: jest.fn((event, listener) => {
+        geometry.listeners[event] = listener;
+        return { event, listener };
+      }),
+    };
+    draw.listeners.drawstart({ feature: { getGeometry: () => geometry } });
+
+    const overlay = Overlay.mock.instances[0];
+    const projection = 'EPSG:3857';
+    expect(draw.options).toMatchObject({ type: 'LineString' });
+    expect(getLength).toHaveBeenCalledWith(geometry, { projection });
+    expect(overlay.options.element.textContent).toBe('1.50 km');
+    expect(overlay.setPosition).toHaveBeenCalledWith([1, 1]);
+
+    getLength.mockReturnValue(2500);
+    geometry.listeners.change();
+    expect(overlay.options.element.textContent).toBe('2.50 km');
+
+    rerender(
+      <OLContext.Provider value={map}>
+        <MeasureControl id="measure" units="imperial" clearMeasurements={0} />
+      </OLContext.Provider>,
+    );
+    expect(overlay.options.element.textContent).toBe('1.55 mi');
+
+    draw.listeners.drawend();
+    expect(overlay.options.element.className).toContain('static');
+    fireEvent.click(control.element.querySelector('[data-clear-measurements="true"]'));
+    expect(map.removeOverlay).toHaveBeenCalledWith(overlay);
+    expect(source.clear).toHaveBeenCalled();
+    expect(map.removeInteraction).toHaveBeenCalledWith(draw);
+
+    unmount();
+    expect(map.removeLayer).toHaveBeenCalledWith(OpenLayersVectorLayer.mock.instances[0]);
+    expect(map.removeControl).toHaveBeenCalledWith(control);
+  });
+
+  it('measures polygon area and clears completed measurements when the prop changes', () => {
+    const map = makeMap();
+    const { rerender } = render(
+      <OLContext.Provider value={map}>
+        <MeasureControl units="metric" clearMeasurements={0} />
+      </OLContext.Provider>,
+    );
+
+    const control = map.addControl.mock.calls[0][0];
+    fireEvent.click(control.element.querySelector('[data-measure-type="Polygon"]'));
+    const draw = Draw.mock.instances[0];
+    const geometry = {
+      getCoordinates: () => [
+        [
+          [0, 0],
+          [0, 1],
+          [1, 1],
+        ],
+      ],
+      on: jest.fn((event, listener) => ({ event, listener })),
+    };
+    draw.listeners.drawstart({ feature: { getGeometry: () => geometry } });
+
+    const overlay = Overlay.mock.instances[0];
+    expect(draw.options).toMatchObject({ type: 'Polygon' });
+    expect(getArea).toHaveBeenCalledWith(geometry, { projection: 'EPSG:3857' });
+    expect(overlay.options.element.textContent).toBe('2.50 ha');
+
+    rerender(
+      <OLContext.Provider value={map}>
+        <MeasureControl units="imperial" clearMeasurements={0} />
+      </OLContext.Provider>,
+    );
+    expect(overlay.options.element.textContent).toBe('6.18 acres');
+    draw.listeners.drawend();
+
+    rerender(
+      <OLContext.Provider value={map}>
+        <MeasureControl units="imperial" clearMeasurements={1} />
+      </OLContext.Provider>,
+    );
+    expect(map.removeOverlay).toHaveBeenCalledWith(overlay);
+    expect(VectorSource.mock.instances[0].clear).toHaveBeenCalled();
+    expect(map.removeInteraction).toHaveBeenCalledWith(draw);
   });
 });

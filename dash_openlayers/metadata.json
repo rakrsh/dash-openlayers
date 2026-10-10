@@ -670,6 +670,99 @@
       }
     }
   },
+  "src/lib/components/MeasureControl.react.js": {
+    "description": "Draw lines and polygons with live geodesic length and area measurements.",
+    "displayName": "MeasureControl",
+    "methods": [],
+    "props": {
+      "id": {
+        "type": {
+          "name": "string"
+        },
+        "required": false,
+        "description": "Component ID used to identify this measurement control in Dash."
+      },
+      "units": {
+        "type": {
+          "name": "enum",
+          "value": [
+            {
+              "value": "'metric'",
+              "computed": false
+            },
+            {
+              "value": "'imperial'",
+              "computed": false
+            }
+          ]
+        },
+        "required": false,
+        "description": "Measurement units: metric uses meters, kilometers, and hectares; imperial uses feet, miles, and acres.",
+        "defaultValue": {
+          "value": "'metric'",
+          "computed": false
+        }
+      },
+      "clearMeasurements": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Increment to clear all completed and in-progress measurements.",
+        "defaultValue": {
+          "value": "0",
+          "computed": false
+        }
+      },
+      "position": {
+        "type": {
+          "name": "enum",
+          "value": [
+            {
+              "value": "'top-left'",
+              "computed": false
+            },
+            {
+              "value": "'top-right'",
+              "computed": false
+            },
+            {
+              "value": "'bottom-left'",
+              "computed": false
+            },
+            {
+              "value": "'bottom-right'",
+              "computed": false
+            }
+          ]
+        },
+        "required": false,
+        "description": "Corner of the map where the measurement toolbar is displayed.",
+        "defaultValue": {
+          "value": "'top-left'",
+          "computed": false
+        }
+      },
+      "title": {
+        "type": {
+          "name": "string"
+        },
+        "required": false,
+        "description": "Accessible toolbar label and visible heading.",
+        "defaultValue": {
+          "value": "'Measure'",
+          "computed": false
+        }
+      },
+      "style": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Inline styles applied to the toolbar control container."
+      }
+    }
+  },
   "src/lib/components/ModifyInteraction.react.js": {
     "description": "Allow editing vertices in a VectorLayer and report the updated features.",
     "displayName": "ModifyInteraction",
