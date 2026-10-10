@@ -449,7 +449,7 @@
     }
   },
   "src/lib/components/Map.react.js": {
-    "description": "Create an OpenLayers map and synchronize its view and click events with Dash.",
+    "description": "Create an OpenLayers map and synchronize its view and pointer events with Dash.",
     "displayName": "MapComponent",
     "methods": [],
     "props": {
@@ -564,7 +564,21 @@
           "name": "object"
         },
         "required": false,
-        "description": "Read-only: set on `singleclick` with `{ coordinate: [x, y], latLon: [lat, lon] }`."
+        "description": "Read-only: geographic click payload with lat, lon, pixelCoordinate [x, y], and featureInfo; featureInfo is null on the map background or contains the hit feature's GeoJSON properties."
+      },
+      "doubleClickData": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Read-only: geographic double-click payload with lat, lon, pixelCoordinate [x, y], and featureInfo; featureInfo is null on the map background or contains the hit feature's GeoJSON properties."
+      },
+      "hoverData": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Read-only: geographic pointer-move payload with lat, lon, pixelCoordinate [x, y], and featureInfo; featureInfo is null on the map background or contains the hit feature's GeoJSON properties."
       },
       "bbox": {
         "type": {

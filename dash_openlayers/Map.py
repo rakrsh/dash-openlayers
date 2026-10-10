@@ -22,7 +22,7 @@ ComponentType = typing.Union[
 
 class Map(Component):
     """A Map component.
-Create an OpenLayers map and synchronize its view and click events with Dash.
+Create an OpenLayers map and synchronize its view and pointer events with Dash.
 
 Keyword arguments:
 
@@ -65,8 +65,21 @@ Keyword arguments:
     - def (string; required)
 
 - clickData (dict; optional):
-    Read-only: set on `singleclick` with `{ coordinate: [x, y],
-    latLon: [lat, lon] }`.
+    Read-only: geographic click payload with lat, lon, pixelCoordinate
+    [x, y], and featureInfo; featureInfo is None on the map background
+    or contains the hit feature's GeoJSON properties.
+
+- doubleClickData (dict; optional):
+    Read-only: geographic double-click payload with lat, lon,
+    pixelCoordinate [x, y], and featureInfo; featureInfo is None on
+    the map background or contains the hit feature's GeoJSON
+    properties.
+
+- hoverData (dict; optional):
+    Read-only: geographic pointer-move payload with lat, lon,
+    pixelCoordinate [x, y], and featureInfo; featureInfo is None on
+    the map background or contains the hit feature's GeoJSON
+    properties.
 
 - bbox (list of numbers; optional):
     Read-only: current visible extent as [minLongitude, minLatitude,
@@ -111,6 +124,8 @@ Keyword arguments:
         proj4Defs: typing.Optional[typing.Sequence["Proj4Defs"]] = None,
         style: typing.Optional[typing.Any] = None,
         clickData: typing.Optional[dict] = None,
+        doubleClickData: typing.Optional[dict] = None,
+        hoverData: typing.Optional[dict] = None,
         bbox: typing.Optional[typing.Sequence[NumberType]] = None,
         undo: typing.Optional[NumberType] = None,
         redo: typing.Optional[NumberType] = None,
@@ -118,9 +133,9 @@ Keyword arguments:
         canRedo: typing.Optional[bool] = None,
         **kwargs
     ):
-        self._prop_names = ['id', 'children', 'center', 'zoom', 'bounds', 'debounce', 'projection', 'proj4Defs', 'style', 'clickData', 'bbox', 'undo', 'redo', 'canUndo', 'canRedo']
+        self._prop_names = ['id', 'children', 'center', 'zoom', 'bounds', 'debounce', 'projection', 'proj4Defs', 'style', 'clickData', 'doubleClickData', 'hoverData', 'bbox', 'undo', 'redo', 'canUndo', 'canRedo']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'children', 'center', 'zoom', 'bounds', 'debounce', 'projection', 'proj4Defs', 'style', 'clickData', 'bbox', 'undo', 'redo', 'canUndo', 'canRedo']
+        self.available_properties = ['id', 'children', 'center', 'zoom', 'bounds', 'debounce', 'projection', 'proj4Defs', 'style', 'clickData', 'doubleClickData', 'hoverData', 'bbox', 'undo', 'redo', 'canUndo', 'canRedo']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()

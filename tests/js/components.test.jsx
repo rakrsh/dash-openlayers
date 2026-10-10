@@ -67,9 +67,13 @@ jest.mock('ol/Map', () => ({
   default: jest.fn().mockImplementation(function MockMap(options) {
     this.options = options;
     this.listeners = {};
+    this.hitFeature = null;
     this.on = jest.fn((event, listener) => {
       this.listeners[event] = listener;
       return { event, listener };
+    });
+    this.forEachFeatureAtPixel = jest.fn(function forEachFeatureAtPixel(pixel, callback) {
+      if (this.hitFeature) callback(this.hitFeature);
     });
     this.setTarget = jest.fn();
     this.addLayer = jest.fn();
@@ -602,16 +606,66 @@ describe('Map', () => {
     expect(view.fit).toHaveBeenCalledWith(bounds, { duration: 300, size: [800, 600] });
   });
 
-  it('transforms click coordinates and emits clickData', () => {
+  it('emits geographic pointer data and distinguishes vector-feature hits from background', () => {
     const setProps = jest.fn();
     render(
       <MapComponent id="map" center={[0, 0]} zoom={2} projection="EPSG:4326" setProps={setProps} />,
     );
 
-    Map.mock.instances[0].listeners.singleclick({ coordinate: [3, 4] });
+    const map = Map.mock.instances[0];
+    const feature = {
+      get: jest.fn(() => undefined),
+      getProperties: jest.fn(() => ({
+        name: 'Station A',
+        geometry: { type: 'Point', coordinates: [3, 4] },
+      })),
+    };
+    map.hitFeature = feature;
+    const event = { coordinate: [3, 4], pixel: [30, 40] };
+
+    map.listeners.singleclick(event);
     expect(toLonLat).toHaveBeenCalledWith([3, 4], 'EPSG:4326');
     expect(setProps).toHaveBeenCalledWith({
-      clickData: { coordinate: [3, 4], latLon: [6, 4] },
+      clickData: {
+        lat: 6,
+        lon: 4,
+        pixelCoordinate: [30, 40],
+        featureInfo: { name: 'Station A' },
+      },
+    });
+
+    map.listeners.dblclick(event);
+    expect(setProps).toHaveBeenLastCalledWith({
+      doubleClickData: {
+        lat: 6,
+        lon: 4,
+        pixelCoordinate: [30, 40],
+        featureInfo: { name: 'Station A' },
+      },
+    });
+
+    map.listeners.pointermove(event);
+    expect(setProps).toHaveBeenLastCalledWith({
+      hoverData: {
+        lat: 6,
+        lon: 4,
+        pixelCoordinate: [30, 40],
+        featureInfo: { name: 'Station A' },
+      },
+    });
+    const callbackCount = setProps.mock.calls.length;
+    map.listeners.pointermove({ ...event, dragging: true });
+    expect(setProps).toHaveBeenCalledTimes(callbackCount);
+
+    map.hitFeature = null;
+    map.listeners.singleclick(event);
+    expect(setProps).toHaveBeenLastCalledWith({
+      clickData: {
+        lat: 6,
+        lon: 4,
+        pixelCoordinate: [30, 40],
+        featureInfo: null,
+      },
     });
   });
 
