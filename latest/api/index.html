@@ -1,0 +1,2303 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="OpenLayers components for Plotly Dash">
+      
+      
+      
+        <link rel="canonical" href="https://rakrsh.github.io/dash-openlayers/0.1.0/api/">
+      
+      
+        <link rel="prev" href="../examples/">
+      
+      
+        <link rel="next" href="../architecture/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>API - dash-openlayers</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#api-reference" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="dash-openlayers" class="md-header__button md-logo" aria-label="dash-openlayers" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            dash-openlayers
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              API
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="default" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3zm3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95zm-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="indigo" data-md-color-accent="indigo"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m3.55 19.09 1.41 1.41 1.8-1.79-1.42-1.42M12 6c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6c0-3.32-2.69-6-6-6m8 7h3v-2h-3m-2.76 7.71 1.8 1.79 1.41-1.41-1.79-1.8M20.45 5l-1.41-1.4-1.8 1.79 1.42 1.42M13 1h-2v3h2M6.76 5.39 4.96 3.6 3.55 5l1.79 1.81zM1 13h3v-2H1m12 9h-2v3h2"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/rakrsh/dash-openlayers" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../usage/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Usage
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../quickstart/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Quickstart
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../examples/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Examples
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  API
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../architecture/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../testing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Testing
+
+      </a>
+    </li>
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+<nav class="md-nav md-nav--primary md-nav--lifted" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="dash-openlayers" class="md-nav__button md-logo" aria-label="dash-openlayers" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    dash-openlayers
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/rakrsh/dash-openlayers" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../usage/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Usage
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#drawcontrol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DrawControl
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#drawinteraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DrawInteraction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#imagewms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ImageWMS
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layercontrol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LayerControl
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#measurecontrol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MeasureControl
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#modifyinteraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ModifyInteraction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#popup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Popup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#selectinteraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SelectInteraction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tilelayer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TileLayer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tilewms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TileWMS
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vectorlayer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VectorLayer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vectortilelayer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VectorTileLayer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#wfslayer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WFSLayer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#wmtslayer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WMTSLayer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#webglpointslayer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebGLPointsLayer
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../architecture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../testing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Testing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#drawcontrol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DrawControl
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#drawinteraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        DrawInteraction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#imagewms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ImageWMS
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layercontrol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LayerControl
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#map" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#measurecontrol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MeasureControl
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#modifyinteraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ModifyInteraction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#popup" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Popup
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#selectinteraction" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SelectInteraction
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tilelayer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TileLayer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#tilewms" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TileWMS
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vectorlayer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VectorLayer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#vectortilelayer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VectorTileLayer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#wfslayer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WFSLayer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#wmtslayer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WMTSLayer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#webglpointslayer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        WebGLPointsLayer
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="api-reference">API Reference</h1>
+<p>This reference is generated from the component metadata used to build the Python wrappers.
+For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
+<h2 id="drawcontrol"><code>DrawControl</code></h2>
+<p>Add map controls for drawing, selecting, editing, and deleting spatial features.</p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>Component ID used to identify this drawing control and its callback outputs.</td>
+</tr>
+<tr>
+<td><code>geometryTypes</code></td>
+<td><code>list['Point' \| 'LineString' \| 'Polygon' \| 'Circle' \| 'Box']</code></td>
+<td><code>['Point', 'LineString', 'Polygon', 'Circle', 'Box']</code></td>
+<td>Drawing modes displayed in the control: Point, LineString, Polygon, Circle, and Box (rectangle).</td>
+</tr>
+<tr>
+<td><code>activeDrawMode</code></td>
+<td><code>null \| 'Point' \| 'LineString' \| 'Polygon' \| 'Circle' \| 'Box'</code></td>
+<td>—</td>
+<td>Active drawing mode; set to null to stop drawing. Bidirectional when changed by toolbar clicks.</td>
+</tr>
+<tr>
+<td><code>editMode</code></td>
+<td><code>bool</code></td>
+<td>—</td>
+<td>Whether selection and vertex editing are enabled; toolbar changes are bidirectional.</td>
+</tr>
+<tr>
+<td><code>deleteSelected</code></td>
+<td><code>number</code></td>
+<td><code>0</code></td>
+<td>Increment to delete the currently selected feature or features.</td>
+</tr>
+<tr>
+<td><code>position</code></td>
+<td><code>'top-left' \| 'top-right' \| 'bottom-left' \| 'bottom-right'</code></td>
+<td><code>'top-left'</code></td>
+<td>Corner of the map where the drawing tools are displayed.</td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td><code>string</code></td>
+<td><code>'Draw'</code></td>
+<td>Accessible toolbar label and visible heading.</td>
+</tr>
+<tr>
+<td><code>style</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Inline styles applied to the toolbar control container.</td>
+</tr>
+<tr>
+<td><code>buttonStyle</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Inline styles applied to each drawing mode button.</td>
+</tr>
+<tr>
+<td><code>drawnGeoJSON</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: GeoJSON Feature emitted only when geometry validation succeeds.</td>
+</tr>
+<tr>
+<td><code>drawnFeatures</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: GeoJSON FeatureCollection of all drawn features, updated after drawing, editing, undo, or removal.</td>
+</tr>
+<tr>
+<td><code>editedFeature</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: selected or last modified GeoJSON Feature, or null after deselection or deletion.</td>
+</tr>
+<tr>
+<td><code>drawnWKT</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>Read-only: WKT geometry emitted only when geometry validation succeeds.</td>
+</tr>
+<tr>
+<td><code>drawnTopoJSON</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: TopoJSON topology emitted only when geometry validation succeeds.</td>
+</tr>
+<tr>
+<td><code>geometryValidation</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: validity, topology errors, and repair suggestions from the last draw.</td>
+</tr>
+<tr>
+<td><code>snapToVertex</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether drawing snaps to existing vector vertices.</td>
+</tr>
+<tr>
+<td><code>snapToEdge</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether drawing snaps to existing vector edges.</td>
+</tr>
+<tr>
+<td><code>snapTolerance</code></td>
+<td><code>number</code></td>
+<td><code>10</code></td>
+<td>Maximum snap distance in screen pixels.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="drawinteraction"><code>DrawInteraction</code></h2>
+<p>Draw, validate, select, and edit spatial features.</p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>The ID used to identify this component in Dash callbacks.</td>
+</tr>
+<tr>
+<td><code>geometryType</code></td>
+<td><code>'Point' \| 'LineString' \| 'Polygon' \| 'Circle' \| 'Box'</code></td>
+<td><code>'Polygon'</code></td>
+<td>Geometry to draw: Point, LineString, Polygon, Circle, or Box (an axis-aligned rectangle).</td>
+</tr>
+<tr>
+<td><code>editMode</code></td>
+<td><code>bool</code></td>
+<td><code>false</code></td>
+<td>Whether to select and modify features created by this interaction.</td>
+</tr>
+<tr>
+<td><code>deleteSelected</code></td>
+<td><code>number</code></td>
+<td><code>0</code></td>
+<td>Increment to delete the currently selected feature or features.</td>
+</tr>
+<tr>
+<td><code>drawnGeoJSON</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: GeoJSON Feature emitted only when geometry validation succeeds.</td>
+</tr>
+<tr>
+<td><code>drawnFeatures</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: GeoJSON FeatureCollection containing every currently drawn feature.</td>
+</tr>
+<tr>
+<td><code>editedFeature</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: selected or last modified GeoJSON Feature, or null after deselection or deletion.</td>
+</tr>
+<tr>
+<td><code>drawnWKT</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>Read-only: WKT geometry emitted only when geometry validation succeeds.</td>
+</tr>
+<tr>
+<td><code>drawnTopoJSON</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: TopoJSON topology emitted only when geometry validation succeeds.</td>
+</tr>
+<tr>
+<td><code>geometryValidation</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: validity, topology errors, and repair suggestions from the last draw.</td>
+</tr>
+<tr>
+<td><code>snapToVertex</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether drawing snaps to existing vector vertices.</td>
+</tr>
+<tr>
+<td><code>snapToEdge</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether drawing snaps to existing vector edges.</td>
+</tr>
+<tr>
+<td><code>snapTolerance</code></td>
+<td><code>number</code></td>
+<td><code>10</code></td>
+<td>Maximum snap distance in screen pixels.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="imagewms"><code>ImageWMS</code></h2>
+<p>Render a single-image OGC Web Map Service layer.</p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>Component ID used to identify this layer in the Dash layout.</td>
+</tr>
+<tr>
+<td><code>url</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>OGC WMS endpoint URL.</td>
+</tr>
+<tr>
+<td><code>params</code></td>
+<td><code>dict</code></td>
+<td><code>{}</code></td>
+<td>WMS request parameters, including LAYERS; changes refresh the source.</td>
+</tr>
+<tr>
+<td><code>serverType</code></td>
+<td><code>'carmentaserver' \| 'geoserver' \| 'mapserver' \| 'qgis'</code></td>
+<td><code>null</code></td>
+<td>WMS server type used for vendor-specific HiDPI request parameters.</td>
+</tr>
+<tr>
+<td><code>visible</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether this layer is rendered; updates the OpenLayers layer immediately.</td>
+</tr>
+<tr>
+<td><code>opacity</code></td>
+<td><code>number</code></td>
+<td><code>1</code></td>
+<td>Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.</td>
+</tr>
+<tr>
+<td><code>zIndex</code></td>
+<td><code>number</code></td>
+<td>—</td>
+<td>Integer stacking order; omitted values preserve OpenLayers layer ordering.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="layercontrol"><code>LayerControl</code></h2>
+<p>Layer visibility, opacity, and stacking-order controls for map layers.</p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>The ID used to identify this component in Dash callbacks.</td>
+</tr>
+<tr>
+<td><code>position</code></td>
+<td><code>'top-left' \| 'top-right' \| 'bottom-left' \| 'bottom-right'</code></td>
+<td><code>'top-right'</code></td>
+<td>Corner of the map where the control is displayed.</td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td><code>string</code></td>
+<td><code>'Layers'</code></td>
+<td>Heading displayed above the layer controls.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="map"><code>Map</code></h2>
+<p>Create an OpenLayers map and synchronize its view and pointer events with Dash.</p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>The ID used to identify this component in Dash callbacks.</td>
+</tr>
+<tr>
+<td><code>children</code></td>
+<td><code>Dash component</code></td>
+<td>—</td>
+<td>OpenLayers layer and interaction components rendered inside this map.</td>
+</tr>
+<tr>
+<td><code>center</code></td>
+<td><code>list[number]</code></td>
+<td><code>[0, 0]</code></td>
+<td>Map view center as [longitude, latitude] in EPSG:4326. Bidirectional: updated after debounced viewport movement and animated when set from Python.</td>
+</tr>
+<tr>
+<td><code>zoom</code></td>
+<td><code>number</code></td>
+<td><code>2</code></td>
+<td>Map zoom level. Bidirectional: updated after debounced viewport movement and animated from Python.</td>
+</tr>
+<tr>
+<td><code>bounds</code></td>
+<td><code>list[number]</code></td>
+<td><code>null</code></td>
+<td>View extent as [minLongitude, minLatitude, maxLongitude, maxLatitude] in EPSG:4326; animated when set.</td>
+</tr>
+<tr>
+<td><code>debounce</code></td>
+<td><code>number</code></td>
+<td><code>300</code></td>
+<td>Debounce delay for viewport callback updates, in milliseconds.</td>
+</tr>
+<tr>
+<td><code>projection</code></td>
+<td><code>string</code></td>
+<td><code>'EPSG:3857'</code></td>
+<td>EPSG code the view is rendered in, e.g. 'EPSG:3857' or a custom code registered via <code>proj4Defs</code>.</td>
+</tr>
+<tr>
+<td><code>proj4Defs</code></td>
+<td><code>list[dict]</code></td>
+<td><code>[]</code></td>
+<td>Custom proj4 projection definitions to register before the view is constructed, e.g. [{ code: 'EPSG:27700', def: '+proj=tmerc ...' }].</td>
+</tr>
+<tr>
+<td><code>style</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Inline CSS style object applied to the map container div.</td>
+</tr>
+<tr>
+<td><code>clickData</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: geographic click payload with lat, lon, pixelCoordinate [x, y], and featureInfo; featureInfo is null on the map background or contains the hit feature's GeoJSON properties.</td>
+</tr>
+<tr>
+<td><code>doubleClickData</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: geographic double-click payload with lat, lon, pixelCoordinate [x, y], and featureInfo; featureInfo is null on the map background or contains the hit feature's GeoJSON properties.</td>
+</tr>
+<tr>
+<td><code>hoverData</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: geographic pointer-move payload with lat, lon, pixelCoordinate [x, y], and featureInfo; featureInfo is null on the map background or contains the hit feature's GeoJSON properties.</td>
+</tr>
+<tr>
+<td><code>bbox</code></td>
+<td><code>list[number]</code></td>
+<td>—</td>
+<td>Read-only: current visible extent as [minLongitude, minLatitude, maxLongitude, maxLatitude] in EPSG:4326.</td>
+</tr>
+<tr>
+<td><code>undo</code></td>
+<td><code>number</code></td>
+<td><code>0</code></td>
+<td>Increment to undo the latest draw or modify operation on this map.</td>
+</tr>
+<tr>
+<td><code>redo</code></td>
+<td><code>number</code></td>
+<td><code>0</code></td>
+<td>Increment to redo the latest undone draw or modify operation on this map.</td>
+</tr>
+<tr>
+<td><code>canUndo</code></td>
+<td><code>bool</code></td>
+<td>—</td>
+<td>Read-only: whether this map's edit history has an operation to undo.</td>
+</tr>
+<tr>
+<td><code>canRedo</code></td>
+<td><code>bool</code></td>
+<td>—</td>
+<td>Read-only: whether this map's edit history has an operation to redo.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="measurecontrol"><code>MeasureControl</code></h2>
+<p>Draw lines and polygons with live geodesic length and area measurements.</p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>Component ID used to identify this measurement control in Dash.</td>
+</tr>
+<tr>
+<td><code>units</code></td>
+<td><code>'metric' \| 'imperial'</code></td>
+<td><code>'metric'</code></td>
+<td>Measurement units: metric uses meters, kilometers, and hectares; imperial uses feet, miles, and acres.</td>
+</tr>
+<tr>
+<td><code>clearMeasurements</code></td>
+<td><code>number</code></td>
+<td><code>0</code></td>
+<td>Increment to clear all completed and in-progress measurements.</td>
+</tr>
+<tr>
+<td><code>position</code></td>
+<td><code>'top-left' \| 'top-right' \| 'bottom-left' \| 'bottom-right'</code></td>
+<td><code>'top-left'</code></td>
+<td>Corner of the map where the measurement toolbar is displayed.</td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td><code>string</code></td>
+<td><code>'Measure'</code></td>
+<td>Accessible toolbar label and visible heading.</td>
+</tr>
+<tr>
+<td><code>style</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Inline styles applied to the toolbar control container.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="modifyinteraction"><code>ModifyInteraction</code></h2>
+<p>Allow editing vertices in a VectorLayer and report the updated features.</p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>The ID used to identify this component in Dash callbacks.</td>
+</tr>
+<tr>
+<td><code>layerId</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>Dash ID of the VectorLayer to modify; defaults to the first vector layer on the map.</td>
+</tr>
+<tr>
+<td><code>snapToVertex</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether editing snaps to vector vertices.</td>
+</tr>
+<tr>
+<td><code>snapToEdge</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether editing snaps to vector edges.</td>
+</tr>
+<tr>
+<td><code>snapTolerance</code></td>
+<td><code>number</code></td>
+<td><code>10</code></td>
+<td>Maximum snap distance in screen pixels.</td>
+</tr>
+<tr>
+<td><code>preserveTopology</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Revert polygon edits that introduce invalid topology.</td>
+</tr>
+<tr>
+<td><code>modifiedGeoJSON</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: GeoJSON FeatureCollection of the target layer after a modify operation.</td>
+</tr>
+<tr>
+<td><code>modifiedWKT</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>Read-only: WKT geometry collection of the target layer after modification.</td>
+</tr>
+<tr>
+<td><code>modifiedTopoJSON</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: TopoJSON topology of the target layer after modification.</td>
+</tr>
+<tr>
+<td><code>geometryValidation</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: topology validation result from the last modification.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="popup"><code>Popup</code></h2>
+<p>Render Dash content in an OpenLayers overlay anchored to a map coordinate.</p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>The ID used to identify this component in Dash callbacks.</td>
+</tr>
+<tr>
+<td><code>children</code></td>
+<td><code>Dash component</code></td>
+<td>—</td>
+<td>Dash children rendered inside the overlay element.</td>
+</tr>
+<tr>
+<td><code>position</code></td>
+<td><code>list[number]</code></td>
+<td><code>null</code></td>
+<td>Overlay position as [x, y] in the map view projection; null hides the popup.</td>
+</tr>
+<tr>
+<td><code>positioning</code></td>
+<td><code>'bottom-left' \| 'bottom-center' \| 'bottom-right' \| 'center-left' \| 'center-center' \| 'center-right' \| 'top-left' \| 'top-center' \| 'top-right'</code></td>
+<td><code>'bottom-center'</code></td>
+<td>Overlay alignment relative to its position coordinate.</td>
+</tr>
+<tr>
+<td><code>offset</code></td>
+<td><code>list[number]</code></td>
+<td><code>[0, 0]</code></td>
+<td>Pixel offset [x, y] applied to the overlay.</td>
+</tr>
+<tr>
+<td><code>autoPan</code></td>
+<td><code>bool</code></td>
+<td><code>false</code></td>
+<td>Pan the map when positioning the overlay would place it outside the viewport.</td>
+</tr>
+<tr>
+<td><code>className</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>CSS class applied to the popup content element.</td>
+</tr>
+<tr>
+<td><code>style</code></td>
+<td><code>dict</code></td>
+<td><code>null</code></td>
+<td>Inline CSS style applied to the popup content element.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="selectinteraction"><code>SelectInteraction</code></h2>
+<p>Select vector features and report the current selection to Dash.</p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>The ID used to identify this component in Dash callbacks.</td>
+</tr>
+<tr>
+<td><code>layerId</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>Dash ID of the vector layer to select from; omit to allow all selectable layers.</td>
+</tr>
+<tr>
+<td><code>selectedGeoJSON</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: current selection as a GeoJSON FeatureCollection in EPSG:4326.</td>
+</tr>
+<tr>
+<td><code>selectedFeature</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: first selected GeoJSON Feature in EPSG:4326, or null when nothing is selected.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="tilelayer"><code>TileLayer</code></h2>
+<p>Render OpenStreetMap or custom XYZ tiles on the map.</p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>The ID used to identify this layer in Dash callbacks.</td>
+</tr>
+<tr>
+<td><code>source</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>Built-in tile source identifier. Currently supports "OSM".</td>
+</tr>
+<tr>
+<td><code>url</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>URL template for a custom XYZ tile source, e.g. 'https://tiles.example.com/{z}/{x}/{y}.png'.</td>
+</tr>
+<tr>
+<td><code>visible</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether this layer is rendered; updates the OpenLayers layer immediately.</td>
+</tr>
+<tr>
+<td><code>opacity</code></td>
+<td><code>number</code></td>
+<td><code>1</code></td>
+<td>Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.</td>
+</tr>
+<tr>
+<td><code>zIndex</code></td>
+<td><code>number</code></td>
+<td>—</td>
+<td>Integer stacking order; omitted values preserve OpenLayers layer ordering.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="tilewms"><code>TileWMS</code></h2>
+<p>Render a tiled OGC Web Map Service layer.</p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>Component ID used to identify this layer in the Dash layout.</td>
+</tr>
+<tr>
+<td><code>url</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>OGC WMS endpoint URL.</td>
+</tr>
+<tr>
+<td><code>params</code></td>
+<td><code>dict</code></td>
+<td><code>{}</code></td>
+<td>WMS request parameters, including LAYERS; changes refresh the source.</td>
+</tr>
+<tr>
+<td><code>serverType</code></td>
+<td><code>'carmentaserver' \| 'geoserver' \| 'mapserver' \| 'qgis'</code></td>
+<td><code>null</code></td>
+<td>WMS server type used for vendor-specific HiDPI request parameters.</td>
+</tr>
+<tr>
+<td><code>visible</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether this layer is rendered; updates the OpenLayers layer immediately.</td>
+</tr>
+<tr>
+<td><code>opacity</code></td>
+<td><code>number</code></td>
+<td><code>1</code></td>
+<td>Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.</td>
+</tr>
+<tr>
+<td><code>zIndex</code></td>
+<td><code>number</code></td>
+<td>—</td>
+<td>Integer stacking order; omitted values preserve OpenLayers layer ordering.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="vectorlayer"><code>VectorLayer</code></h2>
+<p>Load and interact with GeoJSON, TopoJSON, KML, or WKT vector data in an OpenLayers vector layer.</p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>Dash component ID; also used by ModifyInteraction to target this vector layer.</td>
+</tr>
+<tr>
+<td><code>data</code></td>
+<td><code>string \| dict</code></td>
+<td><code>null</code></td>
+<td>GeoJSON Feature or FeatureCollection as an object or JSON string; embedded CRS metadata is honored, otherwise coordinates default to EPSG:4326. Takes precedence over geojson.</td>
+</tr>
+<tr>
+<td><code>geojson</code></td>
+<td><code>dict</code></td>
+<td><code>null</code></td>
+<td>Backward-compatible GeoJSON Feature or FeatureCollection object alias for <code>data</code>.</td>
+</tr>
+<tr>
+<td><code>wkt</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>WKT geometry string in [x, y] order; takes precedence over <code>data</code> and <code>geojson</code> when non-empty.</td>
+</tr>
+<tr>
+<td><code>url</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>Remote URL for vector data; used when data, geojson, and wkt are not provided.</td>
+</tr>
+<tr>
+<td><code>format</code></td>
+<td><code>'GeoJSON' \| 'TopoJSON' \| 'KML' \| 'WKT'</code></td>
+<td><code>'GeoJSON'</code></td>
+<td>Data format for data or url: GeoJSON, TopoJSON, KML, or WKT.</td>
+</tr>
+<tr>
+<td><code>dataProjection</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>Projection of input coordinates; defaults to EPSG:4326 unless GeoJSON embeds a CRS.</td>
+</tr>
+<tr>
+<td><code>style</code></td>
+<td><code>dict \| list[dict]</code></td>
+<td><code>null</code></td>
+<td>OpenLayers flat style or declarative style dictionary with fillColor, strokeColor, strokeWidth, radius, opacity, marker, and ordered rules. Each rule uses property, operator (==, !=, &gt;, &gt;=, &lt;, &lt;=, in, or notIn), value, and style. A marker may be a URL, an SVG string, or circle.</td>
+</tr>
+<tr>
+<td><code>hoverStyle</code></td>
+<td><code>dict</code></td>
+<td><code>null</code></td>
+<td>Declarative feature style applied while the pointer is over a feature; supports fillColor, strokeColor, strokeWidth, radius, opacity, marker, and property rules.</td>
+</tr>
+<tr>
+<td><code>selectedStyle</code></td>
+<td><code>dict</code></td>
+<td><code>null</code></td>
+<td>Declarative feature style applied to the most recently clicked feature; supports fillColor, strokeColor, strokeWidth, radius, opacity, marker, and property rules.</td>
+</tr>
+<tr>
+<td><code>clusterDistance</code></td>
+<td><code>number</code></td>
+<td><code>0</code></td>
+<td>Point clustering distance in screen pixels; set to 0 to disable clustering.</td>
+</tr>
+<tr>
+<td><code>clusterMinDistance</code></td>
+<td><code>number</code></td>
+<td><code>0</code></td>
+<td>Minimum distance in screen pixels between clusters; capped at clusterDistance.</td>
+</tr>
+<tr>
+<td><code>declutter</code></td>
+<td><code>bool \| string</code></td>
+<td><code>false</code></td>
+<td>Enable label decluttering, or provide a shared group name to declutter with other layers.</td>
+</tr>
+<tr>
+<td><code>visible</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether this layer is rendered; updates the OpenLayers layer immediately.</td>
+</tr>
+<tr>
+<td><code>opacity</code></td>
+<td><code>number</code></td>
+<td><code>1</code></td>
+<td>Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.</td>
+</tr>
+<tr>
+<td><code>zIndex</code></td>
+<td><code>number</code></td>
+<td>—</td>
+<td>Integer stacking order; omitted values preserve OpenLayers layer ordering.</td>
+</tr>
+<tr>
+<td><code>hoveredFeature</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: GeoJSON Feature under the pointer, with coordinates in EPSG:4326.</td>
+</tr>
+<tr>
+<td><code>clickedFeature</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: GeoJSON Feature clicked on this layer, with coordinates in EPSG:4326.</td>
+</tr>
+<tr>
+<td><code>featureCount</code></td>
+<td><code>number</code></td>
+<td>—</td>
+<td>Read-only: number of features in the loaded source.</td>
+</tr>
+<tr>
+<td><code>loadError</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>Read-only: message from the last failed data load, or null after success.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="vectortilelayer"><code>VectorTileLayer</code></h2>
+<p>Render MVT/PBF vector tiles with OpenLayers flat styles or Mapbox GL style documents and report clicked or hovered feature attributes.</p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>Component ID used to identify this layer in the Dash layout.</td>
+</tr>
+<tr>
+<td><code>url</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>MVT URL template containing {z}, {x}, and {y} or {-y}; ignored when urls is provided.</td>
+</tr>
+<tr>
+<td><code>urls</code></td>
+<td><code>list[string]</code></td>
+<td><code>null</code></td>
+<td>Alternative MVT URL templates for load balancing; takes precedence over url.</td>
+</tr>
+<tr>
+<td><code>projection</code></td>
+<td><code>string</code></td>
+<td><code>'EPSG:3857'</code></td>
+<td>Projection of the vector tile grid; use the CRS served by the tile endpoint.</td>
+</tr>
+<tr>
+<td><code>attributions</code></td>
+<td><code>string \| list[string]</code></td>
+<td><code>null</code></td>
+<td>Attribution text or a list of attribution strings for the tile provider.</td>
+</tr>
+<tr>
+<td><code>style</code></td>
+<td><code>dict</code></td>
+<td><code>null</code></td>
+<td>OpenLayers flat-style object used to style MVT features; ignored when mapboxStyle is provided.</td>
+</tr>
+<tr>
+<td><code>mapboxStyle</code></td>
+<td><code>dict</code></td>
+<td><code>null</code></td>
+<td>Mapbox GL Style document used to style this layer's vector source.</td>
+</tr>
+<tr>
+<td><code>mapboxSource</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>Vector source key within mapboxStyle; inferred when that document contains one vector source.</td>
+</tr>
+<tr>
+<td><code>visible</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether this layer is rendered; updates the OpenLayers layer immediately.</td>
+</tr>
+<tr>
+<td><code>opacity</code></td>
+<td><code>number</code></td>
+<td><code>1</code></td>
+<td>Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.</td>
+</tr>
+<tr>
+<td><code>zIndex</code></td>
+<td><code>number</code></td>
+<td>—</td>
+<td>Integer stacking order; omitted values preserve OpenLayers layer ordering.</td>
+</tr>
+<tr>
+<td><code>clickedFeature</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: attributes of the vector-tile feature clicked on this layer, or null.</td>
+</tr>
+<tr>
+<td><code>hoveredFeature</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: attributes of the vector-tile feature currently under the pointer, or null.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="wfslayer"><code>WFSLayer</code></h2>
+<p>Load WFS GeoJSON features into an editable vector layer.</p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>The ID used to identify this component and layer in Dash callbacks.</td>
+</tr>
+<tr>
+<td><code>url</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>WFS endpoint URL; the service must allow browser CORS access.</td>
+</tr>
+<tr>
+<td><code>typeNames</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>WFS feature type name (sent as typeNames for 2.x, typeName for 1.x).</td>
+</tr>
+<tr>
+<td><code>version</code></td>
+<td><code>string</code></td>
+<td><code>'2.0.0'</code></td>
+<td>WFS protocol version.</td>
+</tr>
+<tr>
+<td><code>srsName</code></td>
+<td><code>string</code></td>
+<td><code>'EPSG:4326'</code></td>
+<td>Coordinate reference system requested from the service and used to parse response coordinates.</td>
+</tr>
+<tr>
+<td><code>outputFormat</code></td>
+<td><code>string</code></td>
+<td><code>'application/json'</code></td>
+<td>WFS response format; the component currently parses GeoJSON responses.</td>
+</tr>
+<tr>
+<td><code>params</code></td>
+<td><code>dict</code></td>
+<td><code>{}</code></td>
+<td>Additional GetFeature query parameters, such as count, bbox, or CQL_FILTER.</td>
+</tr>
+<tr>
+<td><code>visible</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether this layer is rendered; updates the OpenLayers layer immediately.</td>
+</tr>
+<tr>
+<td><code>opacity</code></td>
+<td><code>number</code></td>
+<td><code>1</code></td>
+<td>Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.</td>
+</tr>
+<tr>
+<td><code>zIndex</code></td>
+<td><code>number</code></td>
+<td>—</td>
+<td>Integer stacking order; omitted values preserve OpenLayers layer ordering.</td>
+</tr>
+<tr>
+<td><code>featureCount</code></td>
+<td><code>number</code></td>
+<td>—</td>
+<td>Read-only: number of features loaded by the last successful request.</td>
+</tr>
+<tr>
+<td><code>loadError</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>Read-only: message from the last failed request, or null after success.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="wmtslayer"><code>WMTSLayer</code></h2>
+<p>Render a WMTS layer using its service capabilities to configure the tile grid.</p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>Component ID used to identify this layer in the Dash layout.</td>
+</tr>
+<tr>
+<td><code>url</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>URL of the WMTS GetCapabilities document; the server must allow browser CORS access.</td>
+</tr>
+<tr>
+<td><code>layer</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>Layer identifier advertised by the WMTS capabilities.</td>
+</tr>
+<tr>
+<td><code>matrixSet</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>Tile matrix set identifier; inferred when the capabilities advertise a single set.</td>
+</tr>
+<tr>
+<td><code>projection</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>Projection code to select a compatible matrix set, such as EPSG:3857.</td>
+</tr>
+<tr>
+<td><code>style</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>Advertised WMTS style identifier.</td>
+</tr>
+<tr>
+<td><code>format</code></td>
+<td><code>string</code></td>
+<td><code>null</code></td>
+<td>Tile image format; defaults to the first advertised format.</td>
+</tr>
+<tr>
+<td><code>requestEncoding</code></td>
+<td><code>'KVP' \| 'REST'</code></td>
+<td><code>null</code></td>
+<td>WMTS request encoding, either KVP or REST.</td>
+</tr>
+<tr>
+<td><code>dimensions</code></td>
+<td><code>dict</code></td>
+<td><code>null</code></td>
+<td>Values for advertised WMTS dimensions, such as TIME or ELEVATION.</td>
+</tr>
+<tr>
+<td><code>attributions</code></td>
+<td><code>string \| list[string]</code></td>
+<td><code>null</code></td>
+<td>Attribution text or a list of attribution strings for the tile provider.</td>
+</tr>
+<tr>
+<td><code>visible</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether this layer is rendered; updates the OpenLayers layer immediately.</td>
+</tr>
+<tr>
+<td><code>opacity</code></td>
+<td><code>number</code></td>
+<td><code>1</code></td>
+<td>Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.</td>
+</tr>
+<tr>
+<td><code>zIndex</code></td>
+<td><code>number</code></td>
+<td>—</td>
+<td>Integer stacking order; omitted values preserve OpenLayers layer ordering.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="webglpointslayer"><code>WebGLPointsLayer</code></h2>
+<p>Render large GeoJSON point datasets with the OpenLayers WebGL renderer.</p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>Component ID used to identify this layer in the Dash layout.</td>
+</tr>
+<tr>
+<td><code>data</code></td>
+<td><code>string \| dict</code></td>
+<td><code>null</code></td>
+<td>GeoJSON Point or MultiPoint FeatureCollection as an object or JSON string; embedded CRS metadata is honored, otherwise coordinates default to EPSG:4326.</td>
+</tr>
+<tr>
+<td><code>style</code></td>
+<td><code>dict</code></td>
+<td><code>null</code></td>
+<td>OpenLayers WebGL style object; expressions such as get, match, and interpolate style feature properties. Changing the style recreates the layer; the default style is blue circles.</td>
+</tr>
+<tr>
+<td><code>disableHitDetection</code></td>
+<td><code>bool</code></td>
+<td><code>false</code></td>
+<td>Disable WebGL feature hit detection for a small rendering performance gain.</td>
+</tr>
+<tr>
+<td><code>visible</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether this layer is rendered; updates the OpenLayers layer immediately.</td>
+</tr>
+<tr>
+<td><code>opacity</code></td>
+<td><code>number</code></td>
+<td><code>1</code></td>
+<td>Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.</td>
+</tr>
+<tr>
+<td><code>zIndex</code></td>
+<td><code>number</code></td>
+<td>—</td>
+<td>Integer stacking order; omitted values preserve OpenLayers layer ordering.</td>
+</tr>
+</tbody>
+</table>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.instant", "navigation.tabs", "content.tooling"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+        <script src="../assets/javascripts/version-switcher.js"></script>
+      
+    
+  </body>
+</html>
