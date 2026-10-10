@@ -10,6 +10,7 @@ import dash_openlayers as dol
 def test_components_exported():
     mod = importlib.import_module("dash_openlayers")
     assert hasattr(mod, "Map")
+    assert hasattr(mod, "DrawControl")
     assert hasattr(mod, "DrawInteraction")
     assert hasattr(mod, "ImageWMS")
     assert hasattr(mod, "LayerControl")
@@ -49,6 +50,7 @@ def test_component_props_serialize():
         "geometry": {"type": "Point", "coordinates": [1, 2]},
         "properties": {},
     }
+    drawn_features = {"type": "FeatureCollection", "features": [drawn_geojson]}
     selected_feature = {
         "type": "Feature",
         "geometry": {"type": "Point", "coordinates": [1, 2]},
@@ -94,6 +96,27 @@ def test_component_props_serialize():
             dol.LayerControl(id="layer-control", position="bottom-left", title="Map layers"),
             {"id": "layer-control", "position": "bottom-left", "title": "Map layers"},
             "LayerControl",
+        ),
+        (
+            dol.DrawControl(
+                id="draw-control",
+                geometryTypes=["Circle", "Polygon"],
+                activeDrawMode="Circle",
+                position="bottom-right",
+                style={"background": "navy"},
+                buttonStyle={"borderRadius": "12px"},
+                drawnFeatures=drawn_features,
+            ),
+            {
+                "id": "draw-control",
+                "geometryTypes": ["Circle", "Polygon"],
+                "activeDrawMode": "Circle",
+                "position": "bottom-right",
+                "style": {"background": "navy"},
+                "buttonStyle": {"borderRadius": "12px"},
+                "drawnFeatures": drawn_features,
+            },
+            "DrawControl",
         ),
         (
             dol.TileWMS(
@@ -226,6 +249,7 @@ def test_component_props_serialize():
                 id="draw",
                 geometryType="Point",
                 drawnGeoJSON=drawn_geojson,
+                drawnFeatures=drawn_features,
                 drawnWKT="POINT (1 2)",
                 drawnTopoJSON={"type": "Topology"},
                 geometryValidation={"valid": True, "errors": [], "suggestions": []},
@@ -237,6 +261,7 @@ def test_component_props_serialize():
                 "id": "draw",
                 "geometryType": "Point",
                 "drawnGeoJSON": drawn_geojson,
+                "drawnFeatures": drawn_features,
                 "drawnWKT": "POINT (1 2)",
                 "drawnTopoJSON": {"type": "Topology"},
                 "geometryValidation": {"valid": True, "errors": [], "suggestions": []},

@@ -37,6 +37,10 @@ Keyword arguments:
     Read-only: GeoJSON Feature emitted only when geometry validation
     succeeds.
 
+- drawnFeatures (dict; optional):
+    Read-only: GeoJSON FeatureCollection containing every currently
+    drawn feature.
+
 - drawnWKT (string; optional):
     Read-only: WKT geometry emitted only when geometry validation
     succeeds.
@@ -68,6 +72,7 @@ Keyword arguments:
         id: typing.Optional[typing.Union[str, dict]] = None,
         geometryType: typing.Optional[Literal["Point", "LineString", "Polygon", "Circle", "Box"]] = None,
         drawnGeoJSON: typing.Optional[dict] = None,
+        drawnFeatures: typing.Optional[dict] = None,
         drawnWKT: typing.Optional[str] = None,
         drawnTopoJSON: typing.Optional[dict] = None,
         geometryValidation: typing.Optional[dict] = None,
@@ -76,9 +81,9 @@ Keyword arguments:
         snapTolerance: typing.Optional[NumberType] = None,
         **kwargs
     ):
-        self._prop_names = ['id', 'geometryType', 'drawnGeoJSON', 'drawnWKT', 'drawnTopoJSON', 'geometryValidation', 'snapToVertex', 'snapToEdge', 'snapTolerance']
+        self._prop_names = ['id', 'geometryType', 'drawnGeoJSON', 'drawnFeatures', 'drawnWKT', 'drawnTopoJSON', 'geometryValidation', 'snapToVertex', 'snapToEdge', 'snapTolerance']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'geometryType', 'drawnGeoJSON', 'drawnWKT', 'drawnTopoJSON', 'geometryValidation', 'snapToVertex', 'snapToEdge', 'snapTolerance']
+        self.available_properties = ['id', 'geometryType', 'drawnGeoJSON', 'drawnFeatures', 'drawnWKT', 'drawnTopoJSON', 'geometryValidation', 'snapToVertex', 'snapToEdge', 'snapTolerance']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()

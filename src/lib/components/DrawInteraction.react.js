@@ -2,6 +2,7 @@ import React from 'react';
 import { useEffect, useRef } from 'react';
 import PropTypes from 'prop-types';
 import Draw, { createBox } from 'ol/interaction/Draw';
+import { fromCircle } from 'ol/geom/Polygon';
 import VectorSource from 'ol/source/Vector';
 import VectorLayer from 'ol/layer/Vector';
 import GeoJSON from 'ol/format/GeoJSON';
@@ -11,6 +12,29 @@ import { getEditHistory } from '../utils/editHistory';
 import { getTopologyErrors } from '../utils/geometryValidation';
 import { addSnapInteraction } from '../utils/snap';
 import { exportFeature } from '../utils/featureFormats';
+
+const prepareFeatureForExport = (feature) => {
+  const geometry = feature.getGeometry?.();
+  if (!geometry || geometry.getType() !== 'Circle') return feature;
+
+  const exportableFeature = feature.clone();
+  exportableFeature.setGeometry(fromCircle(geometry));
+  return exportableFeature;
+};
+
+const serializeDrawnFeatures = (source, map) => {
+  const formatOptions = {
+    featureProjection: map.getView().getProjection(),
+    dataProjection: 'EPSG:4326',
+  };
+  const features = source.getFeatures().map(prepareFeatureForExport);
+  return new GeoJSON().writeFeaturesObject(features, formatOptions);
+};
+
+const publishDrawnFeatures = (source, map, setPropsRef) => {
+  if (!setPropsRef.current) return;
+  setPropsRef.current({ drawnFeatures: serializeDrawnFeatures(source, map) });
+};
 
 const DrawInteraction = ({
   id,
@@ -37,8 +61,13 @@ const DrawInteraction = ({
     sourceRef.current = source;
     vector.set('dashId', id);
     map.addLayer(vector);
+    const sourceListenerKeys = [
+      source.on('changefeature', () => publishDrawnFeatures(source, map, setPropsRef)),
+      source.on('removefeature', () => publishDrawnFeatures(source, map, setPropsRef)),
+    ];
 
     return () => {
+      unByKey(sourceListenerKeys);
       history.removeSource(source);
       map.removeLayer(vector);
       source.clear();
@@ -66,7 +95,8 @@ const DrawInteraction = ({
         dataProjection: 'EPSG:4326',
       };
       const writer = new GeoJSON();
-      const geojson = writer.writeFeatureObject(evt.feature, formatOptions);
+      const exportableFeature = prepareFeatureForExport(evt.feature);
+      const geojson = writer.writeFeatureObject(exportableFeature, formatOptions);
       const errors = getTopologyErrors(geojson);
       const structurallyValid = !errors.some((error) => error.code === 'invalid_geometry');
       const intersections = errors.filter((error) => error.code === 'self_intersection');
@@ -82,7 +112,7 @@ const DrawInteraction = ({
       }
 
       const valid = errors.length === 0;
-      const outputFormats = valid ? exportFeature(evt.feature, formatOptions) : null;
+      const outputFormats = valid ? exportFeature(exportableFeature, formatOptions) : null;
       if (!valid) {
         source.removeFeature(evt.feature);
       } else {
@@ -95,6 +125,7 @@ const DrawInteraction = ({
                   drawnGeoJSON: null,
                   drawnWKT: null,
                   drawnTopoJSON: null,
+                  drawnFeatures: serializeDrawnFeatures(source, map),
                 });
               }
             },
@@ -105,6 +136,7 @@ const DrawInteraction = ({
                   drawnGeoJSON: outputFormats.geojson,
                   drawnWKT: outputFormats.wkt,
                   drawnTopoJSON: outputFormats.topojson,
+                  drawnFeatures: serializeDrawnFeatures(source, map),
                 });
               }
             },
@@ -118,6 +150,7 @@ const DrawInteraction = ({
           drawnGeoJSON: valid ? outputFormats.geojson : null,
           drawnWKT: valid ? outputFormats.wkt : null,
           drawnTopoJSON: valid ? outputFormats.topojson : null,
+          drawnFeatures: serializeDrawnFeatures(source, map),
           geometryValidation: { valid, errors, suggestions },
         });
       }
@@ -157,6 +190,8 @@ DrawInteraction.propTypes = {
   snapTolerance: PropTypes.number,
   /** Read-only: GeoJSON Feature emitted only when geometry validation succeeds. */
   drawnGeoJSON: PropTypes.object,
+  /** Read-only: GeoJSON FeatureCollection containing every currently drawn feature. */
+  drawnFeatures: PropTypes.object,
   /** Read-only: WKT geometry emitted only when geometry validation succeeds. */
   drawnWKT: PropTypes.string,
   /** Read-only: TopoJSON topology emitted only when geometry validation succeeds. */

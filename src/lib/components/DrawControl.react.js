@@ -8,16 +8,20 @@ const TOOL_LABELS = {
   Point: 'Point',
   LineString: 'Line',
   Polygon: 'Polygon',
+  Circle: 'Circle',
   Box: 'Rectangle',
 };
-const DEFAULT_GEOMETRY_TYPES = ['Point', 'LineString', 'Polygon', 'Box'];
+const DEFAULT_GEOMETRY_TYPES = ['Point', 'LineString', 'Polygon', 'Circle', 'Box'];
 
 /** Add map controls for drawing and serializing spatial study areas. */
 const DrawControl = ({
   id,
   geometryTypes = DEFAULT_GEOMETRY_TYPES,
+  activeDrawMode,
   position = 'top-left',
   title = 'Draw',
+  style,
+  buttonStyle,
   snapToVertex = true,
   snapToEdge = true,
   snapTolerance = 10,
@@ -25,7 +29,20 @@ const DrawControl = ({
 }) => {
   const map = useMap();
   const controlElementRef = React.useRef(null);
-  const [activeGeometryType, setActiveGeometryType] = useState(null);
+  const [uncontrolledDrawMode, setUncontrolledDrawMode] = useState(null);
+  const uncontrolledDrawModeRef = React.useRef(null);
+  const activeDrawModeRef = React.useRef(activeDrawMode);
+  const setPropsRef = React.useRef(setProps);
+  const controlled = activeDrawMode !== undefined;
+  const activeGeometryType = controlled ? activeDrawMode : uncontrolledDrawMode;
+  const enabledActiveGeometryType = geometryTypes.includes(activeGeometryType)
+    ? activeGeometryType
+    : null;
+
+  useEffect(() => {
+    activeDrawModeRef.current = activeDrawMode;
+    setPropsRef.current = setProps;
+  }, [activeDrawMode, setProps]);
 
   useEffect(() => {
     if (!map) return undefined;
@@ -52,6 +69,7 @@ const DrawControl = ({
         border: '1px solid #778581',
         borderRadius: '4px',
         boxShadow: '0 2px 8px rgba(20, 35, 31, 0.18)',
+        ...style,
       },
     );
 
@@ -79,9 +97,20 @@ const DrawControl = ({
         border: '1px solid #778581',
         borderRadius: '3px',
         cursor: 'pointer',
+        ...buttonStyle,
       });
       const listener = () => {
-        setActiveGeometryType((current) => (current === geometryType ? null : geometryType));
+        const currentMode =
+          activeDrawModeRef.current === undefined
+            ? uncontrolledDrawModeRef.current
+            : activeDrawModeRef.current;
+        const nextMode = currentMode === geometryType ? null : geometryType;
+        if (activeDrawModeRef.current === undefined) {
+          uncontrolledDrawModeRef.current = nextMode;
+          setUncontrolledDrawMode(nextMode);
+        } else if (setPropsRef.current) {
+          setPropsRef.current({ activeDrawMode: nextMode });
+        }
       };
       button.addEventListener('click', listener);
       buttonListeners.push([button, listener]);
@@ -100,23 +129,23 @@ const DrawControl = ({
       );
       controlElementRef.current = null;
     };
-  }, [map, position, title, geometryTypes]);
+  }, [map, position, title, geometryTypes, style, buttonStyle]);
 
   useEffect(() => {
     const buttons = controlElementRef.current?.querySelectorAll('button[data-geometry-type]') ?? [];
     buttons.forEach((button) => {
-      const isActive = button.dataset.geometryType === activeGeometryType;
+      const isActive = button.dataset.geometryType === enabledActiveGeometryType;
       button.setAttribute('aria-pressed', String(isActive));
       button.style.color = isActive ? '#ffffff' : '#182522';
       button.style.background = isActive ? '#1f6a5e' : '#ffffff';
     });
-  }, [activeGeometryType]);
+  }, [enabledActiveGeometryType]);
 
   return (
     <>
       <DrawInteraction
         id={id ? `${id}-interaction` : undefined}
-        geometryType={activeGeometryType}
+        geometryType={enabledActiveGeometryType}
         snapToVertex={snapToVertex}
         snapToEdge={snapToEdge}
         snapTolerance={snapTolerance}
@@ -138,12 +167,20 @@ DrawControl.defaultProps = {
 DrawControl.propTypes = {
   /** Component ID used to identify this drawing control and its callback outputs. */
   id: PropTypes.string,
-  /** Drawing modes displayed in the control: Point, LineString, Polygon, and Box (rectangle). */
-  geometryTypes: PropTypes.arrayOf(PropTypes.oneOf(['Point', 'LineString', 'Polygon', 'Box'])),
+  /** Drawing modes displayed in the control: Point, LineString, Polygon, Circle, and Box (rectangle). */
+  geometryTypes: PropTypes.arrayOf(
+    PropTypes.oneOf(['Point', 'LineString', 'Polygon', 'Circle', 'Box']),
+  ),
+  /** Active drawing mode; set to null to stop drawing. Bidirectional when changed by toolbar clicks. */
+  activeDrawMode: PropTypes.oneOf([null, 'Point', 'LineString', 'Polygon', 'Circle', 'Box']),
   /** Corner of the map where the drawing tools are displayed. */
   position: PropTypes.oneOf(['top-left', 'top-right', 'bottom-left', 'bottom-right']),
   /** Accessible toolbar label and visible heading. */
   title: PropTypes.string,
+  /** Inline styles applied to the toolbar control container. */
+  style: PropTypes.object,
+  /** Inline styles applied to each drawing mode button. */
+  buttonStyle: PropTypes.object,
   /** Whether drawing snaps to existing vector vertices. */
   snapToVertex: PropTypes.bool,
   /** Whether drawing snaps to existing vector edges. */
@@ -152,6 +189,8 @@ DrawControl.propTypes = {
   snapTolerance: PropTypes.number,
   /** Read-only: GeoJSON Feature emitted only when geometry validation succeeds. */
   drawnGeoJSON: PropTypes.object,
+  /** Read-only: GeoJSON FeatureCollection of all drawn features, updated after drawing, editing, undo, or removal. */
+  drawnFeatures: PropTypes.object,
   /** Read-only: WKT geometry emitted only when geometry validation succeeds. */
   drawnWKT: PropTypes.string,
   /** Read-only: TopoJSON topology emitted only when geometry validation succeeds. */
