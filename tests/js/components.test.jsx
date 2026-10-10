@@ -25,6 +25,7 @@ import View from 'ol/View';
 import { toLonLat } from 'ol/proj';
 import { registerProjections } from '../../src/lib/utils/projection';
 import Draw, { createBox } from 'ol/interaction/Draw';
+import { fromCircle } from 'ol/geom/Polygon';
 import Modify from 'ol/interaction/Modify';
 import Select from 'ol/interaction/Select';
 import { unByKey } from 'ol/Observable';
@@ -215,6 +216,10 @@ jest.mock('ol/interaction/Draw', () => ({
       return listenerKey;
     });
   }),
+}));
+
+jest.mock('ol/geom/Polygon', () => ({
+  fromCircle: jest.fn(),
 }));
 
 jest.mock('ol/interaction/Modify', () => ({
@@ -1867,6 +1872,51 @@ describe('DrawInteraction', () => {
     });
   });
 
+  it('exports drawn circles as GeoJSON-compatible polygons', () => {
+    const map = makeMap();
+    const setProps = jest.fn();
+    const circleGeometry = { getType: jest.fn(() => 'Circle') };
+    const polygonGeometry = { getType: jest.fn(() => 'Polygon') };
+    const exportableFeature = {
+      geoJSON: {
+        type: 'Feature',
+        geometry: { type: 'Polygon', coordinates: [] },
+        properties: {},
+      },
+      setGeometry: jest.fn(),
+    };
+    const feature = {
+      getGeometry: jest.fn(() => circleGeometry),
+      clone: jest.fn(() => exportableFeature),
+    };
+    fromCircle.mockReturnValue(polygonGeometry);
+
+    render(
+      <OLContext.Provider value={map}>
+        <DrawInteraction geometryType="Circle" setProps={setProps} />
+      </OLContext.Provider>,
+    );
+
+    const source = VectorSource.mock.instances[0];
+    source.addFeature(feature);
+    Draw.mock.instances[0].listeners.drawend({ feature });
+
+    expect(fromCircle).toHaveBeenCalledWith(circleGeometry);
+    expect(exportableFeature.setGeometry).toHaveBeenCalledWith(polygonGeometry);
+    expect(GeoJSON.mock.instances[0].writeFeatureObject).toHaveBeenCalledWith(exportableFeature, {
+      featureProjection: 'EPSG:3857',
+      dataProjection: 'EPSG:4326',
+    });
+    expect(setProps).toHaveBeenCalledWith(
+      expect.objectContaining({
+        drawnFeatures: {
+          type: 'FeatureCollection',
+          features: [exportableFeature.geoJSON],
+        },
+      }),
+    );
+  });
+
   it('blocks open polygon rings and suggests closing the ring', () => {
     const map = makeMap();
     const setProps = jest.fn();
@@ -1975,12 +2025,13 @@ describe('DrawControl', () => {
   it('supports controlled draw modes and customizable toolbar and button styles', () => {
     const map = makeMap();
     const setProps = jest.fn();
+    const geometryTypes = ['Circle', 'Point'];
     const style = { background: 'navy' };
     const buttonStyle = { borderRadius: '12px' };
     const { rerender } = render(
       <OLContext.Provider value={map}>
         <DrawControl
-          geometryTypes={['Circle', 'Point']}
+          geometryTypes={geometryTypes}
           activeDrawMode="Circle"
           position="bottom-right"
           style={style}
@@ -2005,7 +2056,7 @@ describe('DrawControl', () => {
     rerender(
       <OLContext.Provider value={map}>
         <DrawControl
-          geometryTypes={['Circle', 'Point']}
+          geometryTypes={geometryTypes}
           activeDrawMode={null}
           position="bottom-right"
           style={style}
