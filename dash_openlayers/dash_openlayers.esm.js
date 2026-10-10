@@ -65868,6 +65868,28 @@ var exportFeatures = function exportFeatures(features) {
   };
 };
 
+var prepareFeatureForExport = feature => {
+  var _feature$getGeometry;
+  var geometry = (_feature$getGeometry = feature.getGeometry) === null || _feature$getGeometry === void 0 ? void 0 : _feature$getGeometry.call(feature);
+  if (!geometry || geometry.getType() !== 'Circle') return feature;
+  var exportableFeature = feature.clone();
+  exportableFeature.setGeometry(fromCircle(geometry));
+  return exportableFeature;
+};
+var serializeDrawnFeatures = (source, map) => {
+  var formatOptions = {
+    featureProjection: map.getView().getProjection(),
+    dataProjection: 'EPSG:4326'
+  };
+  var features = source.getFeatures().map(prepareFeatureForExport);
+  return new GeoJSON().writeFeaturesObject(features, formatOptions);
+};
+var publishDrawnFeatures = (source, map, setPropsRef) => {
+  if (!setPropsRef.current) return;
+  setPropsRef.current({
+    drawnFeatures: serializeDrawnFeatures(source, map)
+  });
+};
 var DrawInteraction = _ref => {
   var id = _ref.id,
     geometryType = _ref.geometryType,
@@ -65894,7 +65916,9 @@ var DrawInteraction = _ref => {
     sourceRef.current = source;
     vector.set('dashId', id);
     map.addLayer(vector);
+    var sourceListenerKeys = [source.on('changefeature', () => publishDrawnFeatures(source, map, setPropsRef)), source.on('removefeature', () => publishDrawnFeatures(source, map, setPropsRef))];
     return () => {
+      unByKey(sourceListenerKeys);
       history.removeSource(source);
       map.removeLayer(vector);
       source.clear();
@@ -65918,7 +65942,8 @@ var DrawInteraction = _ref => {
         dataProjection: 'EPSG:4326'
       };
       var writer = new GeoJSON();
-      var geojson = writer.writeFeatureObject(evt.feature, formatOptions);
+      var exportableFeature = prepareFeatureForExport(evt.feature);
+      var geojson = writer.writeFeatureObject(exportableFeature, formatOptions);
       var errors = getTopologyErrors(geojson);
       var structurallyValid = !errors.some(error => error.code === 'invalid_geometry');
       var intersections = errors.filter(error => error.code === 'self_intersection');
@@ -65930,7 +65955,7 @@ var DrawInteraction = _ref => {
         suggestions.push('Close each ring, provide at least four positions, and keep holes inside the outer ring without overlap.');
       }
       var valid = errors.length === 0;
-      var outputFormats = valid ? exportFeature(evt.feature, formatOptions) : null;
+      var outputFormats = valid ? exportFeature(exportableFeature, formatOptions) : null;
       if (!valid) {
         source.removeFeature(evt.feature);
       } else {
@@ -65941,7 +65966,8 @@ var DrawInteraction = _ref => {
               setPropsRef.current({
                 drawnGeoJSON: null,
                 drawnWKT: null,
-                drawnTopoJSON: null
+                drawnTopoJSON: null,
+                drawnFeatures: serializeDrawnFeatures(source, map)
               });
             }
           },
@@ -65951,7 +65977,8 @@ var DrawInteraction = _ref => {
               setPropsRef.current({
                 drawnGeoJSON: outputFormats.geojson,
                 drawnWKT: outputFormats.wkt,
-                drawnTopoJSON: outputFormats.topojson
+                drawnTopoJSON: outputFormats.topojson,
+                drawnFeatures: serializeDrawnFeatures(source, map)
               });
             }
           }
@@ -65962,6 +65989,7 @@ var DrawInteraction = _ref => {
           drawnGeoJSON: valid ? outputFormats.geojson : null,
           drawnWKT: valid ? outputFormats.wkt : null,
           drawnTopoJSON: valid ? outputFormats.topojson : null,
+          drawnFeatures: serializeDrawnFeatures(source, map),
           geometryValidation: {
             valid,
             errors,
@@ -66008,6 +66036,8 @@ DrawInteraction.propTypes = {
   snapTolerance: PropTypes.number,
   /** Read-only: GeoJSON Feature emitted only when geometry validation succeeds. */
   drawnGeoJSON: PropTypes.object,
+  /** Read-only: GeoJSON FeatureCollection containing every currently drawn feature. */
+  drawnFeatures: PropTypes.object,
   /** Read-only: WKT geometry emitted only when geometry validation succeeds. */
   drawnWKT: PropTypes.string,
   /** Read-only: TopoJSON topology emitted only when geometry validation succeeds. */
@@ -66026,19 +66056,23 @@ var TOOL_LABELS = {
   Point: 'Point',
   LineString: 'Line',
   Polygon: 'Polygon',
+  Circle: 'Circle',
   Box: 'Rectangle'
 };
-var DEFAULT_GEOMETRY_TYPES = ['Point', 'LineString', 'Polygon', 'Box'];
+var DEFAULT_GEOMETRY_TYPES = ['Point', 'LineString', 'Polygon', 'Circle', 'Box'];
 
 /** Add map controls for drawing and serializing spatial study areas. */
 var DrawControl = _ref => {
   var id = _ref.id,
     _ref$geometryTypes = _ref.geometryTypes,
     geometryTypes = _ref$geometryTypes === void 0 ? DEFAULT_GEOMETRY_TYPES : _ref$geometryTypes,
+    activeDrawMode = _ref.activeDrawMode,
     _ref$position = _ref.position,
     position = _ref$position === void 0 ? 'top-left' : _ref$position,
     _ref$title = _ref.title,
     title = _ref$title === void 0 ? 'Draw' : _ref$title,
+    style = _ref.style,
+    buttonStyle = _ref.buttonStyle,
     _ref$snapToVertex = _ref.snapToVertex,
     snapToVertex = _ref$snapToVertex === void 0 ? true : _ref$snapToVertex,
     _ref$snapToEdge = _ref.snapToEdge,
@@ -66050,8 +66084,18 @@ var DrawControl = _ref => {
   var controlElementRef = React$1.useRef(null);
   var _useState = useState(null),
     _useState2 = _slicedToArray(_useState, 2),
-    activeGeometryType = _useState2[0],
-    setActiveGeometryType = _useState2[1];
+    uncontrolledDrawMode = _useState2[0],
+    setUncontrolledDrawMode = _useState2[1];
+  var uncontrolledDrawModeRef = React$1.useRef(null);
+  var activeDrawModeRef = React$1.useRef(activeDrawMode);
+  var setPropsRef = React$1.useRef(setProps);
+  var controlled = activeDrawMode !== undefined;
+  var activeGeometryType = controlled ? activeDrawMode : uncontrolledDrawMode;
+  var enabledActiveGeometryType = geometryTypes.includes(activeGeometryType) ? activeGeometryType : null;
+  useEffect(() => {
+    activeDrawModeRef.current = activeDrawMode;
+    setPropsRef.current = setProps;
+  }, [activeDrawMode, setProps]);
   useEffect(() => {
     if (!map) return undefined;
     var element = document.createElement('div');
@@ -66065,7 +66109,7 @@ var DrawControl = _ref => {
       alignItems: 'center'
     });
     element.className = 'ol-control ol-unselectable';
-    Object.assign(element.style, Object.fromEntries(position.split('-').map(side => [side, '0.5em'])), {
+    Object.assign(element.style, Object.fromEntries(position.split('-').map(side => [side, '0.5em'])), _objectSpread2({
       maxWidth: 'min(320px, calc(100% - 1em))',
       padding: '6px',
       color: '#182522',
@@ -66073,7 +66117,7 @@ var DrawControl = _ref => {
       border: '1px solid #778581',
       borderRadius: '4px',
       boxShadow: '0 2px 8px rgba(20, 35, 31, 0.18)'
-    });
+    }, style));
     if (title) {
       var heading = document.createElement('span');
       heading.textContent = title;
@@ -66093,7 +66137,7 @@ var DrawControl = _ref => {
       button.setAttribute('aria-pressed', 'false');
       button.title = "Draw ".concat(TOOL_LABELS[geometryType]);
       button.textContent = TOOL_LABELS[geometryType];
-      Object.assign(button.style, {
+      Object.assign(button.style, _objectSpread2({
         minHeight: '32px',
         padding: '4px 8px',
         color: '#182522',
@@ -66101,9 +66145,18 @@ var DrawControl = _ref => {
         border: '1px solid #778581',
         borderRadius: '3px',
         cursor: 'pointer'
-      });
+      }, buttonStyle));
       var listener = () => {
-        setActiveGeometryType(current => current === geometryType ? null : geometryType);
+        var currentMode = activeDrawModeRef.current === undefined ? uncontrolledDrawModeRef.current : activeDrawModeRef.current;
+        var nextMode = currentMode === geometryType ? null : geometryType;
+        if (activeDrawModeRef.current === undefined) {
+          uncontrolledDrawModeRef.current = nextMode;
+          setUncontrolledDrawMode(nextMode);
+        } else if (setPropsRef.current) {
+          setPropsRef.current({
+            activeDrawMode: nextMode
+          });
+        }
       };
       button.addEventListener('click', listener);
       buttonListeners.push([button, listener]);
@@ -66125,20 +66178,20 @@ var DrawControl = _ref => {
       });
       controlElementRef.current = null;
     };
-  }, [map, position, title, geometryTypes]);
+  }, [map, position, title, geometryTypes, style, buttonStyle]);
   useEffect(() => {
     var _controlElementRef$cu, _controlElementRef$cu2;
     var buttons = (_controlElementRef$cu = (_controlElementRef$cu2 = controlElementRef.current) === null || _controlElementRef$cu2 === void 0 ? void 0 : _controlElementRef$cu2.querySelectorAll('button[data-geometry-type]')) !== null && _controlElementRef$cu !== void 0 ? _controlElementRef$cu : [];
     buttons.forEach(button => {
-      var isActive = button.dataset.geometryType === activeGeometryType;
+      var isActive = button.dataset.geometryType === enabledActiveGeometryType;
       button.setAttribute('aria-pressed', String(isActive));
       button.style.color = isActive ? '#ffffff' : '#182522';
       button.style.background = isActive ? '#1f6a5e' : '#ffffff';
     });
-  }, [activeGeometryType]);
+  }, [enabledActiveGeometryType]);
   return /*#__PURE__*/React$1.createElement(React$1.Fragment, null, /*#__PURE__*/React$1.createElement(DrawInteraction, {
     id: id ? "".concat(id, "-interaction") : undefined,
-    geometryType: activeGeometryType,
+    geometryType: enabledActiveGeometryType,
     snapToVertex: snapToVertex,
     snapToEdge: snapToEdge,
     snapTolerance: snapTolerance,
@@ -66156,12 +66209,18 @@ DrawControl.defaultProps = {
 DrawControl.propTypes = {
   /** Component ID used to identify this drawing control and its callback outputs. */
   id: PropTypes.string,
-  /** Drawing modes displayed in the control: Point, LineString, Polygon, and Box (rectangle). */
-  geometryTypes: PropTypes.arrayOf(PropTypes.oneOf(['Point', 'LineString', 'Polygon', 'Box'])),
+  /** Drawing modes displayed in the control: Point, LineString, Polygon, Circle, and Box (rectangle). */
+  geometryTypes: PropTypes.arrayOf(PropTypes.oneOf(['Point', 'LineString', 'Polygon', 'Circle', 'Box'])),
+  /** Active drawing mode; set to null to stop drawing. Bidirectional when changed by toolbar clicks. */
+  activeDrawMode: PropTypes.oneOf([null, 'Point', 'LineString', 'Polygon', 'Circle', 'Box']),
   /** Corner of the map where the drawing tools are displayed. */
   position: PropTypes.oneOf(['top-left', 'top-right', 'bottom-left', 'bottom-right']),
   /** Accessible toolbar label and visible heading. */
   title: PropTypes.string,
+  /** Inline styles applied to the toolbar control container. */
+  style: PropTypes.object,
+  /** Inline styles applied to each drawing mode button. */
+  buttonStyle: PropTypes.object,
   /** Whether drawing snaps to existing vector vertices. */
   snapToVertex: PropTypes.bool,
   /** Whether drawing snaps to existing vector edges. */
@@ -66170,6 +66229,8 @@ DrawControl.propTypes = {
   snapTolerance: PropTypes.number,
   /** Read-only: GeoJSON Feature emitted only when geometry validation succeeds. */
   drawnGeoJSON: PropTypes.object,
+  /** Read-only: GeoJSON FeatureCollection of all drawn features, updated after drawing, editing, undo, or removal. */
+  drawnFeatures: PropTypes.object,
   /** Read-only: WKT geometry emitted only when geometry validation succeeds. */
   drawnWKT: PropTypes.string,
   /** Read-only: TopoJSON topology emitted only when geometry validation succeeds. */

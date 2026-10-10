@@ -364,11 +364,14 @@ jest.mock('ol/style/Text', () => ({
 jest.mock('ol/source/Vector', () => ({
   __esModule: true,
   default: jest.fn().mockImplementation(function MockVectorSource() {
+    this.features = [];
     this.clear = jest.fn();
     this.addFeatures = jest.fn();
-    this.addFeature = jest.fn();
-    this.removeFeature = jest.fn();
-    this.getFeatures = jest.fn(() => []);
+    this.addFeature = jest.fn((feature) => this.features.push(feature));
+    this.removeFeature = jest.fn(
+      (feature) => (this.features = this.features.filter((candidate) => candidate !== feature)),
+    );
+    this.getFeatures = jest.fn(() => this.features);
     this.on = jest.fn((type, listener) => ({ type, listener }));
   }),
 }));
@@ -1743,7 +1746,15 @@ describe('DrawInteraction', () => {
     expect(map.addInteraction).toHaveBeenCalledWith(draw);
     expect(map.addLayer).toHaveBeenCalledWith(layer);
 
-    const feature = { id: 'completed-feature' };
+    const feature = {
+      id: 'completed-feature',
+      geoJSON: {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [10, 45] },
+        properties: {},
+      },
+    };
+    source.addFeature(feature);
     draw.listeners.drawend({ feature });
     expect(GeoJSON.mock.instances[0].writeFeatureObject).toHaveBeenCalledWith(feature, {
       featureProjection: 'EPSG:3857',
@@ -1757,7 +1768,23 @@ describe('DrawInteraction', () => {
       },
       drawnWKT: 'POINT (10 45)',
       drawnTopoJSON: expect.objectContaining({ type: 'Topology' }),
+      drawnFeatures: {
+        type: 'FeatureCollection',
+        features: [feature.geoJSON],
+      },
       geometryValidation: { valid: true, errors: [], suggestions: [] },
+    });
+
+    feature.geoJSON.geometry.coordinates = [11, 46];
+    const changeFeatureListener = source.on.mock.calls.find(
+      ([eventName]) => eventName === 'changefeature',
+    )[1];
+    changeFeatureListener();
+    expect(setProps).toHaveBeenLastCalledWith({
+      drawnFeatures: {
+        type: 'FeatureCollection',
+        features: [feature.geoJSON],
+      },
     });
 
     const history = getEditHistory(map);
@@ -1768,6 +1795,7 @@ describe('DrawInteraction', () => {
       drawnGeoJSON: null,
       drawnWKT: null,
       drawnTopoJSON: null,
+      drawnFeatures: { type: 'FeatureCollection', features: [] },
     });
     history.redo();
     expect(source.addFeature).toHaveBeenCalledWith(feature);
@@ -1779,6 +1807,10 @@ describe('DrawInteraction', () => {
       },
       drawnWKT: 'POINT (10 45)',
       drawnTopoJSON: expect.objectContaining({ type: 'Topology' }),
+      drawnFeatures: {
+        type: 'FeatureCollection',
+        features: [feature.geoJSON],
+      },
     });
 
     unmount();
@@ -1799,6 +1831,7 @@ describe('DrawInteraction', () => {
 
     const feature = { id: 'invalid-polygon' };
     const source = VectorSource.mock.instances[0];
+    source.addFeature(feature);
     GeoJSON.mockImplementationOnce(function MockGeoJSON() {
       this.writeFeatureObject = jest.fn(() => ({
         type: 'Feature',
@@ -1825,6 +1858,7 @@ describe('DrawInteraction', () => {
       drawnGeoJSON: null,
       drawnWKT: null,
       drawnTopoJSON: null,
+      drawnFeatures: { type: 'FeatureCollection', features: [] },
       geometryValidation: {
         valid: false,
         errors: [{ code: 'self_intersection', coordinates: [1, 1] }],
@@ -1844,6 +1878,7 @@ describe('DrawInteraction', () => {
 
     const feature = { id: 'open-ring' };
     const source = VectorSource.mock.instances[0];
+    source.addFeature(feature);
     GeoJSON.mockImplementationOnce(function MockGeoJSON() {
       this.writeFeatureObject = jest.fn(() => ({
         type: 'Feature',
@@ -1869,6 +1904,7 @@ describe('DrawInteraction', () => {
       drawnGeoJSON: null,
       drawnWKT: null,
       drawnTopoJSON: null,
+      drawnFeatures: { type: 'FeatureCollection', features: [] },
       geometryValidation: {
         valid: false,
         errors: [{ code: 'invalid_geometry' }],
@@ -1904,11 +1940,23 @@ describe('DrawControl', () => {
     expect(createBox).toHaveBeenCalledTimes(1);
     expect(map.addInteraction).toHaveBeenCalledWith(draw);
 
-    const feature = { id: 'study-area' };
+    const feature = {
+      id: 'study-area',
+      geoJSON: {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [10, 45] },
+        properties: {},
+      },
+    };
+    source.addFeature(feature);
     draw.listeners.drawend({ feature });
     expect(setProps).toHaveBeenCalledWith(
       expect.objectContaining({
         drawnGeoJSON: expect.objectContaining({ type: 'Feature' }),
+        drawnFeatures: {
+          type: 'FeatureCollection',
+          features: [feature.geoJSON],
+        },
       }),
     );
 
@@ -1922,5 +1970,56 @@ describe('DrawControl', () => {
     expect(map.removeControl).toHaveBeenCalledTimes(1);
     expect(map.removeLayer).toHaveBeenCalledWith(layer);
     expect(source.clear).toHaveBeenCalled();
+  });
+
+  it('supports controlled draw modes and customizable toolbar and button styles', () => {
+    const map = makeMap();
+    const setProps = jest.fn();
+    const style = { background: 'navy' };
+    const buttonStyle = { borderRadius: '12px' };
+    const { rerender } = render(
+      <OLContext.Provider value={map}>
+        <DrawControl
+          geometryTypes={['Circle', 'Point']}
+          activeDrawMode="Circle"
+          position="bottom-right"
+          style={style}
+          buttonStyle={buttonStyle}
+          setProps={setProps}
+        />
+      </OLContext.Provider>,
+    );
+
+    const controlElement = map.addControl.mock.calls[0][0].element;
+    const circleButton = controlElement.querySelector('[data-geometry-type="Circle"]');
+    const pointButton = controlElement.querySelector('[data-geometry-type="Point"]');
+    expect(circleButton).toHaveAttribute('aria-pressed', 'true');
+    expect(controlElement.style.background).toBe('navy');
+    expect(circleButton.style.borderRadius).toBe('12px');
+    expect(controlElement.style.bottom).toBe('0.5em');
+    expect(controlElement.style.right).toBe('0.5em');
+    expect(Draw.mock.instances[0].options.type).toBe('Circle');
+
+    fireEvent.click(circleButton);
+    expect(setProps).toHaveBeenCalledWith({ activeDrawMode: null });
+    rerender(
+      <OLContext.Provider value={map}>
+        <DrawControl
+          geometryTypes={['Circle', 'Point']}
+          activeDrawMode={null}
+          position="bottom-right"
+          style={style}
+          buttonStyle={buttonStyle}
+          setProps={setProps}
+        />
+      </OLContext.Provider>,
+    );
+    expect(controlElement.querySelector('[data-geometry-type="Circle"]')).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+
+    fireEvent.click(controlElement.querySelector('[data-geometry-type="Point"]'));
+    expect(setProps).toHaveBeenLastCalledWith({ activeDrawMode: 'Point' });
   });
 });

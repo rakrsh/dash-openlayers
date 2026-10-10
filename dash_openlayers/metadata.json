@@ -30,6 +30,10 @@
                 "computed": false
               },
               {
+                "value": "'Circle'",
+                "computed": false
+              },
+              {
                 "value": "'Box'",
                 "computed": false
               }
@@ -37,11 +41,44 @@
           }
         },
         "required": false,
-        "description": "Drawing modes displayed in the control: Point, LineString, Polygon, and Box (rectangle).",
+        "description": "Drawing modes displayed in the control: Point, LineString, Polygon, Circle, and Box (rectangle).",
         "defaultValue": {
-          "value": "['Point', 'LineString', 'Polygon', 'Box']",
+          "value": "['Point', 'LineString', 'Polygon', 'Circle', 'Box']",
           "computed": false
         }
+      },
+      "activeDrawMode": {
+        "type": {
+          "name": "enum",
+          "value": [
+            {
+              "value": "null",
+              "computed": false
+            },
+            {
+              "value": "'Point'",
+              "computed": false
+            },
+            {
+              "value": "'LineString'",
+              "computed": false
+            },
+            {
+              "value": "'Polygon'",
+              "computed": false
+            },
+            {
+              "value": "'Circle'",
+              "computed": false
+            },
+            {
+              "value": "'Box'",
+              "computed": false
+            }
+          ]
+        },
+        "required": false,
+        "description": "Active drawing mode; set to null to stop drawing. Bidirectional when changed by toolbar clicks."
       },
       "position": {
         "type": {
@@ -83,12 +120,33 @@
           "computed": false
         }
       },
+      "style": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Inline styles applied to the toolbar control container."
+      },
+      "buttonStyle": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Inline styles applied to each drawing mode button."
+      },
       "drawnGeoJSON": {
         "type": {
           "name": "object"
         },
         "required": false,
         "description": "Read-only: GeoJSON Feature emitted only when geometry validation succeeds."
+      },
+      "drawnFeatures": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Read-only: GeoJSON FeatureCollection of all drawn features, updated after drawing, editing, undo, or removal."
       },
       "drawnWKT": {
         "type": {
@@ -204,6 +262,13 @@
         },
         "required": false,
         "description": "Read-only: GeoJSON Feature emitted only when geometry validation succeeds."
+      },
+      "drawnFeatures": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Read-only: GeoJSON FeatureCollection containing every currently drawn feature."
       },
       "drawnWKT": {
         "type": {

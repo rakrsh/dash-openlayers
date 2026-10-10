@@ -10,10 +10,14 @@ Provide interactive map tools for drawing and serializing spatial study areas.
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
 | `id` | `string` | — | Component ID used to identify this drawing control and its callback outputs. |
-| `geometryTypes` | `list['Point' \| 'LineString' \| 'Polygon' \| 'Box']` | `['Point', 'LineString', 'Polygon', 'Box']` | Drawing modes displayed in the control: Point, LineString, Polygon, and Box (rectangle). |
+| `geometryTypes` | `list['Point' \| 'LineString' \| 'Polygon' \| 'Circle' \| 'Box']` | `['Point', 'LineString', 'Polygon', 'Circle', 'Box']` | Drawing modes displayed in the control: Point, LineString, Polygon, Circle, and Box (rectangle). |
+| `activeDrawMode` | `null \| 'Point' \| 'LineString' \| 'Polygon' \| 'Circle' \| 'Box'` | — | Active drawing mode; set to null to stop drawing. Bidirectional when changed by toolbar clicks. |
 | `position` | `'top-left' \| 'top-right' \| 'bottom-left' \| 'bottom-right'` | `'top-left'` | Corner of the map where the drawing tools are displayed. |
 | `title` | `string` | `'Draw'` | Accessible toolbar label and visible heading. |
+| `style` | `dict` | — | Inline styles applied to the toolbar control container. |
+| `buttonStyle` | `dict` | — | Inline styles applied to each drawing mode button. |
 | `drawnGeoJSON` | `dict` | — | Read-only: GeoJSON Feature emitted only when geometry validation succeeds. |
+| `drawnFeatures` | `dict` | — | Read-only: GeoJSON FeatureCollection of all drawn features, updated after drawing, editing, undo, or removal. |
 | `drawnWKT` | `string` | — | Read-only: WKT geometry emitted only when geometry validation succeeds. |
 | `drawnTopoJSON` | `dict` | — | Read-only: TopoJSON topology emitted only when geometry validation succeeds. |
 | `geometryValidation` | `dict` | — | Read-only: validity, topology errors, and repair suggestions from the last draw. |
@@ -30,6 +34,7 @@ Draw and validate OpenLayers features, then publish their serialized geometry to
 | `id` | `string` | — | The ID used to identify this component in Dash callbacks. |
 | `geometryType` | `'Point' \| 'LineString' \| 'Polygon' \| 'Circle' \| 'Box'` | `'Polygon'` | Geometry to draw: Point, LineString, Polygon, Circle, or Box (an axis-aligned rectangle). |
 | `drawnGeoJSON` | `dict` | — | Read-only: GeoJSON Feature emitted only when geometry validation succeeds. |
+| `drawnFeatures` | `dict` | — | Read-only: GeoJSON FeatureCollection containing every currently drawn feature. |
 | `drawnWKT` | `string` | — | Read-only: WKT geometry emitted only when geometry validation succeeds. |
 | `drawnTopoJSON` | `dict` | — | Read-only: TopoJSON topology emitted only when geometry validation succeeds. |
 | `geometryValidation` | `dict` | — | Read-only: validity, topology errors, and repair suggestions from the last draw. |
