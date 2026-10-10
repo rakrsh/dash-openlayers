@@ -1,6 +1,6 @@
 [project]
 name = "dash-openlayers"
-version = "0.0.2"
+version = "0.1.0"
 description = "A Dash wrapper around OpenLayers - GIS rendering engine"
 readme = "README.md"
 license = "MIT"

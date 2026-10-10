@@ -2,6 +2,20 @@
 
 Notable changes for each release are recorded here.
 
+## 0.1.0 - 2026-10-10
+
+### Added
+
+- Vector layers can load GeoJSON, TopoJSON, KML, and WKT data.
+- Vector-tile layers support MVT/PBF sources and attribute-based styling.
+- Map callbacks expose geographic pointer events, viewport bounds, and feature information.
+- Drawing workflows include an interactive toolbar, geometry modification, and spatial measurements.
+- Layer controls support visibility, opacity, ordering, and Dash-driven layer property updates.
+
+### Improved
+
+- Expanded component APIs, examples, generated documentation, and integration coverage.
+
 ## 0.0.2
 
 ### Added
