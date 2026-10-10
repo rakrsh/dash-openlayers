@@ -14,6 +14,7 @@ def test_components_exported():
     assert hasattr(mod, "DrawInteraction")
     assert hasattr(mod, "ImageWMS")
     assert hasattr(mod, "LayerControl")
+    assert hasattr(mod, "MeasureControl")
     assert hasattr(mod, "ModifyInteraction")
     assert hasattr(mod, "SelectInteraction")
     assert hasattr(mod, "TileLayer")
@@ -96,6 +97,25 @@ def test_component_props_serialize():
             dol.LayerControl(id="layer-control", position="bottom-left", title="Map layers"),
             {"id": "layer-control", "position": "bottom-left", "title": "Map layers"},
             "LayerControl",
+        ),
+        (
+            dol.MeasureControl(
+                id="measure",
+                units="imperial",
+                clearMeasurements=3,
+                position="bottom-right",
+                title="Measure distances",
+                style={"background": "white"},
+            ),
+            {
+                "id": "measure",
+                "units": "imperial",
+                "clearMeasurements": 3,
+                "position": "bottom-right",
+                "title": "Measure distances",
+                "style": {"background": "white"},
+            },
+            "MeasureControl",
         ),
         (
             dol.DrawControl(

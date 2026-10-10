@@ -3439,7 +3439,7 @@ function forEachCorner(extent, callback) {
  * @return {number} Area.
  * @api
  */
-function getArea(extent) {
+function getArea$1(extent) {
   let area = 0;
   if (!isEmpty(extent)) {
     area = getWidth(extent) * getHeight(extent);
@@ -4175,6 +4175,193 @@ function getDistance(c1, c2, radius) {
       Math.cos(lat1) *
       Math.cos(lat2);
   return 2 * radius * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/**
+ * Get the cumulative great circle length of linestring coordinates (geographic).
+ * @param {Array} coordinates Linestring coordinates.
+ * @param {number} radius The sphere radius to use.
+ * @return {number} The length (in meters).
+ */
+function getLengthInternal(coordinates, radius) {
+  let length = 0;
+  for (let i = 0, ii = coordinates.length; i < ii - 1; ++i) {
+    length += getDistance(coordinates[i], coordinates[i + 1], radius);
+  }
+  return length;
+}
+
+/**
+ * Get the spherical length of a geometry.  This length is the sum of the
+ * great circle distances between coordinates.  For polygons, the length is
+ * the sum of all rings.  For points, the length is zero.  For multi-part
+ * geometries, the length is the sum of the length of each part.
+ * @param {import("./geom/Geometry.js").default} geometry A geometry.
+ * @param {SphereMetricOptions} [options] Options for the
+ * length calculation.  By default, geometries are assumed to be in 'EPSG:3857'.
+ * You can change this by providing a `projection` option.
+ * @return {number} The spherical length (in meters).
+ * @api
+ */
+function getLength(geometry, options) {
+  options = options || {};
+  const radius = options.radius || DEFAULT_RADIUS;
+  const projection = options.projection || 'EPSG:3857';
+  const type = geometry.getType();
+  if (type !== 'GeometryCollection') {
+    geometry = geometry.clone().transform(projection, 'EPSG:4326');
+  }
+  let length = 0;
+  let coordinates, coords, i, ii, j, jj;
+  switch (type) {
+    case 'Point':
+    case 'MultiPoint': {
+      break;
+    }
+    case 'LineString':
+    case 'LinearRing': {
+      coordinates = /** @type {import("./geom/SimpleGeometry.js").default} */ (
+        geometry
+      ).getCoordinates();
+      length = getLengthInternal(coordinates, radius);
+      break;
+    }
+    case 'MultiLineString':
+    case 'Polygon': {
+      coordinates = /** @type {import("./geom/SimpleGeometry.js").default} */ (
+        geometry
+      ).getCoordinates();
+      for (i = 0, ii = coordinates.length; i < ii; ++i) {
+        length += getLengthInternal(coordinates[i], radius);
+      }
+      break;
+    }
+    case 'MultiPolygon': {
+      coordinates = /** @type {import("./geom/SimpleGeometry.js").default} */ (
+        geometry
+      ).getCoordinates();
+      for (i = 0, ii = coordinates.length; i < ii; ++i) {
+        coords = coordinates[i];
+        for (j = 0, jj = coords.length; j < jj; ++j) {
+          length += getLengthInternal(coords[j], radius);
+        }
+      }
+      break;
+    }
+    case 'GeometryCollection': {
+      const geometries =
+        /** @type {import("./geom/GeometryCollection.js").default} */ (
+          geometry
+        ).getGeometries();
+      for (i = 0, ii = geometries.length; i < ii; ++i) {
+        length += getLength(geometries[i], options);
+      }
+      break;
+    }
+    default: {
+      throw new Error('Unsupported geometry type: ' + type);
+    }
+  }
+  return length;
+}
+
+/**
+ * Returns the spherical area for a list of coordinates.
+ *
+ * [Reference](https://trs.jpl.nasa.gov/handle/2014/40409)
+ * Robert. G. Chamberlain and William H. Duquette, "Some Algorithms for
+ * Polygons on a Sphere", JPL Publication 07-03, Jet Propulsion
+ * Laboratory, Pasadena, CA, June 2007
+ *
+ * @param {Array<import("./coordinate.js").Coordinate>} coordinates List of coordinates of a linear
+ * ring. If the ring is oriented clockwise, the area will be positive,
+ * otherwise it will be negative.
+ * @param {number} radius The sphere radius.
+ * @return {number} Area (in square meters).
+ */
+function getAreaInternal(coordinates, radius) {
+  let area = 0;
+  const len = coordinates.length;
+  let x1 = coordinates[len - 1][0];
+  let y1 = coordinates[len - 1][1];
+  for (let i = 0; i < len; i++) {
+    const x2 = coordinates[i][0];
+    const y2 = coordinates[i][1];
+    area +=
+      toRadians(x2 - x1) *
+      (2 + Math.sin(toRadians(y1)) + Math.sin(toRadians(y2)));
+    x1 = x2;
+    y1 = y2;
+  }
+  return (area * radius * radius) / 2.0;
+}
+
+/**
+ * Get the spherical area of a geometry.  This is the area (in meters) assuming
+ * that polygon edges are segments of great circles on a sphere.
+ * @param {import("./geom/Geometry.js").default} geometry A geometry.
+ * @param {SphereMetricOptions} [options] Options for the area
+ *     calculation.  By default, geometries are assumed to be in 'EPSG:3857'.
+ *     You can change this by providing a `projection` option.
+ * @return {number} The spherical area (in square meters).
+ * @api
+ */
+function getArea(geometry, options) {
+  options = options || {};
+  const radius = options.radius || DEFAULT_RADIUS;
+  const projection = options.projection || 'EPSG:3857';
+  const type = geometry.getType();
+  if (type !== 'GeometryCollection') {
+    geometry = geometry.clone().transform(projection, 'EPSG:4326');
+  }
+  let area = 0;
+  let coordinates, coords, i, ii, j, jj;
+  switch (type) {
+    case 'Point':
+    case 'MultiPoint':
+    case 'LineString':
+    case 'MultiLineString':
+    case 'LinearRing': {
+      break;
+    }
+    case 'Polygon': {
+      coordinates = /** @type {import("./geom/Polygon.js").default} */ (
+        geometry
+      ).getCoordinates();
+      area = Math.abs(getAreaInternal(coordinates[0], radius));
+      for (i = 1, ii = coordinates.length; i < ii; ++i) {
+        area -= Math.abs(getAreaInternal(coordinates[i], radius));
+      }
+      break;
+    }
+    case 'MultiPolygon': {
+      coordinates = /** @type {import("./geom/SimpleGeometry.js").default} */ (
+        geometry
+      ).getCoordinates();
+      for (i = 0, ii = coordinates.length; i < ii; ++i) {
+        coords = coordinates[i];
+        area += Math.abs(getAreaInternal(coords[0], radius));
+        for (j = 1, jj = coords.length; j < jj; ++j) {
+          area -= Math.abs(getAreaInternal(coords[j], radius));
+        }
+      }
+      break;
+    }
+    case 'GeometryCollection': {
+      const geometries =
+        /** @type {import("./geom/GeometryCollection.js").default} */ (
+          geometry
+        ).getGeometries();
+      for (i = 0, ii = geometries.length; i < ii; ++i) {
+        area += getArea(geometries[i], options);
+      }
+      break;
+    }
+    default: {
+      throw new Error('Unsupported geometry type: ' + type);
+    }
+  }
+  return area;
 }
 
 /**
@@ -66737,7 +66924,7 @@ class Triangulation {
             0,
             Math.ceil(
               Math.log2(
-                getArea(targetExtent) /
+                getArea$1(targetExtent) /
                   (destinationResolution * destinationResolution * 256 * 256),
               ),
             ),
@@ -68985,6 +69172,889 @@ LayerControl.propTypes = {
 };
 
 /**
+ * @module ol/Overlay
+ */
+
+/**
+ * @typedef {'bottom-left' | 'bottom-center' | 'bottom-right' | 'center-left' | 'center-center' | 'center-right' | 'top-left' | 'top-center' | 'top-right'} Positioning
+ * The overlay position: `'bottom-left'`, `'bottom-center'`,  `'bottom-right'`,
+ * `'center-left'`, `'center-center'`, `'center-right'`, `'top-left'`,
+ * `'top-center'`, or `'top-right'`.
+ */
+
+/**
+ * @typedef {Object} Options
+ * @property {number|string} [id] Set the overlay id. The overlay id can be used
+ * with the {@link module:ol/Map~Map#getOverlayById} method.
+ * @property {HTMLElement} [element] The overlay element.
+ * @property {Array<number>} [offset=[0, 0]] Offsets in pixels used when positioning
+ * the overlay. The first element in the
+ * array is the horizontal offset. A positive value shifts the overlay right.
+ * The second element in the array is the vertical offset. A positive value
+ * shifts the overlay down.
+ * @property {import("./coordinate.js").Coordinate} [position] The overlay position
+ * in map projection.
+ * @property {Positioning} [positioning='top-left'] Defines how
+ * the overlay is actually positioned with respect to its `position` property.
+ * Possible values are `'bottom-left'`, `'bottom-center'`, `'bottom-right'`,
+ * `'center-left'`, `'center-center'`, `'center-right'`, `'top-left'`,
+ * `'top-center'`, and `'top-right'`.
+ * @property {boolean} [stopEvent=true] Whether event propagation to the map
+ * viewport should be stopped. If `true` the overlay is placed in the same
+ * container as that of the controls (CSS class name
+ * `ol-overlaycontainer-stopevent`); if `false` it is placed in the container
+ * with CSS class name specified by the `className` property.
+ * @property {boolean} [insertFirst=true] Whether the overlay is inserted first
+ * in the overlay container, or appended. If the overlay is placed in the same
+ * container as that of the controls (see the `stopEvent` option) you will
+ * probably set `insertFirst` to `true` so the overlay is displayed below the
+ * controls.
+ * @property {PanIntoViewOptions|boolean} [autoPan=false] Pan the map when calling
+ * `setPosition`, so that the overlay is entirely visible in the current viewport.
+ * @property {string} [className='ol-overlay-container ol-selectable'] CSS class
+ * name.
+ */
+
+/**
+ * @typedef {Object} PanOptions
+ * @property {number} [duration=1000] The duration of the animation in
+ * milliseconds.
+ * @property {function(number):number} [easing] The easing function to use. Can
+ * be one from {@link module:ol/easing} or a custom function.
+ * Default is {@link module:ol/easing.inAndOut}.
+ */
+
+/**
+ * @typedef {Object} PanIntoViewOptions
+ * @property {PanOptions} [animation={}] The animation parameters for the pan
+ * @property {number} [margin=20] The margin (in pixels) between the
+ * overlay and the borders of the map when panning into view.
+ */
+
+/**
+ * @enum {string}
+ * @protected
+ */
+const Property = {
+  ELEMENT: 'element',
+  MAP: 'map',
+  OFFSET: 'offset',
+  POSITION: 'position',
+  POSITIONING: 'positioning',
+};
+
+/**
+ * @typedef {import("./ObjectEventType").Types|'change:element'|'change:map'|'change:offset'|'change:position'|
+ *   'change:positioning'} OverlayObjectEventTypes
+ */
+
+/***
+ * @template Return
+ * @typedef {import("./Observable").OnSignature<import("./Observable").EventTypes, import("./events/Event.js").default, Return> &
+ *   import("./Observable").OnSignature<OverlayObjectEventTypes, import("./Object").ObjectEvent, Return> &
+ *   import("./Observable").CombinedOnSignature<import("./Observable").EventTypes|OverlayObjectEventTypes, Return>} OverlayOnSignature
+ */
+
+/**
+ * @classdesc
+ * An element to be displayed over the map and attached to a single map
+ * location.  Like {@link module:ol/control/Control~Control}, Overlays are
+ * visible widgets. Unlike Controls, they are not in a fixed position on the
+ * screen, but are tied to a geographical coordinate, so panning the map will
+ * move an Overlay but not a Control.
+ *
+ * Example:
+ *
+ *     import Overlay from 'ol/Overlay.js';
+ *
+ *     // ...
+ *     const popup = new Overlay({
+ *       element: document.getElementById('popup'),
+ *     });
+ *     popup.setPosition(coordinate);
+ *     map.addOverlay(popup);
+ *
+ * @api
+ */
+class Overlay extends BaseObject {
+  /**
+   * @param {Options} options Overlay options.
+   */
+  constructor(options) {
+    super();
+
+    /***
+     * @type {OverlayOnSignature<import("./events").EventsKey>}
+     */
+    this.on;
+
+    /***
+     * @type {OverlayOnSignature<import("./events").EventsKey>}
+     */
+    this.once;
+
+    /***
+     * @type {OverlayOnSignature<void>}
+     */
+    this.un;
+
+    /**
+     * @protected
+     * @type {Options}
+     */
+    this.options = options;
+
+    /**
+     * @protected
+     * @type {number|string|undefined}
+     */
+    this.id = options.id;
+
+    /**
+     * @protected
+     * @type {boolean}
+     */
+    this.insertFirst =
+      options.insertFirst !== undefined ? options.insertFirst : true;
+
+    /**
+     * @protected
+     * @type {boolean}
+     */
+    this.stopEvent = options.stopEvent !== undefined ? options.stopEvent : true;
+
+    /**
+     * @protected
+     * @type {HTMLElement}
+     */
+    this.element = document.createElement('div');
+    this.element.className =
+      options.className !== undefined
+        ? options.className
+        : 'ol-overlay-container ' + CLASS_SELECTABLE;
+    this.element.style.position = 'absolute';
+    this.element.style.pointerEvents = 'auto';
+
+    /**
+     * @protected
+     * @type {PanIntoViewOptions|undefined}
+     */
+    this.autoPan = options.autoPan === true ? {} : options.autoPan || undefined;
+
+    /**
+     * @protected
+     * @type {{transform_: string,
+     *         visible: boolean}}
+     */
+    this.rendered = {
+      transform_: '',
+      visible: true,
+    };
+
+    /**
+     * @protected
+     * @type {?import("./events.js").EventsKey}
+     */
+    this.mapPostrenderListenerKey = null;
+
+    this.addChangeListener(Property.ELEMENT, this.handleElementChanged);
+    this.addChangeListener(Property.MAP, this.handleMapChanged);
+    this.addChangeListener(Property.OFFSET, this.handleOffsetChanged);
+    this.addChangeListener(Property.POSITION, this.handlePositionChanged);
+    this.addChangeListener(Property.POSITIONING, this.handlePositioningChanged);
+
+    if (options.element !== undefined) {
+      this.setElement(options.element);
+    }
+
+    this.setOffset(options.offset !== undefined ? options.offset : [0, 0]);
+
+    this.setPositioning(options.positioning || 'top-left');
+
+    if (options.position !== undefined) {
+      this.setPosition(options.position);
+    }
+  }
+
+  /**
+   * Get the DOM element of this overlay.
+   * @return {HTMLElement|undefined} The Element containing the overlay.
+   * @observable
+   * @api
+   */
+  getElement() {
+    return /** @type {HTMLElement|undefined} */ (this.get(Property.ELEMENT));
+  }
+
+  /**
+   * Get the overlay identifier which is set on constructor.
+   * @return {number|string|undefined} Id.
+   * @api
+   */
+  getId() {
+    return this.id;
+  }
+
+  /**
+   * Get the map associated with this overlay.
+   * @return {import("./Map.js").default|null} The map that the
+   * overlay is part of.
+   * @observable
+   * @api
+   */
+  getMap() {
+    return /** @type {import("./Map.js").default|null} */ (
+      this.get(Property.MAP) || null
+    );
+  }
+
+  /**
+   * Get the offset of this overlay.
+   * @return {Array<number>} The offset.
+   * @observable
+   * @api
+   */
+  getOffset() {
+    return /** @type {Array<number>} */ (this.get(Property.OFFSET));
+  }
+
+  /**
+   * Get the current position of this overlay.
+   * @return {import("./coordinate.js").Coordinate|undefined} The spatial point that the overlay is
+   *     anchored at.
+   * @observable
+   * @api
+   */
+  getPosition() {
+    return /** @type {import("./coordinate.js").Coordinate|undefined} */ (
+      this.get(Property.POSITION)
+    );
+  }
+
+  /**
+   * Get the current positioning of this overlay.
+   * @return {Positioning} How the overlay is positioned
+   *     relative to its point on the map.
+   * @observable
+   * @api
+   */
+  getPositioning() {
+    return /** @type {Positioning} */ (this.get(Property.POSITIONING));
+  }
+
+  /**
+   * @protected
+   */
+  handleElementChanged() {
+    removeChildren(this.element);
+    const element = this.getElement();
+    if (element) {
+      this.element.appendChild(element);
+    }
+  }
+
+  /**
+   * @protected
+   */
+  handleMapChanged() {
+    if (this.mapPostrenderListenerKey) {
+      removeNode(this.element);
+      unlistenByKey(this.mapPostrenderListenerKey);
+      this.mapPostrenderListenerKey = null;
+    }
+    const map = this.getMap();
+    if (map) {
+      this.mapPostrenderListenerKey = listen(
+        map,
+        MapEventType.POSTRENDER,
+        this.render,
+        this,
+      );
+      this.updatePixelPosition();
+      const container = this.stopEvent
+        ? map.getOverlayContainerStopEvent()
+        : map.getOverlayContainer();
+      if (this.insertFirst) {
+        container.insertBefore(this.element, container.childNodes[0] || null);
+      } else {
+        container.appendChild(this.element);
+      }
+      this.performAutoPan();
+    }
+  }
+
+  /**
+   * @protected
+   */
+  render() {
+    this.updatePixelPosition();
+  }
+
+  /**
+   * @protected
+   */
+  handleOffsetChanged() {
+    this.updatePixelPosition();
+  }
+
+  /**
+   * @protected
+   */
+  handlePositionChanged() {
+    this.updatePixelPosition();
+    this.performAutoPan();
+  }
+
+  /**
+   * @protected
+   */
+  handlePositioningChanged() {
+    this.updatePixelPosition();
+  }
+
+  /**
+   * Set the DOM element to be associated with this overlay.
+   * @param {HTMLElement|undefined} element The Element containing the overlay.
+   * @observable
+   * @api
+   */
+  setElement(element) {
+    this.set(Property.ELEMENT, element);
+  }
+
+  /**
+   * Set the map to be associated with this overlay.
+   * @param {import("./Map.js").default|null} map The map that the
+   * overlay is part of. Pass `null` to just remove the overlay from the current map.
+   * @observable
+   * @api
+   */
+  setMap(map) {
+    this.set(Property.MAP, map);
+  }
+
+  /**
+   * Set the offset for this overlay.
+   * @param {Array<number>} offset Offset.
+   * @observable
+   * @api
+   */
+  setOffset(offset) {
+    this.set(Property.OFFSET, offset);
+  }
+
+  /**
+   * Set the position for this overlay. If the position is `undefined` the
+   * overlay is hidden.
+   * @param {import("./coordinate.js").Coordinate|undefined} position The spatial point that the overlay
+   *     is anchored at.
+   * @observable
+   * @api
+   */
+  setPosition(position) {
+    this.set(Property.POSITION, position);
+  }
+
+  /**
+   * Pan the map so that the overlay is entirely visible in the current viewport
+   * (if necessary) using the configured autoPan parameters
+   * @protected
+   */
+  performAutoPan() {
+    if (this.autoPan) {
+      this.panIntoView(this.autoPan);
+    }
+  }
+
+  /**
+   * Pan the map so that the overlay is entirely visible in the current viewport
+   * (if necessary).
+   * @param {PanIntoViewOptions} [panIntoViewOptions] Options for the pan action
+   * @api
+   */
+  panIntoView(panIntoViewOptions) {
+    const map = this.getMap();
+
+    if (!map || !map.getTargetElement() || !this.get(Property.POSITION)) {
+      return;
+    }
+
+    const mapRect = this.getRect(map.getTargetElement(), map.getSize());
+    const element = this.getElement();
+    const overlayRect = this.getRect(element, [
+      outerWidth(element),
+      outerHeight(element),
+    ]);
+
+    panIntoViewOptions = panIntoViewOptions || {};
+
+    const myMargin =
+      panIntoViewOptions.margin === undefined ? 20 : panIntoViewOptions.margin;
+    if (!containsExtent(mapRect, overlayRect)) {
+      // the overlay is not completely inside the viewport, so pan the map
+      const offsetLeft = overlayRect[0] - mapRect[0];
+      const offsetRight = mapRect[2] - overlayRect[2];
+      const offsetTop = overlayRect[1] - mapRect[1];
+      const offsetBottom = mapRect[3] - overlayRect[3];
+
+      const delta = [0, 0];
+      if (offsetLeft < 0) {
+        // move map to the left
+        delta[0] = offsetLeft - myMargin;
+      } else if (offsetRight < 0) {
+        // move map to the right
+        delta[0] = Math.abs(offsetRight) + myMargin;
+      }
+      if (offsetTop < 0) {
+        // move map up
+        delta[1] = offsetTop - myMargin;
+      } else if (offsetBottom < 0) {
+        // move map down
+        delta[1] = Math.abs(offsetBottom) + myMargin;
+      }
+
+      if (delta[0] !== 0 || delta[1] !== 0) {
+        const center = /** @type {import("./coordinate.js").Coordinate} */ (
+          map.getView().getCenterInternal()
+        );
+        const centerPx = map.getPixelFromCoordinateInternal(center);
+        if (!centerPx) {
+          return;
+        }
+        const newCenterPx = [centerPx[0] + delta[0], centerPx[1] + delta[1]];
+
+        const panOptions = panIntoViewOptions.animation || {};
+        map.getView().animateInternal({
+          center: map.getCoordinateFromPixelInternal(newCenterPx),
+          duration: panOptions.duration,
+          easing: panOptions.easing,
+        });
+      }
+    }
+  }
+
+  /**
+   * Get the extent of an element relative to the document
+   * @param {HTMLElement} element The element.
+   * @param {import("./size.js").Size} size The size of the element.
+   * @return {import("./extent.js").Extent} The extent.
+   * @protected
+   */
+  getRect(element, size) {
+    const box = element.getBoundingClientRect();
+    const offsetX = box.left + window.pageXOffset;
+    const offsetY = box.top + window.pageYOffset;
+    return [offsetX, offsetY, offsetX + size[0], offsetY + size[1]];
+  }
+
+  /**
+   * Set the positioning for this overlay.
+   * @param {Positioning} positioning how the overlay is
+   *     positioned relative to its point on the map.
+   * @observable
+   * @api
+   */
+  setPositioning(positioning) {
+    this.set(Property.POSITIONING, positioning);
+  }
+
+  /**
+   * Modify the visibility of the element.
+   * @param {boolean} visible Element visibility.
+   * @protected
+   */
+  setVisible(visible) {
+    if (this.rendered.visible !== visible) {
+      this.element.style.display = visible ? '' : 'none';
+      this.rendered.visible = visible;
+    }
+  }
+
+  /**
+   * Update pixel position.
+   * @protected
+   */
+  updatePixelPosition() {
+    const map = this.getMap();
+    const position = this.getPosition();
+    if (!map || !map.isRendered() || !position) {
+      this.setVisible(false);
+      return;
+    }
+
+    const pixel = map.getPixelFromCoordinate(position);
+    const mapSize = map.getSize();
+    this.updateRenderedPosition(pixel, mapSize);
+  }
+
+  /**
+   * @param {import("./pixel.js").Pixel} pixel The pixel location.
+   * @param {import("./size.js").Size|undefined} mapSize The map size.
+   * @protected
+   */
+  updateRenderedPosition(pixel, mapSize) {
+    const style = this.element.style;
+    const offset = this.getOffset();
+
+    const positioning = this.getPositioning();
+
+    this.setVisible(true);
+
+    const x = Math.round(pixel[0] + offset[0]) + 'px';
+    const y = Math.round(pixel[1] + offset[1]) + 'px';
+    let posX = '0%';
+    let posY = '0%';
+    if (
+      positioning == 'bottom-right' ||
+      positioning == 'center-right' ||
+      positioning == 'top-right'
+    ) {
+      posX = '-100%';
+    } else if (
+      positioning == 'bottom-center' ||
+      positioning == 'center-center' ||
+      positioning == 'top-center'
+    ) {
+      posX = '-50%';
+    }
+    if (
+      positioning == 'bottom-left' ||
+      positioning == 'bottom-center' ||
+      positioning == 'bottom-right'
+    ) {
+      posY = '-100%';
+    } else if (
+      positioning == 'center-left' ||
+      positioning == 'center-center' ||
+      positioning == 'center-right'
+    ) {
+      posY = '-50%';
+    }
+    const transform = `translate(${posX}, ${posY}) translate(${x}, ${y})`;
+    if (this.rendered.transform_ != transform) {
+      this.rendered.transform_ = transform;
+      style.transform = transform;
+    }
+  }
+
+  /**
+   * returns the options this Overlay has been created with
+   * @return {Options} overlay options
+   */
+  getOptions() {
+    return this.options;
+  }
+}
+
+var formatNumber = value => value.toFixed(2);
+var formatLength = (meters, units) => {
+  if (units === 'imperial') {
+    var feet = meters / 0.3048;
+    return feet >= 5280 ? "".concat(formatNumber(feet / 5280), " mi") : "".concat(formatNumber(feet), " ft");
+  }
+  return meters >= 1000 ? "".concat(formatNumber(meters / 1000), " km") : "".concat(formatNumber(meters), " m");
+};
+var formatArea = (squareMeters, units) => {
+  if (units === 'imperial') {
+    return "".concat(formatNumber(squareMeters / 4046.8564224), " acres");
+  }
+  if (squareMeters >= 1000000) {
+    return "".concat(formatNumber(squareMeters / 1000000), " km\xB2");
+  }
+  if (squareMeters >= 10000) {
+    return "".concat(formatNumber(squareMeters / 10000), " ha");
+  }
+  return "".concat(formatNumber(squareMeters), " m\xB2");
+};
+var getLastCoordinate = (geometry, type) => {
+  var _coordinates$;
+  var coordinates = geometry.getCoordinates();
+  return type === 'LineString' ? coordinates[coordinates.length - 1] : (_coordinates$ = coordinates[0]) === null || _coordinates$ === void 0 ? void 0 : _coordinates$[coordinates[0].length - 1];
+};
+
+/** Draw lines and polygons with live geodesic length and area measurements. */
+var MeasureControl = _ref => {
+  var id = _ref.id,
+    _ref$units = _ref.units,
+    units = _ref$units === void 0 ? 'metric' : _ref$units,
+    _ref$clearMeasurement = _ref.clearMeasurements,
+    clearMeasurements = _ref$clearMeasurement === void 0 ? 0 : _ref$clearMeasurement,
+    _ref$position = _ref.position,
+    position = _ref$position === void 0 ? 'top-left' : _ref$position,
+    _ref$title = _ref.title,
+    title = _ref$title === void 0 ? 'Measure' : _ref$title,
+    style = _ref.style;
+  var map = useMap();
+  var unitsRef = useRef(units);
+  var clearMeasurementsRef = useRef(() => {});
+  var refreshMeasurementsRef = useRef(() => {});
+  var updateButtonsRef = useRef(() => {});
+  var activateModeRef = useRef(() => {});
+  var activeModeRef = useRef(null);
+  var previousClearMeasurementsRef = useRef(clearMeasurements);
+  useEffect(() => {
+    unitsRef.current = units;
+    refreshMeasurementsRef.current();
+  }, [units]);
+  useEffect(() => {
+    if (previousClearMeasurementsRef.current !== clearMeasurements) {
+      previousClearMeasurementsRef.current = clearMeasurements;
+      clearMeasurementsRef.current();
+    }
+  }, [clearMeasurements]);
+  useEffect(() => {
+    var source = new VectorSource();
+    var layer = new VectorLayer({
+      source,
+      style: new Style({
+        fill: new Fill({
+          color: 'rgba(31, 106, 94, 0.15)'
+        }),
+        stroke: new Stroke({
+          color: '#1f6a5e',
+          width: 2,
+          lineDash: [8, 4]
+        })
+      })
+    });
+    map.addLayer(layer);
+    var measurements = [];
+    var draw = null;
+    var drawListenerKeys = [];
+    var geometryListenerKey = null;
+    var activeMeasurement = null;
+    var updateMeasurement = measurement => {
+      var projection = map.getView().getProjection();
+      var value = measurement.type === 'LineString' ? formatLength(getLength(measurement.geometry, {
+        projection
+      }), unitsRef.current) : formatArea(getArea(measurement.geometry, {
+        projection
+      }), unitsRef.current);
+      measurement.element.textContent = value;
+      var coordinate = getLastCoordinate(measurement.geometry, measurement.type);
+      if (coordinate !== null && coordinate !== void 0 && coordinate.length) measurement.overlay.setPosition(coordinate);
+    };
+    var updateAllMeasurements = () => {
+      measurements.forEach(updateMeasurement);
+      if (activeMeasurement) updateMeasurement(activeMeasurement);
+    };
+    var stopDrawing = () => {
+      if (geometryListenerKey) {
+        unByKey(geometryListenerKey);
+        geometryListenerKey = null;
+      }
+      if (activeMeasurement) {
+        map.removeOverlay(activeMeasurement.overlay);
+        activeMeasurement = null;
+      }
+      if (draw) {
+        unByKey(drawListenerKeys);
+        drawListenerKeys = [];
+        map.removeInteraction(draw);
+        draw = null;
+      }
+    };
+    var clearAllMeasurements = () => {
+      stopDrawing();
+      activeModeRef.current = null;
+      updateButtonsRef.current(null);
+      measurements.forEach(_ref2 => {
+        var overlay = _ref2.overlay;
+        return map.removeOverlay(overlay);
+      });
+      measurements.length = 0;
+      source.clear();
+    };
+    var startDrawing = type => {
+      draw = new Draw({
+        source,
+        type
+      });
+      drawListenerKeys = [draw.on('drawstart', _ref3 => {
+        var feature = _ref3.feature;
+        var geometry = feature.getGeometry();
+        var element = document.createElement('div');
+        element.className = 'ol-measure-tooltip ol-measure-tooltip-active';
+        element.setAttribute('role', 'status');
+        Object.assign(element.style, {
+          padding: '3px 6px',
+          color: '#182522',
+          background: 'rgba(255, 255, 255, 0.96)',
+          border: '1px solid #1f6a5e',
+          borderRadius: '3px',
+          boxShadow: '0 1px 4px rgba(20, 35, 31, 0.2)',
+          fontSize: '12px',
+          whiteSpace: 'nowrap',
+          pointerEvents: 'none'
+        });
+        var overlay = new Overlay({
+          element,
+          offset: [0, -12],
+          positioning: 'bottom-center',
+          stopEvent: false
+        });
+        activeMeasurement = {
+          type,
+          geometry,
+          element,
+          overlay
+        };
+        map.addOverlay(overlay);
+        geometryListenerKey = geometry.on('change', () => updateMeasurement(activeMeasurement));
+        updateMeasurement(activeMeasurement);
+      }), draw.on('drawend', () => {
+        if (!activeMeasurement) return;
+        if (geometryListenerKey) {
+          unByKey(geometryListenerKey);
+          geometryListenerKey = null;
+        }
+        updateMeasurement(activeMeasurement);
+        activeMeasurement.element.className = 'ol-measure-tooltip ol-measure-tooltip-static';
+        measurements.push(activeMeasurement);
+        activeMeasurement = null;
+      })];
+      map.addInteraction(draw);
+    };
+    var activateMode = type => {
+      if (activeModeRef.current === type) {
+        stopDrawing();
+        activeModeRef.current = null;
+      } else {
+        stopDrawing();
+        activeModeRef.current = type;
+        startDrawing(type);
+      }
+      updateButtonsRef.current(activeModeRef.current);
+    };
+    activateModeRef.current = activateMode;
+    clearMeasurementsRef.current = clearAllMeasurements;
+    refreshMeasurementsRef.current = updateAllMeasurements;
+    return () => {
+      clearAllMeasurements();
+      activateModeRef.current = () => {};
+      clearMeasurementsRef.current = () => {};
+      refreshMeasurementsRef.current = () => {};
+      map.removeLayer(layer);
+      source.clear();
+    };
+  }, [map]);
+  useEffect(() => {
+    var element = document.createElement('div');
+    element.className = 'ol-control ol-unselectable';
+    if (id) element.id = id;
+    Object.assign(element.style, Object.fromEntries(position.split('-').map(side => [side, '0.5em'])), _objectSpread2({
+      maxWidth: 'min(320px, calc(100% - 1em))',
+      padding: '6px',
+      color: '#182522',
+      background: 'rgba(255, 255, 255, 0.96)',
+      border: '1px solid #778581',
+      borderRadius: '4px',
+      boxShadow: '0 2px 8px rgba(20, 35, 31, 0.18)'
+    }, style));
+    var toolbar = document.createElement('div');
+    toolbar.setAttribute('role', 'toolbar');
+    toolbar.setAttribute('aria-label', title);
+    Object.assign(toolbar.style, {
+      display: 'flex',
+      gap: '4px',
+      alignItems: 'center'
+    });
+    if (title) {
+      var heading = document.createElement('span');
+      heading.textContent = title;
+      Object.assign(heading.style, {
+        margin: '0 4px',
+        fontSize: '13px',
+        fontWeight: '600'
+      });
+      toolbar.appendChild(heading);
+    }
+    var modeButtons = [];
+    var updateButtons = activeMode => {
+      modeButtons.forEach(_ref4 => {
+        var _ref5 = _slicedToArray(_ref4, 2),
+          button = _ref5[0],
+          mode = _ref5[1];
+        var isActive = mode === activeMode;
+        button.setAttribute('aria-pressed', String(isActive));
+        button.style.color = isActive ? '#ffffff' : '#182522';
+        button.style.background = isActive ? '#1f6a5e' : '#ffffff';
+      });
+    };
+    updateButtonsRef.current = updateButtons;
+    var listeners = [];
+    var createButton = (label, accessibleName, handler) => {
+      var button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = label;
+      button.title = accessibleName;
+      button.setAttribute('aria-label', accessibleName);
+      Object.assign(button.style, {
+        minHeight: '32px',
+        padding: '4px 8px',
+        color: '#182522',
+        background: '#ffffff',
+        border: '1px solid #778581',
+        borderRadius: '3px',
+        cursor: 'pointer'
+      });
+      button.addEventListener('click', handler);
+      listeners.push([button, handler]);
+      return button;
+    };
+    [['LineString', 'Distance'], ['Polygon', 'Area']].forEach(_ref6 => {
+      var _ref7 = _slicedToArray(_ref6, 2),
+        type = _ref7[0],
+        label = _ref7[1];
+      var button = createButton(label, "Measure ".concat(label.toLowerCase()), () => activateModeRef.current(type));
+      button.dataset.measureType = type;
+      modeButtons.push([button, type]);
+      toolbar.appendChild(button);
+    });
+    var clearButton = createButton('Clear', 'Clear measurements', () => clearMeasurementsRef.current());
+    clearButton.dataset.clearMeasurements = 'true';
+    toolbar.appendChild(clearButton);
+    element.appendChild(toolbar);
+    var control = new Control({
+      element
+    });
+    map.addControl(control);
+    updateButtons(activeModeRef.current);
+    return () => {
+      listeners.forEach(_ref8 => {
+        var _ref9 = _slicedToArray(_ref8, 2),
+          button = _ref9[0],
+          listener = _ref9[1];
+        return button.removeEventListener('click', listener);
+      });
+      map.removeControl(control);
+      updateButtonsRef.current = () => {};
+    };
+  }, [map, id, position, title, style]);
+  return null;
+};
+MeasureControl.defaultProps = {
+  units: 'metric',
+  clearMeasurements: 0,
+  position: 'top-left',
+  title: 'Measure'
+};
+MeasureControl.propTypes = {
+  /** Component ID used to identify this measurement control in Dash. */
+  id: PropTypes.string,
+  /** Measurement units: metric uses meters, kilometers, and hectares; imperial uses feet, miles, and acres. */
+  units: PropTypes.oneOf(['metric', 'imperial']),
+  /** Increment to clear all completed and in-progress measurements. */
+  clearMeasurements: PropTypes.number,
+  /** Corner of the map where the measurement toolbar is displayed. */
+  position: PropTypes.oneOf(['top-left', 'top-right', 'bottom-left', 'bottom-right']),
+  /** Accessible toolbar label and visible heading. */
+  title: PropTypes.string,
+  /** Inline styles applied to the toolbar control container. */
+  style: PropTypes.object
+};
+
+/**
  * @module ol/interaction/Modify
  */
 
@@ -70715,581 +71785,6 @@ ModifyInteraction.propTypes = {
   setProps: PropTypes.func
 };
 
-/**
- * @module ol/Overlay
- */
-
-/**
- * @typedef {'bottom-left' | 'bottom-center' | 'bottom-right' | 'center-left' | 'center-center' | 'center-right' | 'top-left' | 'top-center' | 'top-right'} Positioning
- * The overlay position: `'bottom-left'`, `'bottom-center'`,  `'bottom-right'`,
- * `'center-left'`, `'center-center'`, `'center-right'`, `'top-left'`,
- * `'top-center'`, or `'top-right'`.
- */
-
-/**
- * @typedef {Object} Options
- * @property {number|string} [id] Set the overlay id. The overlay id can be used
- * with the {@link module:ol/Map~Map#getOverlayById} method.
- * @property {HTMLElement} [element] The overlay element.
- * @property {Array<number>} [offset=[0, 0]] Offsets in pixels used when positioning
- * the overlay. The first element in the
- * array is the horizontal offset. A positive value shifts the overlay right.
- * The second element in the array is the vertical offset. A positive value
- * shifts the overlay down.
- * @property {import("./coordinate.js").Coordinate} [position] The overlay position
- * in map projection.
- * @property {Positioning} [positioning='top-left'] Defines how
- * the overlay is actually positioned with respect to its `position` property.
- * Possible values are `'bottom-left'`, `'bottom-center'`, `'bottom-right'`,
- * `'center-left'`, `'center-center'`, `'center-right'`, `'top-left'`,
- * `'top-center'`, and `'top-right'`.
- * @property {boolean} [stopEvent=true] Whether event propagation to the map
- * viewport should be stopped. If `true` the overlay is placed in the same
- * container as that of the controls (CSS class name
- * `ol-overlaycontainer-stopevent`); if `false` it is placed in the container
- * with CSS class name specified by the `className` property.
- * @property {boolean} [insertFirst=true] Whether the overlay is inserted first
- * in the overlay container, or appended. If the overlay is placed in the same
- * container as that of the controls (see the `stopEvent` option) you will
- * probably set `insertFirst` to `true` so the overlay is displayed below the
- * controls.
- * @property {PanIntoViewOptions|boolean} [autoPan=false] Pan the map when calling
- * `setPosition`, so that the overlay is entirely visible in the current viewport.
- * @property {string} [className='ol-overlay-container ol-selectable'] CSS class
- * name.
- */
-
-/**
- * @typedef {Object} PanOptions
- * @property {number} [duration=1000] The duration of the animation in
- * milliseconds.
- * @property {function(number):number} [easing] The easing function to use. Can
- * be one from {@link module:ol/easing} or a custom function.
- * Default is {@link module:ol/easing.inAndOut}.
- */
-
-/**
- * @typedef {Object} PanIntoViewOptions
- * @property {PanOptions} [animation={}] The animation parameters for the pan
- * @property {number} [margin=20] The margin (in pixels) between the
- * overlay and the borders of the map when panning into view.
- */
-
-/**
- * @enum {string}
- * @protected
- */
-const Property = {
-  ELEMENT: 'element',
-  MAP: 'map',
-  OFFSET: 'offset',
-  POSITION: 'position',
-  POSITIONING: 'positioning',
-};
-
-/**
- * @typedef {import("./ObjectEventType").Types|'change:element'|'change:map'|'change:offset'|'change:position'|
- *   'change:positioning'} OverlayObjectEventTypes
- */
-
-/***
- * @template Return
- * @typedef {import("./Observable").OnSignature<import("./Observable").EventTypes, import("./events/Event.js").default, Return> &
- *   import("./Observable").OnSignature<OverlayObjectEventTypes, import("./Object").ObjectEvent, Return> &
- *   import("./Observable").CombinedOnSignature<import("./Observable").EventTypes|OverlayObjectEventTypes, Return>} OverlayOnSignature
- */
-
-/**
- * @classdesc
- * An element to be displayed over the map and attached to a single map
- * location.  Like {@link module:ol/control/Control~Control}, Overlays are
- * visible widgets. Unlike Controls, they are not in a fixed position on the
- * screen, but are tied to a geographical coordinate, so panning the map will
- * move an Overlay but not a Control.
- *
- * Example:
- *
- *     import Overlay from 'ol/Overlay.js';
- *
- *     // ...
- *     const popup = new Overlay({
- *       element: document.getElementById('popup'),
- *     });
- *     popup.setPosition(coordinate);
- *     map.addOverlay(popup);
- *
- * @api
- */
-class Overlay extends BaseObject {
-  /**
-   * @param {Options} options Overlay options.
-   */
-  constructor(options) {
-    super();
-
-    /***
-     * @type {OverlayOnSignature<import("./events").EventsKey>}
-     */
-    this.on;
-
-    /***
-     * @type {OverlayOnSignature<import("./events").EventsKey>}
-     */
-    this.once;
-
-    /***
-     * @type {OverlayOnSignature<void>}
-     */
-    this.un;
-
-    /**
-     * @protected
-     * @type {Options}
-     */
-    this.options = options;
-
-    /**
-     * @protected
-     * @type {number|string|undefined}
-     */
-    this.id = options.id;
-
-    /**
-     * @protected
-     * @type {boolean}
-     */
-    this.insertFirst =
-      options.insertFirst !== undefined ? options.insertFirst : true;
-
-    /**
-     * @protected
-     * @type {boolean}
-     */
-    this.stopEvent = options.stopEvent !== undefined ? options.stopEvent : true;
-
-    /**
-     * @protected
-     * @type {HTMLElement}
-     */
-    this.element = document.createElement('div');
-    this.element.className =
-      options.className !== undefined
-        ? options.className
-        : 'ol-overlay-container ' + CLASS_SELECTABLE;
-    this.element.style.position = 'absolute';
-    this.element.style.pointerEvents = 'auto';
-
-    /**
-     * @protected
-     * @type {PanIntoViewOptions|undefined}
-     */
-    this.autoPan = options.autoPan === true ? {} : options.autoPan || undefined;
-
-    /**
-     * @protected
-     * @type {{transform_: string,
-     *         visible: boolean}}
-     */
-    this.rendered = {
-      transform_: '',
-      visible: true,
-    };
-
-    /**
-     * @protected
-     * @type {?import("./events.js").EventsKey}
-     */
-    this.mapPostrenderListenerKey = null;
-
-    this.addChangeListener(Property.ELEMENT, this.handleElementChanged);
-    this.addChangeListener(Property.MAP, this.handleMapChanged);
-    this.addChangeListener(Property.OFFSET, this.handleOffsetChanged);
-    this.addChangeListener(Property.POSITION, this.handlePositionChanged);
-    this.addChangeListener(Property.POSITIONING, this.handlePositioningChanged);
-
-    if (options.element !== undefined) {
-      this.setElement(options.element);
-    }
-
-    this.setOffset(options.offset !== undefined ? options.offset : [0, 0]);
-
-    this.setPositioning(options.positioning || 'top-left');
-
-    if (options.position !== undefined) {
-      this.setPosition(options.position);
-    }
-  }
-
-  /**
-   * Get the DOM element of this overlay.
-   * @return {HTMLElement|undefined} The Element containing the overlay.
-   * @observable
-   * @api
-   */
-  getElement() {
-    return /** @type {HTMLElement|undefined} */ (this.get(Property.ELEMENT));
-  }
-
-  /**
-   * Get the overlay identifier which is set on constructor.
-   * @return {number|string|undefined} Id.
-   * @api
-   */
-  getId() {
-    return this.id;
-  }
-
-  /**
-   * Get the map associated with this overlay.
-   * @return {import("./Map.js").default|null} The map that the
-   * overlay is part of.
-   * @observable
-   * @api
-   */
-  getMap() {
-    return /** @type {import("./Map.js").default|null} */ (
-      this.get(Property.MAP) || null
-    );
-  }
-
-  /**
-   * Get the offset of this overlay.
-   * @return {Array<number>} The offset.
-   * @observable
-   * @api
-   */
-  getOffset() {
-    return /** @type {Array<number>} */ (this.get(Property.OFFSET));
-  }
-
-  /**
-   * Get the current position of this overlay.
-   * @return {import("./coordinate.js").Coordinate|undefined} The spatial point that the overlay is
-   *     anchored at.
-   * @observable
-   * @api
-   */
-  getPosition() {
-    return /** @type {import("./coordinate.js").Coordinate|undefined} */ (
-      this.get(Property.POSITION)
-    );
-  }
-
-  /**
-   * Get the current positioning of this overlay.
-   * @return {Positioning} How the overlay is positioned
-   *     relative to its point on the map.
-   * @observable
-   * @api
-   */
-  getPositioning() {
-    return /** @type {Positioning} */ (this.get(Property.POSITIONING));
-  }
-
-  /**
-   * @protected
-   */
-  handleElementChanged() {
-    removeChildren(this.element);
-    const element = this.getElement();
-    if (element) {
-      this.element.appendChild(element);
-    }
-  }
-
-  /**
-   * @protected
-   */
-  handleMapChanged() {
-    if (this.mapPostrenderListenerKey) {
-      removeNode(this.element);
-      unlistenByKey(this.mapPostrenderListenerKey);
-      this.mapPostrenderListenerKey = null;
-    }
-    const map = this.getMap();
-    if (map) {
-      this.mapPostrenderListenerKey = listen(
-        map,
-        MapEventType.POSTRENDER,
-        this.render,
-        this,
-      );
-      this.updatePixelPosition();
-      const container = this.stopEvent
-        ? map.getOverlayContainerStopEvent()
-        : map.getOverlayContainer();
-      if (this.insertFirst) {
-        container.insertBefore(this.element, container.childNodes[0] || null);
-      } else {
-        container.appendChild(this.element);
-      }
-      this.performAutoPan();
-    }
-  }
-
-  /**
-   * @protected
-   */
-  render() {
-    this.updatePixelPosition();
-  }
-
-  /**
-   * @protected
-   */
-  handleOffsetChanged() {
-    this.updatePixelPosition();
-  }
-
-  /**
-   * @protected
-   */
-  handlePositionChanged() {
-    this.updatePixelPosition();
-    this.performAutoPan();
-  }
-
-  /**
-   * @protected
-   */
-  handlePositioningChanged() {
-    this.updatePixelPosition();
-  }
-
-  /**
-   * Set the DOM element to be associated with this overlay.
-   * @param {HTMLElement|undefined} element The Element containing the overlay.
-   * @observable
-   * @api
-   */
-  setElement(element) {
-    this.set(Property.ELEMENT, element);
-  }
-
-  /**
-   * Set the map to be associated with this overlay.
-   * @param {import("./Map.js").default|null} map The map that the
-   * overlay is part of. Pass `null` to just remove the overlay from the current map.
-   * @observable
-   * @api
-   */
-  setMap(map) {
-    this.set(Property.MAP, map);
-  }
-
-  /**
-   * Set the offset for this overlay.
-   * @param {Array<number>} offset Offset.
-   * @observable
-   * @api
-   */
-  setOffset(offset) {
-    this.set(Property.OFFSET, offset);
-  }
-
-  /**
-   * Set the position for this overlay. If the position is `undefined` the
-   * overlay is hidden.
-   * @param {import("./coordinate.js").Coordinate|undefined} position The spatial point that the overlay
-   *     is anchored at.
-   * @observable
-   * @api
-   */
-  setPosition(position) {
-    this.set(Property.POSITION, position);
-  }
-
-  /**
-   * Pan the map so that the overlay is entirely visible in the current viewport
-   * (if necessary) using the configured autoPan parameters
-   * @protected
-   */
-  performAutoPan() {
-    if (this.autoPan) {
-      this.panIntoView(this.autoPan);
-    }
-  }
-
-  /**
-   * Pan the map so that the overlay is entirely visible in the current viewport
-   * (if necessary).
-   * @param {PanIntoViewOptions} [panIntoViewOptions] Options for the pan action
-   * @api
-   */
-  panIntoView(panIntoViewOptions) {
-    const map = this.getMap();
-
-    if (!map || !map.getTargetElement() || !this.get(Property.POSITION)) {
-      return;
-    }
-
-    const mapRect = this.getRect(map.getTargetElement(), map.getSize());
-    const element = this.getElement();
-    const overlayRect = this.getRect(element, [
-      outerWidth(element),
-      outerHeight(element),
-    ]);
-
-    panIntoViewOptions = panIntoViewOptions || {};
-
-    const myMargin =
-      panIntoViewOptions.margin === undefined ? 20 : panIntoViewOptions.margin;
-    if (!containsExtent(mapRect, overlayRect)) {
-      // the overlay is not completely inside the viewport, so pan the map
-      const offsetLeft = overlayRect[0] - mapRect[0];
-      const offsetRight = mapRect[2] - overlayRect[2];
-      const offsetTop = overlayRect[1] - mapRect[1];
-      const offsetBottom = mapRect[3] - overlayRect[3];
-
-      const delta = [0, 0];
-      if (offsetLeft < 0) {
-        // move map to the left
-        delta[0] = offsetLeft - myMargin;
-      } else if (offsetRight < 0) {
-        // move map to the right
-        delta[0] = Math.abs(offsetRight) + myMargin;
-      }
-      if (offsetTop < 0) {
-        // move map up
-        delta[1] = offsetTop - myMargin;
-      } else if (offsetBottom < 0) {
-        // move map down
-        delta[1] = Math.abs(offsetBottom) + myMargin;
-      }
-
-      if (delta[0] !== 0 || delta[1] !== 0) {
-        const center = /** @type {import("./coordinate.js").Coordinate} */ (
-          map.getView().getCenterInternal()
-        );
-        const centerPx = map.getPixelFromCoordinateInternal(center);
-        if (!centerPx) {
-          return;
-        }
-        const newCenterPx = [centerPx[0] + delta[0], centerPx[1] + delta[1]];
-
-        const panOptions = panIntoViewOptions.animation || {};
-        map.getView().animateInternal({
-          center: map.getCoordinateFromPixelInternal(newCenterPx),
-          duration: panOptions.duration,
-          easing: panOptions.easing,
-        });
-      }
-    }
-  }
-
-  /**
-   * Get the extent of an element relative to the document
-   * @param {HTMLElement} element The element.
-   * @param {import("./size.js").Size} size The size of the element.
-   * @return {import("./extent.js").Extent} The extent.
-   * @protected
-   */
-  getRect(element, size) {
-    const box = element.getBoundingClientRect();
-    const offsetX = box.left + window.pageXOffset;
-    const offsetY = box.top + window.pageYOffset;
-    return [offsetX, offsetY, offsetX + size[0], offsetY + size[1]];
-  }
-
-  /**
-   * Set the positioning for this overlay.
-   * @param {Positioning} positioning how the overlay is
-   *     positioned relative to its point on the map.
-   * @observable
-   * @api
-   */
-  setPositioning(positioning) {
-    this.set(Property.POSITIONING, positioning);
-  }
-
-  /**
-   * Modify the visibility of the element.
-   * @param {boolean} visible Element visibility.
-   * @protected
-   */
-  setVisible(visible) {
-    if (this.rendered.visible !== visible) {
-      this.element.style.display = visible ? '' : 'none';
-      this.rendered.visible = visible;
-    }
-  }
-
-  /**
-   * Update pixel position.
-   * @protected
-   */
-  updatePixelPosition() {
-    const map = this.getMap();
-    const position = this.getPosition();
-    if (!map || !map.isRendered() || !position) {
-      this.setVisible(false);
-      return;
-    }
-
-    const pixel = map.getPixelFromCoordinate(position);
-    const mapSize = map.getSize();
-    this.updateRenderedPosition(pixel, mapSize);
-  }
-
-  /**
-   * @param {import("./pixel.js").Pixel} pixel The pixel location.
-   * @param {import("./size.js").Size|undefined} mapSize The map size.
-   * @protected
-   */
-  updateRenderedPosition(pixel, mapSize) {
-    const style = this.element.style;
-    const offset = this.getOffset();
-
-    const positioning = this.getPositioning();
-
-    this.setVisible(true);
-
-    const x = Math.round(pixel[0] + offset[0]) + 'px';
-    const y = Math.round(pixel[1] + offset[1]) + 'px';
-    let posX = '0%';
-    let posY = '0%';
-    if (
-      positioning == 'bottom-right' ||
-      positioning == 'center-right' ||
-      positioning == 'top-right'
-    ) {
-      posX = '-100%';
-    } else if (
-      positioning == 'bottom-center' ||
-      positioning == 'center-center' ||
-      positioning == 'top-center'
-    ) {
-      posX = '-50%';
-    }
-    if (
-      positioning == 'bottom-left' ||
-      positioning == 'bottom-center' ||
-      positioning == 'bottom-right'
-    ) {
-      posY = '-100%';
-    } else if (
-      positioning == 'center-left' ||
-      positioning == 'center-center' ||
-      positioning == 'center-right'
-    ) {
-      posY = '-50%';
-    }
-    const transform = `translate(${posX}, ${posY}) translate(${x}, ${y})`;
-    if (this.rendered.transform_ != transform) {
-      this.rendered.transform_ = transform;
-      style.transform = transform;
-    }
-  }
-
-  /**
-   * returns the options this Overlay has been created with
-   * @return {Options} overlay options
-   */
-  getOptions() {
-    return this.options;
-  }
-}
-
 /** Render React children in an OpenLayers overlay anchored to a map coordinate. */
 var Popup = _ref => {
   var id = _ref.id,
@@ -72792,7 +73287,7 @@ class ReprojTile extends Tile {
       ? getIntersection(targetExtent, maxTargetExtent)
       : targetExtent;
 
-    if (getArea(limitedTargetExtent) === 0) {
+    if (getArea$1(limitedTargetExtent) === 0) {
       // Tile is completely outside range -> EMPTY
       // TODO: is it actually correct that the source even creates the tile ?
       this.state = TileState.EMPTY;
@@ -72868,7 +73363,7 @@ class ReprojTile extends Tile {
       }
     }
 
-    if (!getArea(sourceExtent)) {
+    if (!getArea$1(sourceExtent)) {
       this.state = TileState.EMPTY;
     } else {
       let worldWidth = 0;
@@ -99710,4 +100205,4 @@ WMTSLayer.propTypes = {
   setProps: PropTypes.func
 };
 
-export { DrawControl, DrawInteraction, ImageWMSLayer as ImageWMS, LayerControl, MapComponent as Map, ModifyInteraction, OLContext, Popup, SelectInteraction, TileLayer, TileWMSLayer as TileWMS, VectorLayerComponent as VectorLayer, VectorTileLayer, WFSLayer, WMTSLayer, WebGLPointsLayerComponent as WebGLPointsLayer, exportFeature, exportFeatures, readFeatures };
+export { DrawControl, DrawInteraction, ImageWMSLayer as ImageWMS, LayerControl, MapComponent as Map, MeasureControl, ModifyInteraction, OLContext, Popup, SelectInteraction, TileLayer, TileWMSLayer as TileWMS, VectorLayerComponent as VectorLayer, VectorTileLayer, WFSLayer, WMTSLayer, WebGLPointsLayerComponent as WebGLPointsLayer, exportFeature, exportFeatures, readFeatures };
