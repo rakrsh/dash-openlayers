@@ -6,6 +6,7 @@ import { unByKey } from 'ol/Observable';
 import VectorTileSource from 'ol/source/VectorTile';
 import { stylefunction } from 'ol-mapbox-style';
 import { useMap } from '../context/OLContext';
+import { applyLayerProperties, useLayerProperties } from '../utils/layerProperties';
 
 /** Render Mapbox Vector Tiles with OpenLayers flat styles or Mapbox GL styles. */
 const VectorTileLayer = ({
@@ -17,10 +18,14 @@ const VectorTileLayer = ({
   style,
   mapboxStyle,
   mapboxSource,
+  visible = true,
+  opacity = 1,
+  zIndex,
   setProps,
 }) => {
   const map = useMap();
   const layerRef = useRef(null);
+  const layerPropertiesRef = useLayerProperties(layerRef, visible, opacity, zIndex);
   const setPropsRef = useRef(setProps);
   const hoveredFeatureRef = useRef(null);
 
@@ -46,6 +51,7 @@ const VectorTileLayer = ({
     const layer = new OpenLayersVectorTileLayer({ source });
     layer.set('dashId', id);
     layer.set('dashLayerControl', true);
+    applyLayerProperties(layer, layerPropertiesRef.current);
     layerRef.current = layer;
     map.addLayer(layer);
 
@@ -91,7 +97,7 @@ const VectorTileLayer = ({
       hoveredFeatureRef.current = null;
       layerRef.current = null;
     };
-  }, [attributions, id, map, projection, url, urls]);
+  }, [attributions, id, layerPropertiesRef, map, projection, url, urls]);
 
   useEffect(() => {
     const layer = layerRef.current;
@@ -126,6 +132,8 @@ VectorTileLayer.defaultProps = {
   style: null,
   mapboxStyle: null,
   mapboxSource: null,
+  visible: true,
+  opacity: 1,
 };
 
 VectorTileLayer.propTypes = {
@@ -145,6 +153,12 @@ VectorTileLayer.propTypes = {
   mapboxStyle: PropTypes.object,
   /** Vector source key within mapboxStyle; inferred when that document contains one vector source. */
   mapboxSource: PropTypes.string,
+  /** Whether this layer is rendered; updates the OpenLayers layer immediately. */
+  visible: PropTypes.bool,
+  /** Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. */
+  opacity: PropTypes.number,
+  /** Integer stacking order; omitted values preserve OpenLayers layer ordering. */
+  zIndex: PropTypes.number,
   /** Read-only: attributes of the vector-tile feature clicked on this layer, or null. */
   clickedFeature: PropTypes.object,
   /** Read-only: attributes of the vector-tile feature currently under the pointer, or null. */

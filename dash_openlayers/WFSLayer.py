@@ -52,6 +52,18 @@ Keyword arguments:
     Additional GetFeature query parameters, such as count, bbox, or
     CQL_FILTER.
 
+- visible (boolean; default True):
+    Whether this layer is rendered; updates the OpenLayers layer
+    immediately.
+
+- opacity (number; default 1):
+    Layer opacity from 0 (transparent) to 1 (opaque); updates
+    immediately.
+
+- zIndex (number; optional):
+    Integer stacking order; omitted values preserve OpenLayers layer
+    ordering.
+
 - featureCount (number; optional):
     Read-only: number of features loaded by the last successful
     request.
@@ -74,13 +86,16 @@ Keyword arguments:
         srsName: typing.Optional[str] = None,
         outputFormat: typing.Optional[str] = None,
         params: typing.Optional[dict] = None,
+        visible: typing.Optional[bool] = None,
+        opacity: typing.Optional[NumberType] = None,
+        zIndex: typing.Optional[NumberType] = None,
         featureCount: typing.Optional[NumberType] = None,
         loadError: typing.Optional[str] = None,
         **kwargs
     ):
-        self._prop_names = ['id', 'url', 'typeNames', 'version', 'srsName', 'outputFormat', 'params', 'featureCount', 'loadError']
+        self._prop_names = ['id', 'url', 'typeNames', 'version', 'srsName', 'outputFormat', 'params', 'visible', 'opacity', 'zIndex', 'featureCount', 'loadError']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'url', 'typeNames', 'version', 'srsName', 'outputFormat', 'params', 'featureCount', 'loadError']
+        self.available_properties = ['id', 'url', 'typeNames', 'version', 'srsName', 'outputFormat', 'params', 'visible', 'opacity', 'zIndex', 'featureCount', 'loadError']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()

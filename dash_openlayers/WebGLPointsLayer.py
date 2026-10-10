@@ -36,7 +36,19 @@ Keyword arguments:
 
 - disableHitDetection (boolean; default False):
     Disable WebGL feature hit detection for a small rendering
-    performance gain."""
+    performance gain.
+
+- visible (boolean; default True):
+    Whether this layer is rendered; updates the OpenLayers layer
+    immediately.
+
+- opacity (number; default 1):
+    Layer opacity from 0 (transparent) to 1 (opaque); updates
+    immediately.
+
+- zIndex (number; optional):
+    Integer stacking order; omitted values preserve OpenLayers layer
+    ordering."""
     _children_props: typing.List[str] = []
     _base_nodes = ['children']
     _namespace = 'dash_openlayers'
@@ -49,11 +61,14 @@ Keyword arguments:
         data: typing.Optional[typing.Union[str, dict]] = None,
         style: typing.Optional[typing.Any] = None,
         disableHitDetection: typing.Optional[bool] = None,
+        visible: typing.Optional[bool] = None,
+        opacity: typing.Optional[NumberType] = None,
+        zIndex: typing.Optional[NumberType] = None,
         **kwargs
     ):
-        self._prop_names = ['id', 'data', 'style', 'disableHitDetection']
+        self._prop_names = ['id', 'data', 'style', 'disableHitDetection', 'visible', 'opacity', 'zIndex']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'data', 'style', 'disableHitDetection']
+        self.available_properties = ['id', 'data', 'style', 'disableHitDetection', 'visible', 'opacity', 'zIndex']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()

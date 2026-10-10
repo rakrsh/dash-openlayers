@@ -4,6 +4,7 @@ import GeoJSON from 'ol/format/GeoJSON';
 import VectorLayer from 'ol/layer/Vector';
 import VectorSource from 'ol/source/Vector';
 import { useMap } from '../context/OLContext';
+import { applyLayerProperties, useLayerProperties } from '../utils/layerProperties';
 
 const EMPTY_PARAMS = {};
 
@@ -16,9 +17,14 @@ const WFSLayer = ({
   srsName = 'EPSG:4326',
   outputFormat = 'application/json',
   params = EMPTY_PARAMS,
+  visible = true,
+  opacity = 1,
+  zIndex,
   setProps,
 }) => {
   const map = useMap();
+  const layerRef = useRef(null);
+  const layerPropertiesRef = useLayerProperties(layerRef, visible, opacity, zIndex);
   const setPropsRef = useRef(setProps);
 
   useEffect(() => {
@@ -33,6 +39,8 @@ const WFSLayer = ({
     layer.set('dashId', id);
     layer.set('dashLayerControl', true);
     layer.set('dashVectorSource', source);
+    applyLayerProperties(layer, layerPropertiesRef.current);
+    layerRef.current = layer;
     map.addLayer(layer);
 
     const controller = new AbortController();
@@ -83,8 +91,9 @@ const WFSLayer = ({
       controller.abort();
       map.removeLayer(layer);
       source.clear();
+      layerRef.current = null;
     };
-  }, [id, map, outputFormat, params, srsName, typeNames, url, version]);
+  }, [id, layerPropertiesRef, map, outputFormat, params, srsName, typeNames, url, version]);
 
   return null;
 };
@@ -96,6 +105,8 @@ WFSLayer.defaultProps = {
   srsName: 'EPSG:4326',
   outputFormat: 'application/json',
   params: {},
+  visible: true,
+  opacity: 1,
 };
 
 WFSLayer.propTypes = {
@@ -113,6 +124,12 @@ WFSLayer.propTypes = {
   outputFormat: PropTypes.string,
   /** Additional GetFeature query parameters, such as count, bbox, or CQL_FILTER. */
   params: PropTypes.object,
+  /** Whether this layer is rendered; updates the OpenLayers layer immediately. */
+  visible: PropTypes.bool,
+  /** Layer opacity from 0 (transparent) to 1 (opaque); updates immediately. */
+  opacity: PropTypes.number,
+  /** Integer stacking order; omitted values preserve OpenLayers layer ordering. */
+  zIndex: PropTypes.number,
   /** Read-only: number of features loaded by the last successful request. */
   featureCount: PropTypes.number,
   /** Read-only: message from the last failed request, or null after success. */

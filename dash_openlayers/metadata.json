@@ -1004,6 +1004,35 @@
           "computed": false
         }
       },
+      "visible": {
+        "type": {
+          "name": "bool"
+        },
+        "required": false,
+        "description": "Whether this layer is rendered; updates the OpenLayers layer immediately.",
+        "defaultValue": {
+          "value": "true",
+          "computed": false
+        }
+      },
+      "opacity": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.",
+        "defaultValue": {
+          "value": "1",
+          "computed": false
+        }
+      },
+      "zIndex": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Integer stacking order; omitted values preserve OpenLayers layer ordering."
+      },
       "setProps": {
         "type": {
           "name": "func"
@@ -1202,6 +1231,35 @@
           "computed": false
         }
       },
+      "visible": {
+        "type": {
+          "name": "bool"
+        },
+        "required": false,
+        "description": "Whether this layer is rendered; updates the OpenLayers layer immediately.",
+        "defaultValue": {
+          "value": "true",
+          "computed": false
+        }
+      },
+      "opacity": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.",
+        "defaultValue": {
+          "value": "1",
+          "computed": false
+        }
+      },
+      "zIndex": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Integer stacking order; omitted values preserve OpenLayers layer ordering."
+      },
       "hoveredFeature": {
         "type": {
           "name": "object"
@@ -1342,6 +1400,35 @@
           "computed": false
         }
       },
+      "visible": {
+        "type": {
+          "name": "bool"
+        },
+        "required": false,
+        "description": "Whether this layer is rendered; updates the OpenLayers layer immediately.",
+        "defaultValue": {
+          "value": "true",
+          "computed": false
+        }
+      },
+      "opacity": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.",
+        "defaultValue": {
+          "value": "1",
+          "computed": false
+        }
+      },
+      "zIndex": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Integer stacking order; omitted values preserve OpenLayers layer ordering."
+      },
       "clickedFeature": {
         "type": {
           "name": "object"
@@ -1428,6 +1515,35 @@
           "computed": false
         }
       },
+      "visible": {
+        "type": {
+          "name": "bool"
+        },
+        "required": false,
+        "description": "Whether this layer is rendered; updates the OpenLayers layer immediately.",
+        "defaultValue": {
+          "value": "true",
+          "computed": false
+        }
+      },
+      "opacity": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.",
+        "defaultValue": {
+          "value": "1",
+          "computed": false
+        }
+      },
+      "zIndex": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Integer stacking order; omitted values preserve OpenLayers layer ordering."
+      },
       "setProps": {
         "type": {
           "name": "func"
@@ -1500,6 +1616,35 @@
           "computed": false
         }
       },
+      "visible": {
+        "type": {
+          "name": "bool"
+        },
+        "required": false,
+        "description": "Whether this layer is rendered; updates the OpenLayers layer immediately.",
+        "defaultValue": {
+          "value": "true",
+          "computed": false
+        }
+      },
+      "opacity": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.",
+        "defaultValue": {
+          "value": "1",
+          "computed": false
+        }
+      },
+      "zIndex": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Integer stacking order; omitted values preserve OpenLayers layer ordering."
+      },
       "setProps": {
         "type": {
           "name": "func"
@@ -1561,6 +1706,35 @@
           "value": "false",
           "computed": false
         }
+      },
+      "visible": {
+        "type": {
+          "name": "bool"
+        },
+        "required": false,
+        "description": "Whether this layer is rendered; updates the OpenLayers layer immediately.",
+        "defaultValue": {
+          "value": "true",
+          "computed": false
+        }
+      },
+      "opacity": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.",
+        "defaultValue": {
+          "value": "1",
+          "computed": false
+        }
+      },
+      "zIndex": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Integer stacking order; omitted values preserve OpenLayers layer ordering."
       },
       "setProps": {
         "type": {
@@ -1648,6 +1822,35 @@
           "value": "{}",
           "computed": false
         }
+      },
+      "visible": {
+        "type": {
+          "name": "bool"
+        },
+        "required": false,
+        "description": "Whether this layer is rendered; updates the OpenLayers layer immediately.",
+        "defaultValue": {
+          "value": "true",
+          "computed": false
+        }
+      },
+      "opacity": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.",
+        "defaultValue": {
+          "value": "1",
+          "computed": false
+        }
+      },
+      "zIndex": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Integer stacking order; omitted values preserve OpenLayers layer ordering."
       },
       "featureCount": {
         "type": {
@@ -1849,6 +2052,35 @@
           "value": "null",
           "computed": false
         }
+      },
+      "visible": {
+        "type": {
+          "name": "bool"
+        },
+        "required": false,
+        "description": "Whether this layer is rendered; updates the OpenLayers layer immediately.",
+        "defaultValue": {
+          "value": "true",
+          "computed": false
+        }
+      },
+      "opacity": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.",
+        "defaultValue": {
+          "value": "1",
+          "computed": false
+        }
+      },
+      "zIndex": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Integer stacking order; omitted values preserve OpenLayers layer ordering."
       },
       "setProps": {
         "type": {

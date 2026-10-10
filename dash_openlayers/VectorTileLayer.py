@@ -52,6 +52,18 @@ Keyword arguments:
     Vector source key within mapboxStyle; inferred when that document
     contains one vector source.
 
+- visible (boolean; default True):
+    Whether this layer is rendered; updates the OpenLayers layer
+    immediately.
+
+- opacity (number; default 1):
+    Layer opacity from 0 (transparent) to 1 (opaque); updates
+    immediately.
+
+- zIndex (number; optional):
+    Integer stacking order; omitted values preserve OpenLayers layer
+    ordering.
+
 - clickedFeature (dict; optional):
     Read-only: attributes of the vector-tile feature clicked on this
     layer, or None.
@@ -75,13 +87,16 @@ Keyword arguments:
         style: typing.Optional[typing.Any] = None,
         mapboxStyle: typing.Optional[dict] = None,
         mapboxSource: typing.Optional[str] = None,
+        visible: typing.Optional[bool] = None,
+        opacity: typing.Optional[NumberType] = None,
+        zIndex: typing.Optional[NumberType] = None,
         clickedFeature: typing.Optional[dict] = None,
         hoveredFeature: typing.Optional[dict] = None,
         **kwargs
     ):
-        self._prop_names = ['id', 'url', 'urls', 'projection', 'attributions', 'style', 'mapboxStyle', 'mapboxSource', 'clickedFeature', 'hoveredFeature']
+        self._prop_names = ['id', 'url', 'urls', 'projection', 'attributions', 'style', 'mapboxStyle', 'mapboxSource', 'visible', 'opacity', 'zIndex', 'clickedFeature', 'hoveredFeature']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'url', 'urls', 'projection', 'attributions', 'style', 'mapboxStyle', 'mapboxSource', 'clickedFeature', 'hoveredFeature']
+        self.available_properties = ['id', 'url', 'urls', 'projection', 'attributions', 'style', 'mapboxStyle', 'mapboxSource', 'visible', 'opacity', 'zIndex', 'clickedFeature', 'hoveredFeature']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()

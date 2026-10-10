@@ -76,6 +76,18 @@ Keyword arguments:
     Enable label decluttering, or provide a shared group name to
     declutter with other layers.
 
+- visible (boolean; default True):
+    Whether this layer is rendered; updates the OpenLayers layer
+    immediately.
+
+- opacity (number; default 1):
+    Layer opacity from 0 (transparent) to 1 (opaque); updates
+    immediately.
+
+- zIndex (number; optional):
+    Integer stacking order; omitted values preserve OpenLayers layer
+    ordering.
+
 - hoveredFeature (dict; optional):
     Read-only: GeoJSON Feature under the pointer, with coordinates in
     EPSG:4326.
@@ -111,15 +123,18 @@ Keyword arguments:
         clusterDistance: typing.Optional[NumberType] = None,
         clusterMinDistance: typing.Optional[NumberType] = None,
         declutter: typing.Optional[typing.Union[bool, str]] = None,
+        visible: typing.Optional[bool] = None,
+        opacity: typing.Optional[NumberType] = None,
+        zIndex: typing.Optional[NumberType] = None,
         hoveredFeature: typing.Optional[dict] = None,
         clickedFeature: typing.Optional[dict] = None,
         featureCount: typing.Optional[NumberType] = None,
         loadError: typing.Optional[str] = None,
         **kwargs
     ):
-        self._prop_names = ['id', 'data', 'geojson', 'wkt', 'url', 'format', 'dataProjection', 'style', 'hoverStyle', 'selectedStyle', 'clusterDistance', 'clusterMinDistance', 'declutter', 'hoveredFeature', 'clickedFeature', 'featureCount', 'loadError']
+        self._prop_names = ['id', 'data', 'geojson', 'wkt', 'url', 'format', 'dataProjection', 'style', 'hoverStyle', 'selectedStyle', 'clusterDistance', 'clusterMinDistance', 'declutter', 'visible', 'opacity', 'zIndex', 'hoveredFeature', 'clickedFeature', 'featureCount', 'loadError']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'data', 'geojson', 'wkt', 'url', 'format', 'dataProjection', 'style', 'hoverStyle', 'selectedStyle', 'clusterDistance', 'clusterMinDistance', 'declutter', 'hoveredFeature', 'clickedFeature', 'featureCount', 'loadError']
+        self.available_properties = ['id', 'data', 'geojson', 'wkt', 'url', 'format', 'dataProjection', 'style', 'hoverStyle', 'selectedStyle', 'clusterDistance', 'clusterMinDistance', 'declutter', 'visible', 'opacity', 'zIndex', 'hoveredFeature', 'clickedFeature', 'featureCount', 'loadError']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()
