@@ -1319,7 +1319,7 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 </tbody>
 </table>
 <h2 id="map"><code>Map</code></h2>
-<p>Create an OpenLayers map and synchronize its view and click events with Dash.</p>
+<p>Create an OpenLayers map and synchronize its view and pointer events with Dash.</p>
 <table>
 <thead>
 <tr>
@@ -1388,7 +1388,19 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>clickData</code></td>
 <td><code>dict</code></td>
 <td>—</td>
-<td>Read-only: set on <code>singleclick</code> with <code>{ coordinate: [x, y], latLon: [lat, lon] }</code>.</td>
+<td>Read-only: geographic click payload with lat, lon, pixelCoordinate [x, y], and featureInfo; featureInfo is null on the map background or contains the hit feature's GeoJSON properties.</td>
+</tr>
+<tr>
+<td><code>doubleClickData</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: geographic double-click payload with lat, lon, pixelCoordinate [x, y], and featureInfo; featureInfo is null on the map background or contains the hit feature's GeoJSON properties.</td>
+</tr>
+<tr>
+<td><code>hoverData</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: geographic pointer-move payload with lat, lon, pixelCoordinate [x, y], and featureInfo; featureInfo is null on the map background or contains the hit feature's GeoJSON properties.</td>
 </tr>
 <tr>
 <td><code>bbox</code></td>
