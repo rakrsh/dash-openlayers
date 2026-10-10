@@ -1032,9 +1032,15 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 </tr>
 <tr>
 <td><code>geometryTypes</code></td>
-<td><code>list['Point' \| 'LineString' \| 'Polygon' \| 'Box']</code></td>
-<td><code>['Point', 'LineString', 'Polygon', 'Box']</code></td>
-<td>Drawing modes displayed in the control: Point, LineString, Polygon, and Box (rectangle).</td>
+<td><code>list['Point' \| 'LineString' \| 'Polygon' \| 'Circle' \| 'Box']</code></td>
+<td><code>['Point', 'LineString', 'Polygon', 'Circle', 'Box']</code></td>
+<td>Drawing modes displayed in the control: Point, LineString, Polygon, Circle, and Box (rectangle).</td>
+</tr>
+<tr>
+<td><code>activeDrawMode</code></td>
+<td><code>null \| 'Point' \| 'LineString' \| 'Polygon' \| 'Circle' \| 'Box'</code></td>
+<td>—</td>
+<td>Active drawing mode; set to null to stop drawing. Bidirectional when changed by toolbar clicks.</td>
 </tr>
 <tr>
 <td><code>position</code></td>
@@ -1049,10 +1055,28 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td>Accessible toolbar label and visible heading.</td>
 </tr>
 <tr>
+<td><code>style</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Inline styles applied to the toolbar control container.</td>
+</tr>
+<tr>
+<td><code>buttonStyle</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Inline styles applied to each drawing mode button.</td>
+</tr>
+<tr>
 <td><code>drawnGeoJSON</code></td>
 <td><code>dict</code></td>
 <td>—</td>
 <td>Read-only: GeoJSON Feature emitted only when geometry validation succeeds.</td>
+</tr>
+<tr>
+<td><code>drawnFeatures</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: GeoJSON FeatureCollection of all drawn features, updated after drawing, editing, undo, or removal.</td>
 </tr>
 <tr>
 <td><code>drawnWKT</code></td>
@@ -1121,6 +1145,12 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>dict</code></td>
 <td>—</td>
 <td>Read-only: GeoJSON Feature emitted only when geometry validation succeeds.</td>
+</tr>
+<tr>
+<td><code>drawnFeatures</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: GeoJSON FeatureCollection containing every currently drawn feature.</td>
 </tr>
 <tr>
 <td><code>drawnWKT</code></td>
