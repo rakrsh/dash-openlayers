@@ -1035,7 +1035,7 @@
 <p>This reference is generated from the component metadata used to build the Python wrappers.
 For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <h2 id="drawcontrol"><code>DrawControl</code></h2>
-<p>Provide interactive map tools for drawing and serializing spatial study areas.</p>
+<p>Add map controls for drawing, selecting, editing, and deleting spatial features.</p>
 <table>
 <thead>
 <tr>
@@ -1063,6 +1063,18 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>null \| 'Point' \| 'LineString' \| 'Polygon' \| 'Circle' \| 'Box'</code></td>
 <td>—</td>
 <td>Active drawing mode; set to null to stop drawing. Bidirectional when changed by toolbar clicks.</td>
+</tr>
+<tr>
+<td><code>editMode</code></td>
+<td><code>bool</code></td>
+<td>—</td>
+<td>Whether selection and vertex editing are enabled; toolbar changes are bidirectional.</td>
+</tr>
+<tr>
+<td><code>deleteSelected</code></td>
+<td><code>number</code></td>
+<td><code>0</code></td>
+<td>Increment to delete the currently selected feature or features.</td>
 </tr>
 <tr>
 <td><code>position</code></td>
@@ -1099,6 +1111,12 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>dict</code></td>
 <td>—</td>
 <td>Read-only: GeoJSON FeatureCollection of all drawn features, updated after drawing, editing, undo, or removal.</td>
+</tr>
+<tr>
+<td><code>editedFeature</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: selected or last modified GeoJSON Feature, or null after deselection or deletion.</td>
 </tr>
 <tr>
 <td><code>drawnWKT</code></td>
@@ -1139,7 +1157,7 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 </tbody>
 </table>
 <h2 id="drawinteraction"><code>DrawInteraction</code></h2>
-<p>Draw and validate OpenLayers features, then publish their serialized geometry to Dash.</p>
+<p>Draw, validate, select, and edit spatial features.</p>
 <table>
 <thead>
 <tr>
@@ -1163,6 +1181,18 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td>Geometry to draw: Point, LineString, Polygon, Circle, or Box (an axis-aligned rectangle).</td>
 </tr>
 <tr>
+<td><code>editMode</code></td>
+<td><code>bool</code></td>
+<td><code>false</code></td>
+<td>Whether to select and modify features created by this interaction.</td>
+</tr>
+<tr>
+<td><code>deleteSelected</code></td>
+<td><code>number</code></td>
+<td><code>0</code></td>
+<td>Increment to delete the currently selected feature or features.</td>
+</tr>
+<tr>
 <td><code>drawnGeoJSON</code></td>
 <td><code>dict</code></td>
 <td>—</td>
@@ -1173,6 +1203,12 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>dict</code></td>
 <td>—</td>
 <td>Read-only: GeoJSON FeatureCollection containing every currently drawn feature.</td>
+</tr>
+<tr>
+<td><code>editedFeature</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Read-only: selected or last modified GeoJSON Feature, or null after deselection or deletion.</td>
 </tr>
 <tr>
 <td><code>drawnWKT</code></td>
