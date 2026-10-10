@@ -33,6 +33,12 @@ Keyword arguments:
     Geometry to draw: Point, LineString, Polygon, Circle, or Box (an
     axis-aligned rectangle).
 
+- editMode (boolean; default False):
+    Whether to select and modify features created by this interaction.
+
+- deleteSelected (number; default 0):
+    Increment to delete the currently selected feature or features.
+
 - drawnGeoJSON (dict; optional):
     Read-only: GeoJSON Feature emitted only when geometry validation
     succeeds.
@@ -40,6 +46,10 @@ Keyword arguments:
 - drawnFeatures (dict; optional):
     Read-only: GeoJSON FeatureCollection containing every currently
     drawn feature.
+
+- editedFeature (dict; optional):
+    Read-only: selected or last modified GeoJSON Feature, or None
+    after deselection or deletion.
 
 - drawnWKT (string; optional):
     Read-only: WKT geometry emitted only when geometry validation
@@ -71,8 +81,11 @@ Keyword arguments:
         self,
         id: typing.Optional[typing.Union[str, dict]] = None,
         geometryType: typing.Optional[Literal["Point", "LineString", "Polygon", "Circle", "Box"]] = None,
+        editMode: typing.Optional[bool] = None,
+        deleteSelected: typing.Optional[NumberType] = None,
         drawnGeoJSON: typing.Optional[dict] = None,
         drawnFeatures: typing.Optional[dict] = None,
+        editedFeature: typing.Optional[dict] = None,
         drawnWKT: typing.Optional[str] = None,
         drawnTopoJSON: typing.Optional[dict] = None,
         geometryValidation: typing.Optional[dict] = None,
@@ -81,9 +94,9 @@ Keyword arguments:
         snapTolerance: typing.Optional[NumberType] = None,
         **kwargs
     ):
-        self._prop_names = ['id', 'geometryType', 'drawnGeoJSON', 'drawnFeatures', 'drawnWKT', 'drawnTopoJSON', 'geometryValidation', 'snapToVertex', 'snapToEdge', 'snapTolerance']
+        self._prop_names = ['id', 'geometryType', 'editMode', 'deleteSelected', 'drawnGeoJSON', 'drawnFeatures', 'editedFeature', 'drawnWKT', 'drawnTopoJSON', 'geometryValidation', 'snapToVertex', 'snapToEdge', 'snapTolerance']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'geometryType', 'drawnGeoJSON', 'drawnFeatures', 'drawnWKT', 'drawnTopoJSON', 'geometryValidation', 'snapToVertex', 'snapToEdge', 'snapTolerance']
+        self.available_properties = ['id', 'geometryType', 'editMode', 'deleteSelected', 'drawnGeoJSON', 'drawnFeatures', 'editedFeature', 'drawnWKT', 'drawnTopoJSON', 'geometryValidation', 'snapToVertex', 'snapToEdge', 'snapTolerance']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()

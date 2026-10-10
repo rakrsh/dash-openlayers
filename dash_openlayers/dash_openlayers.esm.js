@@ -55378,6 +55378,2146 @@ function getMode(type) {
 }
 
 /**
+ * @module ol/interaction/Modify
+ */
+
+/**
+ * The segment index assigned to a circle's center when
+ * breaking up a circle into ModifySegmentDataType segments.
+ * @type {number}
+ */
+const CIRCLE_CENTER_INDEX = 0;
+
+/**
+ * The segment index assigned to a circle's circumference when
+ * breaking up a circle into ModifySegmentDataType segments.
+ * @type {number}
+ */
+const CIRCLE_CIRCUMFERENCE_INDEX = 1;
+
+const tempExtent = [0, 0, 0, 0];
+const tempSegment$1 = [];
+
+/**
+ * @enum {string}
+ */
+const ModifyEventType = {
+  /**
+   * Triggered upon feature modification start
+   * @event ModifyEvent#modifystart
+   * @api
+   */
+  MODIFYSTART: 'modifystart',
+  /**
+   * Triggered upon feature modification end
+   * @event ModifyEvent#modifyend
+   * @api
+   */
+  MODIFYEND: 'modifyend',
+};
+
+/**
+ * @typedef {Object} SegmentData
+ * @property {Array<number>} [depth] Depth.
+ * @property {Feature} feature Feature.
+ * @property {import("../geom/SimpleGeometry.js").default} geometry Geometry.
+ * @property {number} [index] Index.
+ * @property {Array<Array<number>>} segment Segment.
+ * @property {Array<SegmentData>} [featureSegments] FeatureSegments.
+ */
+
+/**
+ * @typedef {Object} Options
+ * @property {import("../events/condition.js").Condition} [condition] A function that
+ * takes an {@link module:ol/MapBrowserEvent~MapBrowserEvent} and returns a
+ * boolean to indicate whether that event will be considered to add or move a
+ * vertex to the sketch. Default is
+ * {@link module:ol/events/condition.primaryAction}.
+ * @property {import("../events/condition.js").Condition} [deleteCondition] A function
+ * that takes an {@link module:ol/MapBrowserEvent~MapBrowserEvent} and returns a
+ * boolean to indicate whether that event should be handled. By default,
+ * {@link module:ol/events/condition.singleClick} with
+ * {@link module:ol/events/condition.altKeyOnly} results in a vertex deletion.
+ * @property {import("../events/condition.js").Condition} [insertVertexCondition] A
+ * function that takes an {@link module:ol/MapBrowserEvent~MapBrowserEvent} and
+ * returns a boolean to indicate whether a new vertex should be added to the sketch
+ * features. Default is {@link module:ol/events/condition.always}.
+ * @property {number} [pixelTolerance=10] Pixel tolerance for considering the
+ * pointer close enough to a segment or vertex for editing.
+ * @property {import("../style/Style.js").StyleLike|import("../style/flat.js").FlatStyleLike} [style]
+ * Style used for the modification point or vertex. For linestrings and polygons, this will
+ * be the affected vertex, for circles a point along the circle, and for points the actual
+ * point. If not configured, the default edit style is used (see {@link module:ol/style/Style~Style}).
+ * When using a style function, the point feature passed to the function will have a `features`
+ * property - an array whose entries are the features that are being modified, and a `geometries`
+ * property - an array whose entries are the geometries that are being modified. Both arrays are
+ * in the same order. The `geometries` are only useful when modifying geometry collections, where
+ * the geometry will be the particular geometry from the collection that is being modified.
+ * @property {VectorSource} [source] The vector source with
+ * features to modify.  If a vector source is not provided, a feature collection
+ * must be provided with the `features` option.
+ * @property {boolean|import("../layer/BaseVector").default} [hitDetection] When configured, point
+ * features will be considered for modification based on their visual appearance, instead of being within
+ * the `pixelTolerance` from the pointer location. When a {@link module:ol/layer/BaseVector~BaseVectorLayer} is
+ * provided, only the rendered representation of the features on that layer will be considered.
+ * @property {Collection<Feature>} [features]
+ * The features the interaction works on.  If a feature collection is not
+ * provided, a vector source must be provided with the `source` option.
+ * @property {boolean} [wrapX=false] Wrap the world horizontally on the sketch
+ * overlay.
+ * @property {boolean} [snapToPointer=!hitDetection] The vertex, point or segment being modified snaps to the
+ * pointer coordinate when clicked within the `pixelTolerance`.
+ */
+
+/**
+ * @classdesc
+ * Events emitted by {@link module:ol/interaction/Modify~Modify} instances are
+ * instances of this type.
+ */
+class ModifyEvent extends BaseEvent {
+  /**
+   * @param {ModifyEventType} type Type.
+   * @param {Collection<Feature>} features
+   * The features modified.
+   * @param {import("../MapBrowserEvent.js").default} mapBrowserEvent
+   * Associated {@link module:ol/MapBrowserEvent~MapBrowserEvent}.
+   */
+  constructor(type, features, mapBrowserEvent) {
+    super(type);
+
+    /**
+     * The features being modified.
+     * @type {Collection<Feature>}
+     * @api
+     */
+    this.features = features;
+
+    /**
+     * Associated {@link module:ol/MapBrowserEvent~MapBrowserEvent}.
+     * @type {import("../MapBrowserEvent.js").default}
+     * @api
+     */
+    this.mapBrowserEvent = mapBrowserEvent;
+  }
+}
+
+/***
+ * @template Return
+ * @typedef {import("../Observable").OnSignature<import("../Observable").EventTypes, import("../events/Event.js").default, Return> &
+ *   import("../Observable").OnSignature<import("../ObjectEventType").Types|
+ *     'change:active', import("../Object").ObjectEvent, Return> &
+ *   import("../Observable").OnSignature<'modifyend'|'modifystart', ModifyEvent, Return> &
+ *   import("../Observable").CombinedOnSignature<import("../Observable").EventTypes|import("../ObjectEventType").Types|
+ *     'change:active'|'modifyend'|'modifystart', Return>} ModifyOnSignature
+ */
+
+/**
+ * @classdesc
+ * Interaction for modifying feature geometries.  To modify features that have
+ * been added to an existing source, construct the modify interaction with the
+ * `source` option.  If you want to modify features in a collection (for example,
+ * the collection used by a select interaction), construct the interaction with
+ * the `features` option.  The interaction must be constructed with either a
+ * `source` or `features` option.
+ *
+ * Cartesian distance from the pointer is used to determine the features that
+ * will be modified. This means that geometries will only be considered for
+ * modification when they are within the configured `pixelTolerance`. For point
+ * geometries, the `hitDetection` option can be used to match their visual
+ * appearance.
+ *
+ * By default, the interaction will allow deletion of vertices when the `alt`
+ * key is pressed.  To configure the interaction with a different condition
+ * for deletion, use the `deleteCondition` option.
+ * @fires ModifyEvent
+ * @api
+ */
+class Modify extends PointerInteraction {
+  /**
+   * @param {Options} options Options.
+   */
+  constructor(options) {
+    super(/** @type {import("./Pointer.js").Options} */ (options));
+
+    /***
+     * @type {ModifyOnSignature<import("../events").EventsKey>}
+     */
+    this.on;
+
+    /***
+     * @type {ModifyOnSignature<import("../events").EventsKey>}
+     */
+    this.once;
+
+    /***
+     * @type {ModifyOnSignature<void>}
+     */
+    this.un;
+
+    /** @private */
+    this.boundHandleFeatureChange_ = this.handleFeatureChange_.bind(this);
+
+    /**
+     * @private
+     * @type {import("../events/condition.js").Condition}
+     */
+    this.condition_ = options.condition ? options.condition : primaryAction;
+
+    /**
+     * @private
+     * @param {import("../MapBrowserEvent.js").default} mapBrowserEvent Browser event.
+     * @return {boolean} Combined condition result.
+     */
+    this.defaultDeleteCondition_ = function (mapBrowserEvent) {
+      return altKeyOnly(mapBrowserEvent) && singleClick(mapBrowserEvent);
+    };
+
+    /**
+     * @type {import("../events/condition.js").Condition}
+     * @private
+     */
+    this.deleteCondition_ = options.deleteCondition
+      ? options.deleteCondition
+      : this.defaultDeleteCondition_;
+
+    /**
+     * @type {import("../events/condition.js").Condition}
+     * @private
+     */
+    this.insertVertexCondition_ = options.insertVertexCondition
+      ? options.insertVertexCondition
+      : always;
+
+    /**
+     * Editing vertex.
+     * @type {Feature<Point>}
+     * @private
+     */
+    this.vertexFeature_ = null;
+
+    /**
+     * Segments intersecting {@link this.vertexFeature_} by segment uid.
+     * @type {Object<string, boolean>}
+     * @private
+     */
+    this.vertexSegments_ = null;
+
+    /**
+     * @type {import("../pixel.js").Pixel}
+     * @private
+     */
+    this.lastPixel_ = [0, 0];
+
+    /**
+     * Tracks if the next `singleclick` event should be ignored to prevent
+     * accidental deletion right after vertex creation.
+     * @type {boolean}
+     * @private
+     */
+    this.ignoreNextSingleClick_ = false;
+
+    /**
+     * @type {Collection<Feature>}
+     * @private
+     */
+    this.featuresBeingModified_ = null;
+
+    /**
+     * Segment RTree for each layer
+     * @type {RBush<SegmentData>}
+     * @private
+     */
+    this.rBush_ = new RBush();
+
+    /**
+     * @type {number}
+     * @private
+     */
+    this.pixelTolerance_ =
+      options.pixelTolerance !== undefined ? options.pixelTolerance : 10;
+
+    /**
+     * @type {boolean}
+     * @private
+     */
+    this.snappedToVertex_ = false;
+
+    /**
+     * Indicate whether the interaction is currently changing a feature's
+     * coordinates.
+     * @type {boolean}
+     * @private
+     */
+    this.changingFeature_ = false;
+
+    /**
+     * @type {Array}
+     * @private
+     */
+    this.dragSegments_ = [];
+
+    /**
+     * Draw overlay where sketch features are drawn.
+     * @type {VectorLayer}
+     * @private
+     */
+    this.overlay_ = new VectorLayer({
+      source: new VectorSource({
+        useSpatialIndex: false,
+        wrapX: !!options.wrapX,
+      }),
+      style: options.style ? options.style : getDefaultStyleFunction$1(),
+      updateWhileAnimating: true,
+      updateWhileInteracting: true,
+    });
+
+    /**
+     * @const
+     * @private
+     * @type {!Object<string, function(Feature, import("../geom/Geometry.js").default): void>}
+     */
+    this.SEGMENT_WRITERS_ = {
+      'Point': this.writePointGeometry_.bind(this),
+      'LineString': this.writeLineStringGeometry_.bind(this),
+      'LinearRing': this.writeLineStringGeometry_.bind(this),
+      'Polygon': this.writePolygonGeometry_.bind(this),
+      'MultiPoint': this.writeMultiPointGeometry_.bind(this),
+      'MultiLineString': this.writeMultiLineStringGeometry_.bind(this),
+      'MultiPolygon': this.writeMultiPolygonGeometry_.bind(this),
+      'Circle': this.writeCircleGeometry_.bind(this),
+      'GeometryCollection': this.writeGeometryCollectionGeometry_.bind(this),
+    };
+
+    /**
+     * @type {VectorSource}
+     * @private
+     */
+    this.source_ = null;
+
+    /**
+     * @type {boolean|import("../layer/BaseVector").default}
+     */
+    this.hitDetection_ = null;
+
+    /** @type {Collection<Feature>} */
+    let features;
+    if (options.features) {
+      features = options.features;
+    } else if (options.source) {
+      this.source_ = options.source;
+      features = new Collection(this.source_.getFeatures());
+      this.source_.addEventListener(
+        VectorEventType.ADDFEATURE,
+        this.handleSourceAdd_.bind(this),
+      );
+      this.source_.addEventListener(
+        VectorEventType.REMOVEFEATURE,
+        this.handleSourceRemove_.bind(this),
+      );
+    }
+    if (!features) {
+      throw new Error(
+        'The modify interaction requires features, a source or a layer',
+      );
+    }
+    if (options.hitDetection) {
+      this.hitDetection_ = options.hitDetection;
+    }
+
+    /**
+     * @type {Collection<Feature>}
+     * @private
+     */
+    this.features_ = features;
+
+    this.features_.forEach(this.addFeature_.bind(this));
+    this.features_.addEventListener(
+      CollectionEventType.ADD,
+      this.handleFeatureAdd_.bind(this),
+    );
+    this.features_.addEventListener(
+      CollectionEventType.REMOVE,
+      this.handleFeatureRemove_.bind(this),
+    );
+
+    /**
+     * @type {import("../MapBrowserEvent.js").default}
+     * @private
+     */
+    this.lastPointerEvent_ = null;
+
+    /**
+     * Delta (x, y in map units) between matched rtree vertex and pointer vertex.
+     * @type {Array<number>}
+     */
+    this.delta_ = [0, 0];
+
+    /**
+     * @private
+     */
+    this.snapToPointer_ =
+      options.snapToPointer === undefined
+        ? !this.hitDetection_
+        : options.snapToPointer;
+  }
+
+  /**
+   * @param {Feature} feature Feature.
+   * @private
+   */
+  addFeature_(feature) {
+    const geometry = feature.getGeometry();
+    if (geometry) {
+      const writer = this.SEGMENT_WRITERS_[geometry.getType()];
+      if (writer) {
+        writer(feature, geometry);
+      }
+    }
+    const map = this.getMap();
+    if (map && map.isRendered() && this.getActive()) {
+      this.handlePointerAtPixel_(this.lastPixel_, map);
+    }
+    feature.addEventListener(EventType.CHANGE, this.boundHandleFeatureChange_);
+  }
+
+  /**
+   * @param {import("../MapBrowserEvent.js").default} evt Map browser event.
+   * @param {Array<Array<SegmentData>>} segments The segments subject to modification.
+   * @private
+   */
+  willModifyFeatures_(evt, segments) {
+    if (!this.featuresBeingModified_) {
+      this.featuresBeingModified_ = new Collection();
+      const features = this.featuresBeingModified_.getArray();
+      for (let i = 0, ii = segments.length; i < ii; ++i) {
+        const segment = segments[i];
+        for (let s = 0, ss = segment.length; s < ss; ++s) {
+          const feature = segment[s].feature;
+          if (feature && !features.includes(feature)) {
+            this.featuresBeingModified_.push(feature);
+          }
+        }
+      }
+      if (this.featuresBeingModified_.getLength() === 0) {
+        this.featuresBeingModified_ = null;
+      } else {
+        this.dispatchEvent(
+          new ModifyEvent(
+            ModifyEventType.MODIFYSTART,
+            this.featuresBeingModified_,
+            evt,
+          ),
+        );
+      }
+    }
+  }
+
+  /**
+   * @param {Feature} feature Feature.
+   * @private
+   */
+  removeFeature_(feature) {
+    this.removeFeatureSegmentData_(feature);
+    // Remove the vertex feature if the collection of candidate features is empty.
+    if (this.vertexFeature_ && this.features_.getLength() === 0) {
+      this.overlay_.getSource().removeFeature(this.vertexFeature_);
+      this.vertexFeature_ = null;
+    }
+    feature.removeEventListener(
+      EventType.CHANGE,
+      this.boundHandleFeatureChange_,
+    );
+  }
+
+  /**
+   * @param {Feature} feature Feature.
+   * @private
+   */
+  removeFeatureSegmentData_(feature) {
+    const rBush = this.rBush_;
+    /** @type {Array<SegmentData>} */
+    const nodesToRemove = [];
+    rBush.forEach(
+      /**
+       * @param {SegmentData} node RTree node.
+       */
+      function (node) {
+        if (feature === node.feature) {
+          nodesToRemove.push(node);
+        }
+      },
+    );
+    for (let i = nodesToRemove.length - 1; i >= 0; --i) {
+      const nodeToRemove = nodesToRemove[i];
+      for (let j = this.dragSegments_.length - 1; j >= 0; --j) {
+        if (this.dragSegments_[j][0] === nodeToRemove) {
+          this.dragSegments_.splice(j, 1);
+        }
+      }
+      rBush.remove(nodeToRemove);
+    }
+  }
+
+  /**
+   * Activate or deactivate the interaction.
+   * @param {boolean} active Active.
+   * @observable
+   * @api
+   */
+  setActive(active) {
+    if (this.vertexFeature_ && !active) {
+      this.overlay_.getSource().removeFeature(this.vertexFeature_);
+      this.vertexFeature_ = null;
+    }
+    super.setActive(active);
+  }
+
+  /**
+   * Remove the interaction from its current map and attach it to the new map.
+   * Subclasses may set up event handlers to get notified about changes to
+   * the map here.
+   * @param {import("../Map.js").default} map Map.
+   */
+  setMap(map) {
+    this.overlay_.setMap(map);
+    super.setMap(map);
+  }
+
+  /**
+   * Get the overlay layer that this interaction renders the modification point or vertex to.
+   * @return {VectorLayer} Overlay layer.
+   * @api
+   */
+  getOverlay() {
+    return this.overlay_;
+  }
+
+  /**
+   * @param {import("../source/Vector.js").VectorSourceEvent} event Event.
+   * @private
+   */
+  handleSourceAdd_(event) {
+    if (event.feature) {
+      this.features_.push(event.feature);
+    }
+  }
+
+  /**
+   * @param {import("../source/Vector.js").VectorSourceEvent} event Event.
+   * @private
+   */
+  handleSourceRemove_(event) {
+    if (event.feature) {
+      this.features_.remove(event.feature);
+    }
+  }
+
+  /**
+   * @param {import("../Collection.js").CollectionEvent<Feature>} evt Event.
+   * @private
+   */
+  handleFeatureAdd_(evt) {
+    this.addFeature_(evt.element);
+  }
+
+  /**
+   * @param {import("../events/Event.js").default} evt Event.
+   * @private
+   */
+  handleFeatureChange_(evt) {
+    if (!this.changingFeature_) {
+      const feature = /** @type {Feature} */ (evt.target);
+      this.removeFeature_(feature);
+      this.addFeature_(feature);
+    }
+  }
+
+  /**
+   * @param {import("../Collection.js").CollectionEvent<Feature>} evt Event.
+   * @private
+   */
+  handleFeatureRemove_(evt) {
+    this.removeFeature_(evt.element);
+  }
+
+  /**
+   * @param {Feature} feature Feature
+   * @param {Point} geometry Geometry.
+   * @private
+   */
+  writePointGeometry_(feature, geometry) {
+    const coordinates = geometry.getCoordinates();
+
+    /** @type {SegmentData} */
+    const segmentData = {
+      feature: feature,
+      geometry: geometry,
+      segment: [coordinates, coordinates],
+    };
+
+    this.rBush_.insert(geometry.getExtent(), segmentData);
+  }
+
+  /**
+   * @param {Feature} feature Feature
+   * @param {import("../geom/MultiPoint.js").default} geometry Geometry.
+   * @private
+   */
+  writeMultiPointGeometry_(feature, geometry) {
+    const points = geometry.getCoordinates();
+    for (let i = 0, ii = points.length; i < ii; ++i) {
+      const coordinates = points[i];
+
+      /** @type {SegmentData} */
+      const segmentData = {
+        feature: feature,
+        geometry: geometry,
+        depth: [i],
+        index: i,
+        segment: [coordinates, coordinates],
+      };
+
+      this.rBush_.insert(geometry.getExtent(), segmentData);
+    }
+  }
+
+  /**
+   * @param {Feature} feature Feature
+   * @param {import("../geom/LineString.js").default} geometry Geometry.
+   * @private
+   */
+  writeLineStringGeometry_(feature, geometry) {
+    const coordinates = geometry.getCoordinates();
+    for (let i = 0, ii = coordinates.length - 1; i < ii; ++i) {
+      const segment = coordinates.slice(i, i + 2);
+
+      /** @type {SegmentData} */
+      const segmentData = {
+        feature: feature,
+        geometry: geometry,
+        index: i,
+        segment: segment,
+      };
+
+      this.rBush_.insert(boundingExtent(segment), segmentData);
+    }
+  }
+
+  /**
+   * @param {Feature} feature Feature
+   * @param {import("../geom/MultiLineString.js").default} geometry Geometry.
+   * @private
+   */
+  writeMultiLineStringGeometry_(feature, geometry) {
+    const lines = geometry.getCoordinates();
+    for (let j = 0, jj = lines.length; j < jj; ++j) {
+      const coordinates = lines[j];
+      for (let i = 0, ii = coordinates.length - 1; i < ii; ++i) {
+        const segment = coordinates.slice(i, i + 2);
+
+        /** @type {SegmentData} */
+        const segmentData = {
+          feature: feature,
+          geometry: geometry,
+          depth: [j],
+          index: i,
+          segment: segment,
+        };
+
+        this.rBush_.insert(boundingExtent(segment), segmentData);
+      }
+    }
+  }
+
+  /**
+   * @param {Feature} feature Feature
+   * @param {import("../geom/Polygon.js").default} geometry Geometry.
+   * @private
+   */
+  writePolygonGeometry_(feature, geometry) {
+    const rings = geometry.getCoordinates();
+    for (let j = 0, jj = rings.length; j < jj; ++j) {
+      const coordinates = rings[j];
+      for (let i = 0, ii = coordinates.length - 1; i < ii; ++i) {
+        const segment = coordinates.slice(i, i + 2);
+
+        /** @type {SegmentData} */
+        const segmentData = {
+          feature: feature,
+          geometry: geometry,
+          depth: [j],
+          index: i,
+          segment: segment,
+        };
+
+        this.rBush_.insert(boundingExtent(segment), segmentData);
+      }
+    }
+  }
+
+  /**
+   * @param {Feature} feature Feature
+   * @param {import("../geom/MultiPolygon.js").default} geometry Geometry.
+   * @private
+   */
+  writeMultiPolygonGeometry_(feature, geometry) {
+    const polygons = geometry.getCoordinates();
+    for (let k = 0, kk = polygons.length; k < kk; ++k) {
+      const rings = polygons[k];
+      for (let j = 0, jj = rings.length; j < jj; ++j) {
+        const coordinates = rings[j];
+        for (let i = 0, ii = coordinates.length - 1; i < ii; ++i) {
+          const segment = coordinates.slice(i, i + 2);
+
+          /** @type {SegmentData} */
+          const segmentData = {
+            feature: feature,
+            geometry: geometry,
+            depth: [j, k],
+            index: i,
+            segment: segment,
+          };
+
+          this.rBush_.insert(boundingExtent(segment), segmentData);
+        }
+      }
+    }
+  }
+
+  /**
+   * We convert a circle into two segments.  The segment at index
+   * {@link CIRCLE_CENTER_INDEX} is the
+   * circle's center (a point).  The segment at index
+   * {@link CIRCLE_CIRCUMFERENCE_INDEX} is
+   * the circumference, and is not a line segment.
+   *
+   * @param {Feature} feature Feature.
+   * @param {import("../geom/Circle.js").default} geometry Geometry.
+   * @private
+   */
+  writeCircleGeometry_(feature, geometry) {
+    const coordinates = geometry.getCenter();
+
+    /** @type {SegmentData} */
+    const centerSegmentData = {
+      feature: feature,
+      geometry: geometry,
+      index: CIRCLE_CENTER_INDEX,
+      segment: [coordinates, coordinates],
+    };
+
+    /** @type {SegmentData} */
+    const circumferenceSegmentData = {
+      feature: feature,
+      geometry: geometry,
+      index: CIRCLE_CIRCUMFERENCE_INDEX,
+      segment: [coordinates, coordinates],
+    };
+
+    const featureSegments = [centerSegmentData, circumferenceSegmentData];
+    centerSegmentData.featureSegments = featureSegments;
+    circumferenceSegmentData.featureSegments = featureSegments;
+    this.rBush_.insert(createOrUpdateFromCoordinate(coordinates), centerSegmentData);
+    let circleGeometry = /** @type {import("../geom/Geometry.js").default} */ (
+      geometry
+    );
+    this.rBush_.insert(circleGeometry.getExtent(), circumferenceSegmentData);
+  }
+
+  /**
+   * @param {Feature} feature Feature
+   * @param {import("../geom/GeometryCollection.js").default} geometry Geometry.
+   * @private
+   */
+  writeGeometryCollectionGeometry_(feature, geometry) {
+    const geometries = geometry.getGeometriesArray();
+    for (let i = 0; i < geometries.length; ++i) {
+      const geometry = geometries[i];
+      const writer = this.SEGMENT_WRITERS_[geometry.getType()];
+      writer(feature, geometry);
+    }
+  }
+
+  /**
+   * @param {import("../coordinate.js").Coordinate} coordinates Coordinates.
+   * @param {Array<Feature>} features The features being modified.
+   * @param {Array<import("../geom/SimpleGeometry.js").default>} geometries The geometries being modified.
+   * @return {Feature} Vertex feature.
+   * @private
+   */
+  createOrUpdateVertexFeature_(coordinates, features, geometries) {
+    let vertexFeature = this.vertexFeature_;
+    if (!vertexFeature) {
+      vertexFeature = new Feature(new Point$1(coordinates));
+      this.vertexFeature_ = vertexFeature;
+      this.overlay_.getSource().addFeature(vertexFeature);
+    } else {
+      const geometry = vertexFeature.getGeometry();
+      geometry.setCoordinates(coordinates);
+    }
+    vertexFeature.set('features', features);
+    vertexFeature.set('geometries', geometries);
+    return vertexFeature;
+  }
+
+  /**
+   * Handles the {@link module:ol/MapBrowserEvent~MapBrowserEvent map browser event} and may modify the geometry.
+   * @param {import("../MapBrowserEvent.js").default} mapBrowserEvent Map browser event.
+   * @return {boolean} `false` to stop event propagation.
+   */
+  handleEvent(mapBrowserEvent) {
+    if (!mapBrowserEvent.originalEvent) {
+      return true;
+    }
+    this.lastPointerEvent_ = mapBrowserEvent;
+
+    let handled;
+    if (
+      !mapBrowserEvent.map.getView().getInteracting() &&
+      mapBrowserEvent.type == MapBrowserEventType.POINTERMOVE &&
+      !this.handlingDownUpSequence
+    ) {
+      this.handlePointerMove_(mapBrowserEvent);
+    }
+    if (this.vertexFeature_ && this.deleteCondition_(mapBrowserEvent)) {
+      if (
+        mapBrowserEvent.type != MapBrowserEventType.SINGLECLICK ||
+        !this.ignoreNextSingleClick_
+      ) {
+        handled = this.removePoint();
+      } else {
+        handled = true;
+      }
+    }
+
+    if (mapBrowserEvent.type == MapBrowserEventType.SINGLECLICK) {
+      this.ignoreNextSingleClick_ = false;
+    }
+
+    return super.handleEvent(mapBrowserEvent) && !handled;
+  }
+
+  /**
+   * Handle pointer drag events.
+   * @param {import("../MapBrowserEvent.js").default} evt Event.
+   */
+  handleDragEvent(evt) {
+    this.ignoreNextSingleClick_ = false;
+    this.willModifyFeatures_(evt, this.dragSegments_);
+
+    const vertex = [
+      evt.coordinate[0] + this.delta_[0],
+      evt.coordinate[1] + this.delta_[1],
+    ];
+    const features = [];
+    const geometries = [];
+    for (let i = 0, ii = this.dragSegments_.length; i < ii; ++i) {
+      const dragSegment = this.dragSegments_[i];
+      const segmentData = dragSegment[0];
+      const feature = segmentData.feature;
+      if (!features.includes(feature)) {
+        features.push(feature);
+      }
+      const geometry = segmentData.geometry;
+      if (!geometries.includes(geometry)) {
+        geometries.push(geometry);
+      }
+      const depth = segmentData.depth;
+      let coordinates;
+      const segment = segmentData.segment;
+      const index = dragSegment[1];
+
+      while (vertex.length < geometry.getStride()) {
+        vertex.push(segment[index][vertex.length]);
+      }
+
+      switch (geometry.getType()) {
+        case 'Point':
+          coordinates = vertex;
+          segment[0] = vertex;
+          segment[1] = vertex;
+          break;
+        case 'MultiPoint':
+          coordinates = geometry.getCoordinates();
+          coordinates[segmentData.index] = vertex;
+          segment[0] = vertex;
+          segment[1] = vertex;
+          break;
+        case 'LineString':
+          coordinates = geometry.getCoordinates();
+          coordinates[segmentData.index + index] = vertex;
+          segment[index] = vertex;
+          break;
+        case 'MultiLineString':
+          coordinates = geometry.getCoordinates();
+          coordinates[depth[0]][segmentData.index + index] = vertex;
+          segment[index] = vertex;
+          break;
+        case 'Polygon':
+          coordinates = geometry.getCoordinates();
+          coordinates[depth[0]][segmentData.index + index] = vertex;
+          segment[index] = vertex;
+          break;
+        case 'MultiPolygon':
+          coordinates = geometry.getCoordinates();
+          coordinates[depth[1]][depth[0]][segmentData.index + index] = vertex;
+          segment[index] = vertex;
+          break;
+        case 'Circle':
+          segment[0] = vertex;
+          segment[1] = vertex;
+          if (segmentData.index === CIRCLE_CENTER_INDEX) {
+            this.changingFeature_ = true;
+            geometry.setCenter(vertex);
+            this.changingFeature_ = false;
+          } else {
+            // We're dragging the circle's circumference:
+            this.changingFeature_ = true;
+            evt.map.getView().getProjection();
+            let radius = distance(
+              fromUserCoordinate(geometry.getCenter()),
+              fromUserCoordinate(vertex),
+            );
+            geometry.setRadius(radius);
+            this.changingFeature_ = false;
+          }
+          break;
+        // pass
+      }
+
+      if (coordinates) {
+        this.setGeometryCoordinates_(geometry, coordinates);
+      }
+    }
+    this.createOrUpdateVertexFeature_(vertex, features, geometries);
+  }
+
+  /**
+   * Handle pointer down events.
+   * @param {import("../MapBrowserEvent.js").default} evt Event.
+   * @return {boolean} If the event was consumed.
+   */
+  handleDownEvent(evt) {
+    if (!this.condition_(evt)) {
+      return false;
+    }
+    const pixelCoordinate = evt.coordinate;
+    this.handlePointerAtPixel_(evt.pixel, evt.map, pixelCoordinate);
+    this.dragSegments_.length = 0;
+    this.featuresBeingModified_ = null;
+    const vertexFeature = this.vertexFeature_;
+    if (vertexFeature) {
+      evt.map.getView().getProjection();
+      const insertVertices = [];
+      const vertex = vertexFeature.getGeometry().getCoordinates();
+      const vertexExtent = boundingExtent([vertex]);
+      const segmentDataMatches = this.rBush_.getInExtent(vertexExtent);
+      const componentSegments = {};
+      segmentDataMatches.sort(compareIndexes);
+      for (let i = 0, ii = segmentDataMatches.length; i < ii; ++i) {
+        const segmentDataMatch = segmentDataMatches[i];
+        const segment = segmentDataMatch.segment;
+        let uid = getUid(segmentDataMatch.geometry);
+        const depth = segmentDataMatch.depth;
+        if (depth) {
+          uid += '-' + depth.join('-'); // separate feature components
+        }
+        if (!componentSegments[uid]) {
+          componentSegments[uid] = new Array(2);
+        }
+
+        if (
+          segmentDataMatch.geometry.getType() === 'Circle' &&
+          segmentDataMatch.index === CIRCLE_CIRCUMFERENCE_INDEX
+        ) {
+          const closestVertex = closestOnSegmentData(
+            pixelCoordinate,
+            segmentDataMatch);
+          if (
+            equals$1(closestVertex, vertex) &&
+            !componentSegments[uid][0]
+          ) {
+            this.dragSegments_.push([segmentDataMatch, 0]);
+            componentSegments[uid][0] = segmentDataMatch;
+          }
+          continue;
+        }
+
+        if (
+          equals$1(segment[0], vertex) &&
+          !componentSegments[uid][0]
+        ) {
+          this.dragSegments_.push([segmentDataMatch, 0]);
+          componentSegments[uid][0] = segmentDataMatch;
+          continue;
+        }
+
+        if (
+          equals$1(segment[1], vertex) &&
+          !componentSegments[uid][1]
+        ) {
+          if (
+            componentSegments[uid][0] &&
+            componentSegments[uid][0].index === 0
+          ) {
+            let coordinates = segmentDataMatch.geometry.getCoordinates();
+            switch (segmentDataMatch.geometry.getType()) {
+              // prevent dragging closed linestrings by the connecting node
+              case 'LineString':
+              case 'MultiLineString':
+                continue;
+              // if dragging the first vertex of a polygon, ensure the other segment
+              // belongs to the closing vertex of the linear ring
+              case 'MultiPolygon':
+                coordinates = coordinates[depth[1]];
+              /* falls through */
+              case 'Polygon':
+                if (
+                  segmentDataMatch.index !==
+                  coordinates[depth[0]].length - 2
+                ) {
+                  continue;
+                }
+                break;
+              // pass
+            }
+          }
+
+          this.dragSegments_.push([segmentDataMatch, 1]);
+          componentSegments[uid][1] = segmentDataMatch;
+          continue;
+        }
+
+        if (
+          getUid(segment) in this.vertexSegments_ &&
+          !componentSegments[uid][0] &&
+          !componentSegments[uid][1] &&
+          this.insertVertexCondition_(evt)
+        ) {
+          insertVertices.push(segmentDataMatch);
+        }
+      }
+
+      if (insertVertices.length) {
+        this.willModifyFeatures_(evt, [insertVertices]);
+      }
+
+      for (let j = insertVertices.length - 1; j >= 0; --j) {
+        this.insertVertex_(insertVertices[j], vertex);
+      }
+    }
+    return !!this.vertexFeature_;
+  }
+
+  /**
+   * Handle pointer up events.
+   * @param {import("../MapBrowserEvent.js").default} evt Event.
+   * @return {boolean} If the event was consumed.
+   */
+  handleUpEvent(evt) {
+    for (let i = this.dragSegments_.length - 1; i >= 0; --i) {
+      const segmentData = this.dragSegments_[i][0];
+      const geometry = segmentData.geometry;
+      if (geometry.getType() === 'Circle') {
+        // Update a circle object in the R* bush:
+        const coordinates = geometry.getCenter();
+        const centerSegmentData = segmentData.featureSegments[0];
+        const circumferenceSegmentData = segmentData.featureSegments[1];
+        centerSegmentData.segment[0] = coordinates;
+        centerSegmentData.segment[1] = coordinates;
+        circumferenceSegmentData.segment[0] = coordinates;
+        circumferenceSegmentData.segment[1] = coordinates;
+        this.rBush_.update(createOrUpdateFromCoordinate(coordinates), centerSegmentData);
+        let circleGeometry = geometry;
+        this.rBush_.update(
+          circleGeometry.getExtent(),
+          circumferenceSegmentData,
+        );
+      } else {
+        this.rBush_.update(boundingExtent(segmentData.segment), segmentData);
+      }
+    }
+    if (this.featuresBeingModified_) {
+      this.dispatchEvent(
+        new ModifyEvent(
+          ModifyEventType.MODIFYEND,
+          this.featuresBeingModified_,
+          evt,
+        ),
+      );
+      this.featuresBeingModified_ = null;
+    }
+    return false;
+  }
+
+  /**
+   * @param {import("../MapBrowserEvent.js").default} evt Event.
+   * @private
+   */
+  handlePointerMove_(evt) {
+    this.lastPixel_ = evt.pixel;
+    this.handlePointerAtPixel_(evt.pixel, evt.map, evt.coordinate);
+  }
+
+  /**
+   * @param {import("../pixel.js").Pixel} pixel Pixel
+   * @param {import("../Map.js").default} map Map.
+   * @param {import("../coordinate.js").Coordinate} [coordinate] The pixel Coordinate.
+   * @private
+   */
+  handlePointerAtPixel_(pixel, map, coordinate) {
+    const pixelCoordinate = coordinate || map.getCoordinateFromPixel(pixel);
+    map.getView().getProjection();
+    const sortByDistance = function (a, b) {
+      return (
+        projectedDistanceToSegmentDataSquared(pixelCoordinate, a) -
+        projectedDistanceToSegmentDataSquared(pixelCoordinate, b)
+      );
+    };
+
+    /** @type {Array<SegmentData>|undefined} */
+    let nodes;
+    /** @type {Point|undefined} */
+    let hitPointGeometry;
+    if (this.hitDetection_) {
+      const layerFilter =
+        typeof this.hitDetection_ === 'object'
+          ? (layer) => layer === this.hitDetection_
+          : undefined;
+      map.forEachFeatureAtPixel(
+        pixel,
+        (feature, layer, geometry) => {
+          if (geometry && geometry.getType() === 'Point') {
+            geometry = new Point$1(
+              toUserCoordinate(geometry.getCoordinates()),
+            );
+          }
+          const geom = geometry || feature.getGeometry();
+          if (
+            feature instanceof Feature &&
+            this.features_.getArray().includes(feature)
+          ) {
+            hitPointGeometry = /** @type {Point} */ (geom);
+            const coordinate = /** @type {Point} */ (feature.getGeometry())
+              .getFlatCoordinates()
+              .slice(0, 2);
+            nodes = [
+              {
+                feature,
+                geometry: hitPointGeometry,
+                segment: [coordinate, coordinate],
+              },
+            ];
+          }
+          return true;
+        },
+        {layerFilter},
+      );
+    }
+    if (!nodes) {
+      const viewExtent = fromUserExtent(
+        createOrUpdateFromCoordinate(pixelCoordinate, tempExtent));
+      const buffer = map.getView().getResolution() * this.pixelTolerance_;
+      const box = toUserExtent(
+        buffer$1(viewExtent, buffer, tempExtent));
+      nodes = this.rBush_.getInExtent(box);
+    }
+
+    if (nodes && nodes.length > 0) {
+      const node = nodes.sort(sortByDistance)[0];
+      const closestSegment = node.segment;
+      let vertex = closestOnSegmentData(pixelCoordinate, node);
+      const vertexPixel = map.getPixelFromCoordinate(vertex);
+      let dist = distance(pixel, vertexPixel);
+      if (hitPointGeometry || dist <= this.pixelTolerance_) {
+        /** @type {Object<string, boolean>} */
+        const vertexSegments = {};
+        vertexSegments[getUid(closestSegment)] = true;
+
+        if (!this.snapToPointer_) {
+          this.delta_[0] = vertex[0] - pixelCoordinate[0];
+          this.delta_[1] = vertex[1] - pixelCoordinate[1];
+        }
+        if (
+          node.geometry.getType() === 'Circle' &&
+          node.index === CIRCLE_CIRCUMFERENCE_INDEX
+        ) {
+          this.snappedToVertex_ = true;
+          this.createOrUpdateVertexFeature_(
+            vertex,
+            [node.feature],
+            [node.geometry],
+          );
+        } else {
+          const pixel1 = map.getPixelFromCoordinate(closestSegment[0]);
+          const pixel2 = map.getPixelFromCoordinate(closestSegment[1]);
+          const squaredDist1 = squaredDistance(vertexPixel, pixel1);
+          const squaredDist2 = squaredDistance(vertexPixel, pixel2);
+          dist = Math.sqrt(Math.min(squaredDist1, squaredDist2));
+          this.snappedToVertex_ = dist <= this.pixelTolerance_;
+          if (this.snappedToVertex_) {
+            vertex =
+              squaredDist1 > squaredDist2
+                ? closestSegment[1]
+                : closestSegment[0];
+          }
+          this.createOrUpdateVertexFeature_(
+            vertex,
+            [node.feature],
+            [node.geometry],
+          );
+          const geometries = {};
+          geometries[getUid(node.geometry)] = true;
+          for (let i = 1, ii = nodes.length; i < ii; ++i) {
+            const segment = nodes[i].segment;
+            if (
+              (equals$1(closestSegment[0], segment[0]) &&
+                equals$1(closestSegment[1], segment[1])) ||
+              (equals$1(closestSegment[0], segment[1]) &&
+                equals$1(closestSegment[1], segment[0]))
+            ) {
+              const geometryUid = getUid(nodes[i].geometry);
+              if (!(geometryUid in geometries)) {
+                geometries[geometryUid] = true;
+                vertexSegments[getUid(segment)] = true;
+              }
+            } else {
+              break;
+            }
+          }
+        }
+
+        this.vertexSegments_ = vertexSegments;
+        return;
+      }
+    }
+    if (this.vertexFeature_) {
+      this.overlay_.getSource().removeFeature(this.vertexFeature_);
+      this.vertexFeature_ = null;
+    }
+  }
+
+  /**
+   * @param {SegmentData} segmentData Segment data.
+   * @param {import("../coordinate.js").Coordinate} vertex Vertex.
+   * @private
+   */
+  insertVertex_(segmentData, vertex) {
+    const segment = segmentData.segment;
+    const feature = segmentData.feature;
+    const geometry = segmentData.geometry;
+    const depth = segmentData.depth;
+    const index = segmentData.index;
+    let coordinates;
+
+    while (vertex.length < geometry.getStride()) {
+      vertex.push(0);
+    }
+
+    switch (geometry.getType()) {
+      case 'MultiLineString':
+        coordinates = geometry.getCoordinates();
+        coordinates[depth[0]].splice(index + 1, 0, vertex);
+        break;
+      case 'Polygon':
+        coordinates = geometry.getCoordinates();
+        coordinates[depth[0]].splice(index + 1, 0, vertex);
+        break;
+      case 'MultiPolygon':
+        coordinates = geometry.getCoordinates();
+        coordinates[depth[1]][depth[0]].splice(index + 1, 0, vertex);
+        break;
+      case 'LineString':
+        coordinates = geometry.getCoordinates();
+        coordinates.splice(index + 1, 0, vertex);
+        break;
+      default:
+        return;
+    }
+
+    this.setGeometryCoordinates_(geometry, coordinates);
+    const rTree = this.rBush_;
+    rTree.remove(segmentData);
+    this.updateSegmentIndices_(geometry, index, depth, 1);
+
+    /** @type {SegmentData} */
+    const newSegmentData = {
+      segment: [segment[0], vertex],
+      feature: feature,
+      geometry: geometry,
+      depth: depth,
+      index: index,
+    };
+
+    rTree.insert(boundingExtent(newSegmentData.segment), newSegmentData);
+    this.dragSegments_.push([newSegmentData, 1]);
+
+    /** @type {SegmentData} */
+    const newSegmentData2 = {
+      segment: [vertex, segment[1]],
+      feature: feature,
+      geometry: geometry,
+      depth: depth,
+      index: index + 1,
+    };
+
+    rTree.insert(boundingExtent(newSegmentData2.segment), newSegmentData2);
+    this.dragSegments_.push([newSegmentData2, 0]);
+    this.ignoreNextSingleClick_ = true;
+  }
+
+  /**
+   * Removes the vertex currently being pointed.
+   * @return {boolean} True when a vertex was removed.
+   * @api
+   */
+  removePoint() {
+    if (
+      this.lastPointerEvent_ &&
+      this.lastPointerEvent_.type != MapBrowserEventType.POINTERDRAG
+    ) {
+      const evt = this.lastPointerEvent_;
+      this.willModifyFeatures_(evt, this.dragSegments_);
+      const removed = this.removeVertex_();
+      if (this.featuresBeingModified_) {
+        this.dispatchEvent(
+          new ModifyEvent(
+            ModifyEventType.MODIFYEND,
+            this.featuresBeingModified_,
+            evt,
+          ),
+        );
+      }
+
+      this.featuresBeingModified_ = null;
+      return removed;
+    }
+    return false;
+  }
+
+  /**
+   * Removes a vertex from all matching features.
+   * @return {boolean} True when a vertex was removed.
+   * @private
+   */
+  removeVertex_() {
+    const dragSegments = this.dragSegments_;
+    const segmentsByFeature = {};
+    let deleted = false;
+    let component, coordinates, dragSegment, geometry, i, index, left;
+    let newIndex, right, segmentData, uid;
+    for (i = dragSegments.length - 1; i >= 0; --i) {
+      dragSegment = dragSegments[i];
+      segmentData = dragSegment[0];
+      uid = getUid(segmentData.feature);
+      if (segmentData.depth) {
+        // separate feature components
+        uid += '-' + segmentData.depth.join('-');
+      }
+      if (!(uid in segmentsByFeature)) {
+        segmentsByFeature[uid] = {};
+      }
+      if (dragSegment[1] === 0) {
+        segmentsByFeature[uid].right = segmentData;
+        segmentsByFeature[uid].index = segmentData.index;
+      } else if (dragSegment[1] == 1) {
+        segmentsByFeature[uid].left = segmentData;
+        segmentsByFeature[uid].index = segmentData.index + 1;
+      }
+    }
+    for (uid in segmentsByFeature) {
+      right = segmentsByFeature[uid].right;
+      left = segmentsByFeature[uid].left;
+      index = segmentsByFeature[uid].index;
+      newIndex = index - 1;
+      if (left !== undefined) {
+        segmentData = left;
+      } else {
+        segmentData = right;
+      }
+      if (newIndex < 0) {
+        newIndex = 0;
+      }
+      geometry = segmentData.geometry;
+      coordinates = geometry.getCoordinates();
+      component = coordinates;
+      deleted = false;
+      switch (geometry.getType()) {
+        case 'MultiLineString':
+          if (coordinates[segmentData.depth[0]].length > 2) {
+            coordinates[segmentData.depth[0]].splice(index, 1);
+            deleted = true;
+          }
+          break;
+        case 'LineString':
+          if (coordinates.length > 2) {
+            coordinates.splice(index, 1);
+            deleted = true;
+          }
+          break;
+        case 'MultiPolygon':
+          component = component[segmentData.depth[1]];
+        /* falls through */
+        case 'Polygon':
+          component = component[segmentData.depth[0]];
+          if (component.length > 4) {
+            if (index == component.length - 1) {
+              index = 0;
+            }
+            component.splice(index, 1);
+            deleted = true;
+            if (index === 0) {
+              // close the ring again
+              component.pop();
+              component.push(component[0]);
+              newIndex = component.length - 1;
+            }
+          }
+          break;
+        // pass
+      }
+
+      if (deleted) {
+        this.setGeometryCoordinates_(geometry, coordinates);
+        const segments = [];
+        if (left !== undefined) {
+          this.rBush_.remove(left);
+          segments.push(left.segment[0]);
+        }
+        if (right !== undefined) {
+          this.rBush_.remove(right);
+          segments.push(right.segment[1]);
+        }
+        if (left !== undefined && right !== undefined) {
+          /** @type {SegmentData} */
+          const newSegmentData = {
+            depth: segmentData.depth,
+            feature: segmentData.feature,
+            geometry: segmentData.geometry,
+            index: newIndex,
+            segment: segments,
+          };
+
+          this.rBush_.insert(
+            boundingExtent(newSegmentData.segment),
+            newSegmentData,
+          );
+        }
+        this.updateSegmentIndices_(geometry, index, segmentData.depth, -1);
+        if (this.vertexFeature_) {
+          this.overlay_.getSource().removeFeature(this.vertexFeature_);
+          this.vertexFeature_ = null;
+        }
+        dragSegments.length = 0;
+      }
+    }
+    return deleted;
+  }
+
+  /**
+   * @param {import("../geom/SimpleGeometry.js").default} geometry Geometry.
+   * @param {Array} coordinates Coordinates.
+   * @private
+   */
+  setGeometryCoordinates_(geometry, coordinates) {
+    this.changingFeature_ = true;
+    geometry.setCoordinates(coordinates);
+    this.changingFeature_ = false;
+  }
+
+  /**
+   * @param {import("../geom/SimpleGeometry.js").default} geometry Geometry.
+   * @param {number} index Index.
+   * @param {Array<number>|undefined} depth Depth.
+   * @param {number} delta Delta (1 or -1).
+   * @private
+   */
+  updateSegmentIndices_(geometry, index, depth, delta) {
+    this.rBush_.forEachInExtent(
+      geometry.getExtent(),
+      function (segmentDataMatch) {
+        if (
+          segmentDataMatch.geometry === geometry &&
+          (depth === undefined ||
+            segmentDataMatch.depth === undefined ||
+            equals$3(segmentDataMatch.depth, depth)) &&
+          segmentDataMatch.index > index
+        ) {
+          segmentDataMatch.index += delta;
+        }
+      },
+    );
+  }
+}
+
+/**
+ * @param {SegmentData} a The first segment data.
+ * @param {SegmentData} b The second segment data.
+ * @return {number} The difference in indexes.
+ */
+function compareIndexes(a, b) {
+  return a.index - b.index;
+}
+
+/**
+ * Returns the distance from a point to a line segment.
+ *
+ * @param {import("../coordinate.js").Coordinate} pointCoordinates The coordinates of the point from
+ *        which to calculate the distance.
+ * @param {SegmentData} segmentData The object describing the line
+ *        segment we are calculating the distance to.
+ * @param {import("../proj/Projection.js").default} projection The view projection.
+ * @return {number} The square of the distance between a point and a line segment.
+ */
+function projectedDistanceToSegmentDataSquared(
+  pointCoordinates,
+  segmentData,
+  projection,
+) {
+  const geometry = segmentData.geometry;
+
+  if (geometry.getType() === 'Circle') {
+    let circleGeometry = /** @type {import("../geom/Circle.js").default} */ (
+      geometry
+    );
+
+    if (segmentData.index === CIRCLE_CIRCUMFERENCE_INDEX) {
+      const distanceToCenterSquared = squaredDistance(
+        circleGeometry.getCenter(),
+        fromUserCoordinate(pointCoordinates),
+      );
+      const distanceToCircumference =
+        Math.sqrt(distanceToCenterSquared) - circleGeometry.getRadius();
+      return distanceToCircumference * distanceToCircumference;
+    }
+  }
+
+  const coordinate = fromUserCoordinate(pointCoordinates);
+  tempSegment$1[0] = fromUserCoordinate(segmentData.segment[0]);
+  tempSegment$1[1] = fromUserCoordinate(segmentData.segment[1]);
+  return squaredDistanceToSegment(coordinate, tempSegment$1);
+}
+
+/**
+ * Returns the point closest to a given line segment.
+ *
+ * @param {import("../coordinate.js").Coordinate} pointCoordinates The point to which a closest point
+ *        should be found.
+ * @param {SegmentData} segmentData The object describing the line
+ *        segment which should contain the closest point.
+ * @param {import("../proj/Projection.js").default} projection The view projection.
+ * @return {import("../coordinate.js").Coordinate} The point closest to the specified line segment.
+ */
+function closestOnSegmentData(pointCoordinates, segmentData, projection) {
+  const geometry = segmentData.geometry;
+
+  if (
+    geometry.getType() === 'Circle' &&
+    segmentData.index === CIRCLE_CIRCUMFERENCE_INDEX
+  ) {
+    let circleGeometry = /** @type {import("../geom/Circle.js").default} */ (
+      geometry
+    );
+    return toUserCoordinate(
+      circleGeometry.getClosestPoint(
+        fromUserCoordinate(pointCoordinates),
+      ));
+  }
+  const coordinate = fromUserCoordinate(pointCoordinates);
+  tempSegment$1[0] = fromUserCoordinate(segmentData.segment[0]);
+  tempSegment$1[1] = fromUserCoordinate(segmentData.segment[1]);
+  return toUserCoordinate(
+    closestOnSegment(coordinate, tempSegment$1));
+}
+
+/**
+ * @return {import("../style/Style.js").StyleFunction} Styles.
+ */
+function getDefaultStyleFunction$1() {
+  const style = createEditingStyle();
+  return function (feature, resolution) {
+    return style['Point'];
+  };
+}
+
+/**
+ * @module ol/interaction/Select
+ */
+
+/**
+ * @enum {string}
+ */
+const SelectEventType = {
+  /**
+   * Triggered when feature(s) has been (de)selected.
+   * @event SelectEvent#select
+   * @api
+   */
+  SELECT: 'select',
+};
+
+/**
+ * A function that takes an {@link module:ol/Feature~Feature} and returns `true` if the feature may be
+ * selected or `false` otherwise.
+ * @typedef {function(import("../Feature.js").default, import("../layer/Layer.js").default<import("../source/Source").default>):boolean} FilterFunction
+ */
+
+/**
+ * @typedef {Object} Options
+ * @property {import("../events/condition.js").Condition} [addCondition] A function
+ * that takes an {@link module:ol/MapBrowserEvent~MapBrowserEvent} and returns a
+ * boolean to indicate whether that event should be handled.
+ * By default, this is {@link module:ol/events/condition.never}. Use this if you
+ * want to use different events for add and remove instead of `toggle`.
+ * @property {import("../events/condition.js").Condition} [condition] A function that
+ * takes an {@link module:ol/MapBrowserEvent~MapBrowserEvent} and returns a
+ * boolean to indicate whether that event should be handled. This is the event
+ * for the selected features as a whole. By default, this is
+ * {@link module:ol/events/condition.singleClick}. Clicking on a feature selects that
+ * feature and removes any that were in the selection. Clicking outside any
+ * feature removes all from the selection.
+ * See `toggle`, `add`, `remove` options for adding/removing extra features to/
+ * from the selection.
+ * @property {Array<import("../layer/Layer.js").default>|function(import("../layer/Layer.js").default<import("../source/Source").default>): boolean} [layers]
+ * A list of layers from which features should be selected. Alternatively, a
+ * filter function can be provided. The function will be called for each layer
+ * in the map and should return `true` for layers that you want to be
+ * selectable. If the option is absent, all visible layers will be considered
+ * selectable.
+ * @property {import("../style/Style.js").StyleLike|null} [style]
+ * Style for the selected features. By default the default edit style is used
+ * (see {@link module:ol/style/Style~Style}). Set to `null` if this interaction should not apply
+ * any style changes for selected features.
+ * If set to a falsey value, the selected feature's style will not change.
+ * @property {import("../events/condition.js").Condition} [removeCondition] A function
+ * that takes an {@link module:ol/MapBrowserEvent~MapBrowserEvent} and returns a
+ * boolean to indicate whether that event should be handled.
+ * By default, this is {@link module:ol/events/condition.never}. Use this if you
+ * want to use different events for add and remove instead of `toggle`.
+ * @property {import("../events/condition.js").Condition} [toggleCondition] A function
+ * that takes an {@link module:ol/MapBrowserEvent~MapBrowserEvent} and returns a
+ * boolean to indicate whether that event should be handled. This is in addition
+ * to the `condition` event. By default,
+ * {@link module:ol/events/condition.shiftKeyOnly}, i.e. pressing `shift` as
+ * well as the `condition` event, adds that feature to the current selection if
+ * it is not currently selected, and removes it if it is. See `add` and `remove`
+ * if you want to use different events instead of a toggle.
+ * @property {boolean} [multi=false] A boolean that determines if the default
+ * behaviour should select only single features or all (overlapping) features at
+ * the clicked map position. The default of `false` means single select.
+ * @property {Collection<Feature>} [features]
+ * Collection where the interaction will place selected features. Optional. If
+ * not set the interaction will create a collection. In any case the collection
+ * used by the interaction is returned by
+ * {@link module:ol/interaction/Select~Select#getFeatures}.
+ * @property {FilterFunction} [filter] A function
+ * that takes an {@link module:ol/Feature~Feature} and an
+ * {@link module:ol/layer/Layer~Layer} and returns `true` if the feature may be
+ * selected or `false` otherwise.
+ * @property {number} [hitTolerance=0] Hit-detection tolerance. Pixels inside
+ * the radius around the given position will be checked for features.
+ */
+
+/**
+ * @classdesc
+ * Events emitted by {@link module:ol/interaction/Select~Select} instances are instances of
+ * this type.
+ */
+class SelectEvent extends BaseEvent {
+  /**
+   * @param {SelectEventType} type The event type.
+   * @param {Array<import("../Feature.js").default>} selected Selected features.
+   * @param {Array<import("../Feature.js").default>} deselected Deselected features.
+   * @param {import("../MapBrowserEvent.js").default} mapBrowserEvent Associated
+   *     {@link module:ol/MapBrowserEvent~MapBrowserEvent}.
+   */
+  constructor(type, selected, deselected, mapBrowserEvent) {
+    super(type);
+
+    /**
+     * Selected features array.
+     * @type {Array<import("../Feature.js").default>}
+     * @api
+     */
+    this.selected = selected;
+
+    /**
+     * Deselected features array.
+     * @type {Array<import("../Feature.js").default>}
+     * @api
+     */
+    this.deselected = deselected;
+
+    /**
+     * Associated {@link module:ol/MapBrowserEvent~MapBrowserEvent}.
+     * @type {import("../MapBrowserEvent.js").default}
+     * @api
+     */
+    this.mapBrowserEvent = mapBrowserEvent;
+  }
+}
+
+/**
+ * Original feature styles to reset to when features are no longer selected.
+ * @type {Object<number, import("../style/Style.js").default|Array<import("../style/Style.js").default>|import("../style/Style.js").StyleFunction>}
+ */
+const originalFeatureStyles = {};
+
+/***
+ * @template Return
+ * @typedef {import("../Observable").OnSignature<import("../Observable").EventTypes, import("../events/Event.js").default, Return> &
+ *   import("../Observable").OnSignature<import("../ObjectEventType").Types|
+ *     'change:active', import("../Object").ObjectEvent, Return> &
+ *   import("../Observable").OnSignature<'select', SelectEvent, Return> &
+ *   import("../Observable").CombinedOnSignature<import("../Observable").EventTypes|import("../ObjectEventType").Types|
+ *     'change:active'|'select', Return>} SelectOnSignature
+ */
+
+/**
+ * @classdesc
+ * Interaction for selecting vector features. By default, selected features are
+ * styled differently, so this interaction can be used for visual highlighting,
+ * as well as selecting features for other actions, such as modification or
+ * output. There are three ways of controlling which features are selected:
+ * using the browser event as defined by the `condition` and optionally the
+ * `toggle`, `add`/`remove`, and `multi` options; a `layers` filter; and a
+ * further feature filter using the `filter` option.
+ *
+ * @fires SelectEvent
+ * @api
+ */
+class Select extends Interaction {
+  /**
+   * @param {Options} [options] Options.
+   */
+  constructor(options) {
+    super();
+
+    /***
+     * @type {SelectOnSignature<import("../events").EventsKey>}
+     */
+    this.on;
+
+    /***
+     * @type {SelectOnSignature<import("../events").EventsKey>}
+     */
+    this.once;
+
+    /***
+     * @type {SelectOnSignature<void>}
+     */
+    this.un;
+
+    options = options ? options : {};
+
+    /**
+     * @private
+     */
+    this.boundAddFeature_ = this.addFeature_.bind(this);
+
+    /**
+     * @private
+     */
+    this.boundRemoveFeature_ = this.removeFeature_.bind(this);
+
+    /**
+     * @private
+     * @type {import("../events/condition.js").Condition}
+     */
+    this.condition_ = options.condition ? options.condition : singleClick;
+
+    /**
+     * @private
+     * @type {import("../events/condition.js").Condition}
+     */
+    this.addCondition_ = options.addCondition ? options.addCondition : never;
+
+    /**
+     * @private
+     * @type {import("../events/condition.js").Condition}
+     */
+    this.removeCondition_ = options.removeCondition
+      ? options.removeCondition
+      : never;
+
+    /**
+     * @private
+     * @type {import("../events/condition.js").Condition}
+     */
+    this.toggleCondition_ = options.toggleCondition
+      ? options.toggleCondition
+      : shiftKeyOnly;
+
+    /**
+     * @private
+     * @type {boolean}
+     */
+    this.multi_ = options.multi ? options.multi : false;
+
+    /**
+     * @private
+     * @type {FilterFunction}
+     */
+    this.filter_ = options.filter ? options.filter : TRUE;
+
+    /**
+     * @private
+     * @type {number}
+     */
+    this.hitTolerance_ = options.hitTolerance ? options.hitTolerance : 0;
+
+    /**
+     * @private
+     * @type {import("../style/Style.js").default|Array<import("../style/Style.js").default>|import("../style/Style.js").StyleFunction|null}
+     */
+    this.style_ =
+      options.style !== undefined ? options.style : getDefaultStyleFunction();
+
+    /**
+     * @private
+     * @type {Collection<Feature>}
+     */
+    this.features_ = options.features || new Collection();
+
+    /** @type {function(import("../layer/Layer.js").default<import("../source/Source").default>): boolean} */
+    let layerFilter;
+    if (options.layers) {
+      if (typeof options.layers === 'function') {
+        layerFilter = options.layers;
+      } else {
+        const layers = options.layers;
+        layerFilter = function (layer) {
+          return layers.includes(layer);
+        };
+      }
+    } else {
+      layerFilter = TRUE;
+    }
+
+    /**
+     * @private
+     * @type {function(import("../layer/Layer.js").default<import("../source/Source").default>): boolean}
+     */
+    this.layerFilter_ = layerFilter;
+
+    /**
+     * An association between selected feature (key)
+     * and layer (value)
+     * @private
+     * @type {Object<string, import("../layer/Layer.js").default>}
+     */
+    this.featureLayerAssociation_ = {};
+  }
+
+  /**
+   * @param {import("../Feature.js").default} feature Feature.
+   * @param {import("../layer/Layer.js").default} layer Layer.
+   * @private
+   */
+  addFeatureLayerAssociation_(feature, layer) {
+    this.featureLayerAssociation_[getUid(feature)] = layer;
+  }
+
+  /**
+   * Get the selected features.
+   * @return {Collection<Feature>} Features collection.
+   * @api
+   */
+  getFeatures() {
+    return this.features_;
+  }
+
+  /**
+   * Returns the Hit-detection tolerance.
+   * @return {number} Hit tolerance in pixels.
+   * @api
+   */
+  getHitTolerance() {
+    return this.hitTolerance_;
+  }
+
+  /**
+   * Returns the associated {@link module:ol/layer/Vector~VectorLayer vector layer} of
+   * a selected feature.
+   * @param {import("../Feature.js").default} feature Feature
+   * @return {import('../layer/Vector.js').default} Layer.
+   * @api
+   */
+  getLayer(feature) {
+    return /** @type {import('../layer/Vector.js').default} */ (
+      this.featureLayerAssociation_[getUid(feature)]
+    );
+  }
+
+  /**
+   * Hit-detection tolerance. Pixels inside the radius around the given position
+   * will be checked for features.
+   * @param {number} hitTolerance Hit tolerance in pixels.
+   * @api
+   */
+  setHitTolerance(hitTolerance) {
+    this.hitTolerance_ = hitTolerance;
+  }
+
+  /**
+   * Remove the interaction from its current map, if any,  and attach it to a new
+   * map, if any. Pass `null` to just remove the interaction from the current map.
+   * @param {import("../Map.js").default|null} map Map.
+   * @api
+   */
+  setMap(map) {
+    const currentMap = this.getMap();
+    if (currentMap && this.style_) {
+      this.features_.forEach(this.restorePreviousStyle_.bind(this));
+    }
+    super.setMap(map);
+    if (map) {
+      this.features_.addEventListener(
+        CollectionEventType.ADD,
+        this.boundAddFeature_,
+      );
+      this.features_.addEventListener(
+        CollectionEventType.REMOVE,
+        this.boundRemoveFeature_,
+      );
+
+      if (this.style_) {
+        this.features_.forEach(this.applySelectedStyle_.bind(this));
+      }
+    } else {
+      this.features_.removeEventListener(
+        CollectionEventType.ADD,
+        this.boundAddFeature_,
+      );
+      this.features_.removeEventListener(
+        CollectionEventType.REMOVE,
+        this.boundRemoveFeature_,
+      );
+    }
+  }
+
+  /**
+   * @param {import("../Collection.js").CollectionEvent<Feature>} evt Event.
+   * @private
+   */
+  addFeature_(evt) {
+    const feature = evt.element;
+    if (this.style_) {
+      this.applySelectedStyle_(feature);
+    }
+    if (!this.getLayer(feature)) {
+      const layer = /** @type {VectorLayer} */ (
+        this.getMap()
+          .getAllLayers()
+          .find(function (layer) {
+            if (
+              layer instanceof VectorLayer &&
+              layer.getSource() &&
+              layer.getSource().hasFeature(feature)
+            ) {
+              return layer;
+            }
+          })
+      );
+      if (layer) {
+        this.addFeatureLayerAssociation_(feature, layer);
+      }
+    }
+  }
+
+  /**
+   * @param {import("../Collection.js").CollectionEvent<Feature>} evt Event.
+   * @private
+   */
+  removeFeature_(evt) {
+    if (this.style_) {
+      this.restorePreviousStyle_(evt.element);
+    }
+  }
+
+  /**
+   * @return {import("../style/Style.js").StyleLike|null} Select style.
+   */
+  getStyle() {
+    return this.style_;
+  }
+
+  /**
+   * @param {Feature} feature Feature
+   * @private
+   */
+  applySelectedStyle_(feature) {
+    const key = getUid(feature);
+    if (!(key in originalFeatureStyles)) {
+      originalFeatureStyles[key] = feature.getStyle();
+    }
+    feature.setStyle(this.style_);
+  }
+
+  /**
+   * @param {Feature} feature Feature
+   * @private
+   */
+  restorePreviousStyle_(feature) {
+    const interactions = this.getMap().getInteractions().getArray();
+    for (let i = interactions.length - 1; i >= 0; --i) {
+      const interaction = interactions[i];
+      if (
+        interaction !== this &&
+        interaction instanceof Select &&
+        interaction.getStyle() &&
+        interaction.getFeatures().getArray().lastIndexOf(feature) !== -1
+      ) {
+        feature.setStyle(interaction.getStyle());
+        return;
+      }
+    }
+
+    const key = getUid(feature);
+    feature.setStyle(originalFeatureStyles[key]);
+    delete originalFeatureStyles[key];
+  }
+
+  /**
+   * @param {Feature} feature Feature.
+   * @private
+   */
+  removeFeatureLayerAssociation_(feature) {
+    delete this.featureLayerAssociation_[getUid(feature)];
+  }
+
+  /**
+   * Handles the {@link module:ol/MapBrowserEvent~MapBrowserEvent map browser event} and may change the
+   * selected state of features.
+   * @param {import("../MapBrowserEvent.js").default} mapBrowserEvent Map browser event.
+   * @return {boolean} `false` to stop event propagation.
+   */
+  handleEvent(mapBrowserEvent) {
+    if (!this.condition_(mapBrowserEvent)) {
+      return true;
+    }
+    const add = this.addCondition_(mapBrowserEvent);
+    const remove = this.removeCondition_(mapBrowserEvent);
+    const toggle = this.toggleCondition_(mapBrowserEvent);
+    const set = !add && !remove && !toggle;
+    const map = mapBrowserEvent.map;
+    const features = this.getFeatures();
+
+    /**
+     * @type {Array<Feature>}
+     */
+    const deselected = [];
+
+    /**
+     * @type {Array<Feature>}
+     */
+    const selected = [];
+
+    if (set) {
+      // Replace the currently selected feature(s) with the feature(s) at the
+      // pixel, or clear the selected feature(s) if there is no feature at
+      // the pixel.
+      clear(this.featureLayerAssociation_);
+      map.forEachFeatureAtPixel(
+        mapBrowserEvent.pixel,
+        /**
+         * @param {import("../Feature.js").FeatureLike} feature Feature.
+         * @param {import("../layer/Layer.js").default} layer Layer.
+         * @return {boolean|undefined} Continue to iterate over the features.
+         */
+        (feature, layer) => {
+          if (!(feature instanceof Feature) || !this.filter_(feature, layer)) {
+            return;
+          }
+          this.addFeatureLayerAssociation_(feature, layer);
+          selected.push(feature);
+          return !this.multi_;
+        },
+        {
+          layerFilter: this.layerFilter_,
+          hitTolerance: this.hitTolerance_,
+        },
+      );
+      for (let i = features.getLength() - 1; i >= 0; --i) {
+        const feature = features.item(i);
+        const index = selected.indexOf(feature);
+        if (index > -1) {
+          // feature is already selected
+          selected.splice(index, 1);
+        } else {
+          features.remove(feature);
+          deselected.push(feature);
+        }
+      }
+      if (selected.length !== 0) {
+        features.extend(selected);
+      }
+    } else {
+      // Modify the currently selected feature(s).
+      map.forEachFeatureAtPixel(
+        mapBrowserEvent.pixel,
+        /**
+         * @param {import("../Feature.js").FeatureLike} feature Feature.
+         * @param {import("../layer/Layer.js").default} layer Layer.
+         * @return {boolean|undefined} Continue to iterate over the features.
+         */
+        (feature, layer) => {
+          if (!(feature instanceof Feature) || !this.filter_(feature, layer)) {
+            return;
+          }
+          if ((add || toggle) && !features.getArray().includes(feature)) {
+            this.addFeatureLayerAssociation_(feature, layer);
+            selected.push(feature);
+          } else if (
+            (remove || toggle) &&
+            features.getArray().includes(feature)
+          ) {
+            deselected.push(feature);
+            this.removeFeatureLayerAssociation_(feature);
+          }
+          return !this.multi_;
+        },
+        {
+          layerFilter: this.layerFilter_,
+          hitTolerance: this.hitTolerance_,
+        },
+      );
+      for (let j = deselected.length - 1; j >= 0; --j) {
+        features.remove(deselected[j]);
+      }
+      features.extend(selected);
+    }
+    if (selected.length > 0 || deselected.length > 0) {
+      this.dispatchEvent(
+        new SelectEvent(
+          SelectEventType.SELECT,
+          selected,
+          deselected,
+          mapBrowserEvent,
+        ),
+      );
+    }
+    return true;
+  }
+}
+
+/**
+ * @return {import("../style/Style.js").StyleFunction} Styles.
+ */
+function getDefaultStyleFunction() {
+  const styles = createEditingStyle();
+  extend$3(styles['Polygon'], styles['LineString']);
+  extend$3(styles['GeometryCollection'], styles['LineString']);
+
+  return function (feature) {
+    if (!feature.getGeometry()) {
+      return null;
+    }
+    return styles[feature.getGeometry().getType()];
+  };
+}
+
+/**
  * @module ol/format/Feature
  */
 
@@ -58792,7 +60932,7 @@ function getFeatureFromEvent(evt) {
   return null;
 }
 
-const tempSegment$1 = [];
+const tempSegment = [];
 
 /***
  * @template Return
@@ -59253,9 +61393,9 @@ class Snap extends PointerInteraction {
           const [segmentStart, segmentEnd] = segmentData.segment;
           // points have only one coordinate
           if (segmentEnd) {
-            tempSegment$1[0] = fromUserCoordinate(segmentStart);
-            tempSegment$1[1] = fromUserCoordinate(segmentEnd);
-            vertex = closestOnSegment(projectedCoordinate, tempSegment$1);
+            tempSegment[0] = fromUserCoordinate(segmentStart);
+            tempSegment[1] = fromUserCoordinate(segmentEnd);
+            vertex = closestOnSegment(projectedCoordinate, tempSegment);
           }
         }
         if (vertex) {
@@ -66071,15 +68211,27 @@ var serializeDrawnFeatures = (source, map) => {
   var features = source.getFeatures().map(prepareFeatureForExport);
   return new GeoJSON().writeFeaturesObject(features, formatOptions);
 };
-var publishDrawnFeatures = (source, map, setPropsRef) => {
+var serializeEditedFeature = (feature, map) => new GeoJSON().writeFeatureObject(prepareFeatureForExport(feature), {
+  featureProjection: map.getView().getProjection(),
+  dataProjection: 'EPSG:4326'
+});
+var publishDrawnFeatures = (source, map, setPropsRef, selectedFeatures, changedFeature, removed) => {
   if (!setPropsRef.current) return;
-  setPropsRef.current({
+  var props = {
     drawnFeatures: serializeDrawnFeatures(source, map)
-  });
+  };
+  if (selectedFeatures !== null && selectedFeatures !== void 0 && selectedFeatures.getArray().includes(changedFeature)) {
+    props.editedFeature = removed ? null : serializeEditedFeature(changedFeature, map);
+  }
+  setPropsRef.current(props);
 };
 var DrawInteraction = _ref => {
   var id = _ref.id,
     geometryType = _ref.geometryType,
+    _ref$editMode = _ref.editMode,
+    editMode = _ref$editMode === void 0 ? false : _ref$editMode,
+    _ref$deleteSelected = _ref.deleteSelected,
+    deleteSelected = _ref$deleteSelected === void 0 ? 0 : _ref$deleteSelected,
     _ref$snapToVertex = _ref.snapToVertex,
     snapToVertex = _ref$snapToVertex === void 0 ? true : _ref$snapToVertex,
     _ref$snapToEdge = _ref.snapToEdge,
@@ -66090,6 +68242,10 @@ var DrawInteraction = _ref => {
   var map = useMap();
   var setPropsRef = useRef(setProps);
   var sourceRef = useRef(null);
+  var layerRef = useRef(null);
+  var selectedFeaturesRef = useRef(null);
+  var selectRef = useRef(null);
+  var previousDeleteSelectedRef = useRef(deleteSelected);
   useEffect(() => {
     setPropsRef.current = setProps;
   }, [setProps]);
@@ -66101,15 +68257,23 @@ var DrawInteraction = _ref => {
     });
     var history = getEditHistory(map);
     sourceRef.current = source;
+    layerRef.current = vector;
     vector.set('dashId', id);
     map.addLayer(vector);
-    var sourceListenerKeys = [source.on('changefeature', () => publishDrawnFeatures(source, map, setPropsRef)), source.on('removefeature', () => publishDrawnFeatures(source, map, setPropsRef))];
+    var sourceListenerKeys = [source.on('changefeature', _ref2 => {
+      var feature = _ref2.feature;
+      return publishDrawnFeatures(source, map, setPropsRef, selectedFeaturesRef.current, feature, false);
+    }), source.on('removefeature', _ref3 => {
+      var feature = _ref3.feature;
+      return publishDrawnFeatures(source, map, setPropsRef, selectedFeaturesRef.current, feature, true);
+    })];
     return () => {
       unByKey(sourceListenerKeys);
       history.removeSource(source);
       map.removeLayer(vector);
       source.clear();
       if (sourceRef.current === source) sourceRef.current = null;
+      if (layerRef.current === vector) layerRef.current = null;
     };
   }, [map, id]);
   useEffect(() => {
@@ -66191,13 +68355,133 @@ var DrawInteraction = _ref => {
     };
   }, [map, geometryType]);
   useEffect(() => {
-    if (!geometryType) return undefined;
+    var source = sourceRef.current;
+    var layer = layerRef.current;
+    if (!map || !source || !layer || !editMode) return undefined;
+    var select = new Select({
+      layers: [layer]
+    });
+    var selectedFeatures = select.getFeatures();
+    var modify = new Modify({
+      features: selectedFeatures
+    });
+    var history = getEditHistory(map);
+    var beforeGeometries = null;
+    selectedFeaturesRef.current = selectedFeatures;
+    selectRef.current = select;
+    map.addInteraction(select);
+    map.addInteraction(modify);
+    var selectListenerKey = select.on('select', () => {
+      var selected = selectedFeatures.getArray();
+      var feature = selected[selected.length - 1] || null;
+      if (setPropsRef.current) {
+        setPropsRef.current({
+          editedFeature: feature ? serializeEditedFeature(feature, map) : null
+        });
+      }
+    });
+    var modifyStartListenerKey = modify.on('modifystart', event => {
+      beforeGeometries = event.features.getArray().map(feature => ({
+        feature,
+        geometry: feature.getGeometry().clone()
+      }));
+    });
+    var modifyEndListenerKey = modify.on('modifyend', event => {
+      var afterGeometries = event.features.getArray().map(feature => ({
+        feature,
+        geometry: feature.getGeometry().clone()
+      }));
+      var previousGeometries = beforeGeometries;
+      if (previousGeometries) {
+        history.record({
+          undo: () => {
+            var _previousGeometries$;
+            previousGeometries.forEach(_ref4 => {
+              var feature = _ref4.feature,
+                geometry = _ref4.geometry;
+              return feature.setGeometry(geometry.clone());
+            });
+            publishDrawnFeatures(source, map, setPropsRef, selectedFeatures, (_previousGeometries$ = previousGeometries[0]) === null || _previousGeometries$ === void 0 ? void 0 : _previousGeometries$.feature, false);
+          },
+          redo: () => {
+            var _afterGeometries$;
+            afterGeometries.forEach(_ref5 => {
+              var feature = _ref5.feature,
+                geometry = _ref5.geometry;
+              return feature.setGeometry(geometry.clone());
+            });
+            publishDrawnFeatures(source, map, setPropsRef, selectedFeatures, (_afterGeometries$ = afterGeometries[0]) === null || _afterGeometries$ === void 0 ? void 0 : _afterGeometries$.feature, false);
+          }
+        }, source);
+      }
+      beforeGeometries = null;
+      var feature = selectedFeatures.getArray().at(-1) || null;
+      if (setPropsRef.current) {
+        setPropsRef.current({
+          drawnFeatures: serializeDrawnFeatures(source, map),
+          editedFeature: feature ? serializeEditedFeature(feature, map) : null
+        });
+      }
+    });
+    return () => {
+      unByKey([selectListenerKey, modifyStartListenerKey, modifyEndListenerKey]);
+      map.removeInteraction(modify);
+      map.removeInteraction(select);
+      selectedFeatures.clear();
+      if (selectedFeaturesRef.current === selectedFeatures) selectedFeaturesRef.current = null;
+      if (selectRef.current === select) selectRef.current = null;
+      if (setPropsRef.current) setPropsRef.current({
+        editedFeature: null
+      });
+    };
+  }, [editMode, map]);
+  useEffect(() => {
+    if (previousDeleteSelectedRef.current === deleteSelected) return;
+    previousDeleteSelectedRef.current = deleteSelected;
+    var source = sourceRef.current;
+    var selectedFeatures = selectedFeaturesRef.current;
+    var features = (selectedFeatures === null || selectedFeatures === void 0 ? void 0 : selectedFeatures.getArray().slice()) || [];
+    if (!source || !features.length) return;
+    var history = getEditHistory(map);
+    var deleteFeatures = () => features.forEach(feature => source.removeFeature(feature));
+    var restoreFeatures = () => features.forEach(feature => source.addFeature(feature));
+    deleteFeatures();
+    selectedFeatures.clear();
+    history.record({
+      undo: () => {
+        restoreFeatures();
+        if (setPropsRef.current) {
+          setPropsRef.current({
+            drawnFeatures: serializeDrawnFeatures(source, map),
+            editedFeature: null
+          });
+        }
+      },
+      redo: () => {
+        deleteFeatures();
+        if (setPropsRef.current) {
+          setPropsRef.current({
+            drawnFeatures: serializeDrawnFeatures(source, map),
+            editedFeature: null
+          });
+        }
+      }
+    }, source);
+    if (setPropsRef.current) {
+      setPropsRef.current({
+        drawnFeatures: serializeDrawnFeatures(source, map),
+        editedFeature: null
+      });
+    }
+  }, [deleteSelected, map]);
+  useEffect(() => {
+    if (!geometryType && !editMode) return undefined;
     return addSnapInteraction(map, {
       snapToVertex,
       snapToEdge,
       snapTolerance
     });
-  }, [map, id, geometryType, snapToVertex, snapToEdge, snapTolerance]);
+  }, [map, id, geometryType, editMode, snapToVertex, snapToEdge, snapTolerance]);
   return /*#__PURE__*/React$1.createElement("div", {
     style: {
       display: 'none'
@@ -66215,6 +68499,10 @@ DrawInteraction.propTypes = {
   id: PropTypes.string,
   /** Geometry to draw: Point, LineString, Polygon, Circle, or Box (an axis-aligned rectangle). */
   geometryType: PropTypes.oneOf(['Point', 'LineString', 'Polygon', 'Circle', 'Box']),
+  /** Whether to select and modify features created by this interaction. */
+  editMode: PropTypes.bool,
+  /** Increment to delete the currently selected feature or features. */
+  deleteSelected: PropTypes.number,
   /** Whether drawing snaps to existing vector vertices. */
   snapToVertex: PropTypes.bool,
   /** Whether drawing snaps to existing vector edges. */
@@ -66225,6 +68513,8 @@ DrawInteraction.propTypes = {
   drawnGeoJSON: PropTypes.object,
   /** Read-only: GeoJSON FeatureCollection containing every currently drawn feature. */
   drawnFeatures: PropTypes.object,
+  /** Read-only: selected or last modified GeoJSON Feature, or null after deselection or deletion. */
+  editedFeature: PropTypes.object,
   /** Read-only: WKT geometry emitted only when geometry validation succeeds. */
   drawnWKT: PropTypes.string,
   /** Read-only: TopoJSON topology emitted only when geometry validation succeeds. */
@@ -66254,6 +68544,9 @@ var DrawControl = _ref => {
     _ref$geometryTypes = _ref.geometryTypes,
     geometryTypes = _ref$geometryTypes === void 0 ? DEFAULT_GEOMETRY_TYPES : _ref$geometryTypes,
     activeDrawMode = _ref.activeDrawMode,
+    editMode = _ref.editMode,
+    _ref$deleteSelected = _ref.deleteSelected,
+    deleteSelected = _ref$deleteSelected === void 0 ? 0 : _ref$deleteSelected,
     _ref$position = _ref.position,
     position = _ref$position === void 0 ? 'top-left' : _ref$position,
     _ref$title = _ref.title,
@@ -66273,16 +68566,34 @@ var DrawControl = _ref => {
     _useState2 = _slicedToArray(_useState, 2),
     uncontrolledDrawMode = _useState2[0],
     setUncontrolledDrawMode = _useState2[1];
+  var _useState3 = useState(false),
+    _useState4 = _slicedToArray(_useState3, 2),
+    uncontrolledEditMode = _useState4[0],
+    setUncontrolledEditMode = _useState4[1];
+  var _useState5 = useState(0),
+    _useState6 = _slicedToArray(_useState5, 2),
+    deleteRequest = _useState6[0],
+    setDeleteRequest = _useState6[1];
   var uncontrolledDrawModeRef = React$1.useRef(null);
+  var uncontrolledEditModeRef = React$1.useRef(false);
   var activeDrawModeRef = React$1.useRef(activeDrawMode);
+  var editModeRef = React$1.useRef(editMode);
   var setPropsRef = React$1.useRef(setProps);
+  var previousDeleteSelectedRef = React$1.useRef(deleteSelected);
   var controlled = activeDrawMode !== undefined;
+  var editing = editMode === undefined ? uncontrolledEditMode : editMode;
   var activeGeometryType = controlled ? activeDrawMode : uncontrolledDrawMode;
-  var enabledActiveGeometryType = geometryTypes.includes(activeGeometryType) ? activeGeometryType : null;
+  var enabledActiveGeometryType = !editing && geometryTypes.includes(activeGeometryType) ? activeGeometryType : null;
   useEffect(() => {
     activeDrawModeRef.current = activeDrawMode;
+    editModeRef.current = editMode;
     setPropsRef.current = setProps;
-  }, [activeDrawMode, setProps]);
+  }, [activeDrawMode, editMode, setProps]);
+  useEffect(() => {
+    if (previousDeleteSelectedRef.current === deleteSelected) return;
+    previousDeleteSelectedRef.current = deleteSelected;
+    setDeleteRequest(request => request + 1);
+  }, [deleteSelected]);
   useEffect(() => {
     if (!map) return undefined;
     var element = document.createElement('div');
@@ -66336,19 +68647,76 @@ var DrawControl = _ref => {
       var listener = () => {
         var currentMode = activeDrawModeRef.current === undefined ? uncontrolledDrawModeRef.current : activeDrawModeRef.current;
         var nextMode = currentMode === geometryType ? null : geometryType;
+        if (editModeRef.current === undefined) {
+          uncontrolledEditModeRef.current = false;
+          setUncontrolledEditMode(false);
+        }
+        var changes = {};
+        if (editModeRef.current !== undefined && editModeRef.current) {
+          changes.editMode = false;
+        }
         if (activeDrawModeRef.current === undefined) {
           uncontrolledDrawModeRef.current = nextMode;
           setUncontrolledDrawMode(nextMode);
-        } else if (setPropsRef.current) {
-          setPropsRef.current({
-            activeDrawMode: nextMode
-          });
+        } else {
+          changes.activeDrawMode = nextMode;
         }
+        if (Object.keys(changes).length && setPropsRef.current) setPropsRef.current(changes);
       };
       button.addEventListener('click', listener);
       buttonListeners.push([button, listener]);
       toolbar.appendChild(button);
     });
+    var editButton = document.createElement('button');
+    editButton.type = 'button';
+    editButton.dataset.editMode = 'true';
+    editButton.setAttribute('aria-label', 'Edit drawn features');
+    editButton.setAttribute('aria-pressed', 'false');
+    editButton.textContent = 'Edit';
+    editButton.title = 'Select and edit drawn features';
+    Object.assign(editButton.style, {
+      minHeight: '32px',
+      padding: '4px 8px',
+      color: '#182522',
+      background: '#ffffff',
+      border: '1px solid #778581',
+      borderRadius: '3px',
+      cursor: 'pointer'
+    });
+    var editListener = () => {
+      var currentMode = editModeRef.current === undefined ? uncontrolledEditModeRef.current : editModeRef.current;
+      var nextMode = !currentMode;
+      if (editModeRef.current === undefined) {
+        uncontrolledEditModeRef.current = nextMode;
+        setUncontrolledEditMode(nextMode);
+      } else if (setPropsRef.current) {
+        setPropsRef.current({
+          editMode: nextMode
+        });
+      }
+    };
+    editButton.addEventListener('click', editListener);
+    buttonListeners.push([editButton, editListener]);
+    toolbar.appendChild(editButton);
+    var deleteButton = document.createElement('button');
+    deleteButton.type = 'button';
+    deleteButton.dataset.deleteSelected = 'true';
+    deleteButton.setAttribute('aria-label', 'Delete selected feature');
+    deleteButton.textContent = 'Delete';
+    deleteButton.title = 'Delete selected feature';
+    Object.assign(deleteButton.style, {
+      minHeight: '32px',
+      padding: '4px 8px',
+      color: '#182522',
+      background: '#ffffff',
+      border: '1px solid #778581',
+      borderRadius: '3px',
+      cursor: 'pointer'
+    });
+    var deleteListener = () => setDeleteRequest(request => request + 1);
+    deleteButton.addEventListener('click', deleteListener);
+    buttonListeners.push([deleteButton, deleteListener]);
+    toolbar.appendChild(deleteButton);
     element.appendChild(toolbar);
     var control = new Control({
       element
@@ -66367,7 +68735,7 @@ var DrawControl = _ref => {
     };
   }, [map, position, title, geometryTypes, style, buttonStyle]);
   useEffect(() => {
-    var _controlElementRef$cu, _controlElementRef$cu2;
+    var _controlElementRef$cu, _controlElementRef$cu2, _controlElementRef$cu3, _controlElementRef$cu4;
     var buttons = (_controlElementRef$cu = (_controlElementRef$cu2 = controlElementRef.current) === null || _controlElementRef$cu2 === void 0 ? void 0 : _controlElementRef$cu2.querySelectorAll('button[data-geometry-type]')) !== null && _controlElementRef$cu !== void 0 ? _controlElementRef$cu : [];
     buttons.forEach(button => {
       var isActive = button.dataset.geometryType === enabledActiveGeometryType;
@@ -66375,10 +68743,23 @@ var DrawControl = _ref => {
       button.style.color = isActive ? '#ffffff' : '#182522';
       button.style.background = isActive ? '#1f6a5e' : '#ffffff';
     });
-  }, [enabledActiveGeometryType]);
+    var editButton = (_controlElementRef$cu3 = controlElementRef.current) === null || _controlElementRef$cu3 === void 0 ? void 0 : _controlElementRef$cu3.querySelector('button[data-edit-mode]');
+    if (editButton) {
+      editButton.setAttribute('aria-pressed', String(editing));
+      editButton.style.color = editing ? '#ffffff' : '#182522';
+      editButton.style.background = editing ? '#1f6a5e' : '#ffffff';
+    }
+    var deleteButton = (_controlElementRef$cu4 = controlElementRef.current) === null || _controlElementRef$cu4 === void 0 ? void 0 : _controlElementRef$cu4.querySelector('button[data-delete-selected]');
+    if (deleteButton) {
+      deleteButton.disabled = !editing;
+      deleteButton.style.cursor = editing ? 'pointer' : 'not-allowed';
+    }
+  }, [enabledActiveGeometryType, editing]);
   return /*#__PURE__*/React$1.createElement(React$1.Fragment, null, /*#__PURE__*/React$1.createElement(DrawInteraction, {
     id: id ? "".concat(id, "-interaction") : undefined,
     geometryType: enabledActiveGeometryType,
+    editMode: editing,
+    deleteSelected: deleteRequest,
     snapToVertex: snapToVertex,
     snapToEdge: snapToEdge,
     snapTolerance: snapTolerance,
@@ -66400,6 +68781,10 @@ DrawControl.propTypes = {
   geometryTypes: PropTypes.arrayOf(PropTypes.oneOf(['Point', 'LineString', 'Polygon', 'Circle', 'Box'])),
   /** Active drawing mode; set to null to stop drawing. Bidirectional when changed by toolbar clicks. */
   activeDrawMode: PropTypes.oneOf([null, 'Point', 'LineString', 'Polygon', 'Circle', 'Box']),
+  /** Whether selection and vertex editing are enabled; toolbar changes are bidirectional. */
+  editMode: PropTypes.bool,
+  /** Increment to delete the currently selected feature or features. */
+  deleteSelected: PropTypes.number,
   /** Corner of the map where the drawing tools are displayed. */
   position: PropTypes.oneOf(['top-left', 'top-right', 'bottom-left', 'bottom-right']),
   /** Accessible toolbar label and visible heading. */
@@ -66418,6 +68803,8 @@ DrawControl.propTypes = {
   drawnGeoJSON: PropTypes.object,
   /** Read-only: GeoJSON FeatureCollection of all drawn features, updated after drawing, editing, undo, or removal. */
   drawnFeatures: PropTypes.object,
+  /** Read-only: selected or last modified GeoJSON Feature, or null after deselection or deletion. */
+  editedFeature: PropTypes.object,
   /** Read-only: WKT geometry emitted only when geometry validation succeeds. */
   drawnWKT: PropTypes.string,
   /** Read-only: TopoJSON topology emitted only when geometry validation succeeds. */
@@ -70054,1569 +72441,6 @@ MeasureControl.propTypes = {
   style: PropTypes.object
 };
 
-/**
- * @module ol/interaction/Modify
- */
-
-/**
- * The segment index assigned to a circle's center when
- * breaking up a circle into ModifySegmentDataType segments.
- * @type {number}
- */
-const CIRCLE_CENTER_INDEX = 0;
-
-/**
- * The segment index assigned to a circle's circumference when
- * breaking up a circle into ModifySegmentDataType segments.
- * @type {number}
- */
-const CIRCLE_CIRCUMFERENCE_INDEX = 1;
-
-const tempExtent = [0, 0, 0, 0];
-const tempSegment = [];
-
-/**
- * @enum {string}
- */
-const ModifyEventType = {
-  /**
-   * Triggered upon feature modification start
-   * @event ModifyEvent#modifystart
-   * @api
-   */
-  MODIFYSTART: 'modifystart',
-  /**
-   * Triggered upon feature modification end
-   * @event ModifyEvent#modifyend
-   * @api
-   */
-  MODIFYEND: 'modifyend',
-};
-
-/**
- * @typedef {Object} SegmentData
- * @property {Array<number>} [depth] Depth.
- * @property {Feature} feature Feature.
- * @property {import("../geom/SimpleGeometry.js").default} geometry Geometry.
- * @property {number} [index] Index.
- * @property {Array<Array<number>>} segment Segment.
- * @property {Array<SegmentData>} [featureSegments] FeatureSegments.
- */
-
-/**
- * @typedef {Object} Options
- * @property {import("../events/condition.js").Condition} [condition] A function that
- * takes an {@link module:ol/MapBrowserEvent~MapBrowserEvent} and returns a
- * boolean to indicate whether that event will be considered to add or move a
- * vertex to the sketch. Default is
- * {@link module:ol/events/condition.primaryAction}.
- * @property {import("../events/condition.js").Condition} [deleteCondition] A function
- * that takes an {@link module:ol/MapBrowserEvent~MapBrowserEvent} and returns a
- * boolean to indicate whether that event should be handled. By default,
- * {@link module:ol/events/condition.singleClick} with
- * {@link module:ol/events/condition.altKeyOnly} results in a vertex deletion.
- * @property {import("../events/condition.js").Condition} [insertVertexCondition] A
- * function that takes an {@link module:ol/MapBrowserEvent~MapBrowserEvent} and
- * returns a boolean to indicate whether a new vertex should be added to the sketch
- * features. Default is {@link module:ol/events/condition.always}.
- * @property {number} [pixelTolerance=10] Pixel tolerance for considering the
- * pointer close enough to a segment or vertex for editing.
- * @property {import("../style/Style.js").StyleLike|import("../style/flat.js").FlatStyleLike} [style]
- * Style used for the modification point or vertex. For linestrings and polygons, this will
- * be the affected vertex, for circles a point along the circle, and for points the actual
- * point. If not configured, the default edit style is used (see {@link module:ol/style/Style~Style}).
- * When using a style function, the point feature passed to the function will have a `features`
- * property - an array whose entries are the features that are being modified, and a `geometries`
- * property - an array whose entries are the geometries that are being modified. Both arrays are
- * in the same order. The `geometries` are only useful when modifying geometry collections, where
- * the geometry will be the particular geometry from the collection that is being modified.
- * @property {VectorSource} [source] The vector source with
- * features to modify.  If a vector source is not provided, a feature collection
- * must be provided with the `features` option.
- * @property {boolean|import("../layer/BaseVector").default} [hitDetection] When configured, point
- * features will be considered for modification based on their visual appearance, instead of being within
- * the `pixelTolerance` from the pointer location. When a {@link module:ol/layer/BaseVector~BaseVectorLayer} is
- * provided, only the rendered representation of the features on that layer will be considered.
- * @property {Collection<Feature>} [features]
- * The features the interaction works on.  If a feature collection is not
- * provided, a vector source must be provided with the `source` option.
- * @property {boolean} [wrapX=false] Wrap the world horizontally on the sketch
- * overlay.
- * @property {boolean} [snapToPointer=!hitDetection] The vertex, point or segment being modified snaps to the
- * pointer coordinate when clicked within the `pixelTolerance`.
- */
-
-/**
- * @classdesc
- * Events emitted by {@link module:ol/interaction/Modify~Modify} instances are
- * instances of this type.
- */
-class ModifyEvent extends BaseEvent {
-  /**
-   * @param {ModifyEventType} type Type.
-   * @param {Collection<Feature>} features
-   * The features modified.
-   * @param {import("../MapBrowserEvent.js").default} mapBrowserEvent
-   * Associated {@link module:ol/MapBrowserEvent~MapBrowserEvent}.
-   */
-  constructor(type, features, mapBrowserEvent) {
-    super(type);
-
-    /**
-     * The features being modified.
-     * @type {Collection<Feature>}
-     * @api
-     */
-    this.features = features;
-
-    /**
-     * Associated {@link module:ol/MapBrowserEvent~MapBrowserEvent}.
-     * @type {import("../MapBrowserEvent.js").default}
-     * @api
-     */
-    this.mapBrowserEvent = mapBrowserEvent;
-  }
-}
-
-/***
- * @template Return
- * @typedef {import("../Observable").OnSignature<import("../Observable").EventTypes, import("../events/Event.js").default, Return> &
- *   import("../Observable").OnSignature<import("../ObjectEventType").Types|
- *     'change:active', import("../Object").ObjectEvent, Return> &
- *   import("../Observable").OnSignature<'modifyend'|'modifystart', ModifyEvent, Return> &
- *   import("../Observable").CombinedOnSignature<import("../Observable").EventTypes|import("../ObjectEventType").Types|
- *     'change:active'|'modifyend'|'modifystart', Return>} ModifyOnSignature
- */
-
-/**
- * @classdesc
- * Interaction for modifying feature geometries.  To modify features that have
- * been added to an existing source, construct the modify interaction with the
- * `source` option.  If you want to modify features in a collection (for example,
- * the collection used by a select interaction), construct the interaction with
- * the `features` option.  The interaction must be constructed with either a
- * `source` or `features` option.
- *
- * Cartesian distance from the pointer is used to determine the features that
- * will be modified. This means that geometries will only be considered for
- * modification when they are within the configured `pixelTolerance`. For point
- * geometries, the `hitDetection` option can be used to match their visual
- * appearance.
- *
- * By default, the interaction will allow deletion of vertices when the `alt`
- * key is pressed.  To configure the interaction with a different condition
- * for deletion, use the `deleteCondition` option.
- * @fires ModifyEvent
- * @api
- */
-class Modify extends PointerInteraction {
-  /**
-   * @param {Options} options Options.
-   */
-  constructor(options) {
-    super(/** @type {import("./Pointer.js").Options} */ (options));
-
-    /***
-     * @type {ModifyOnSignature<import("../events").EventsKey>}
-     */
-    this.on;
-
-    /***
-     * @type {ModifyOnSignature<import("../events").EventsKey>}
-     */
-    this.once;
-
-    /***
-     * @type {ModifyOnSignature<void>}
-     */
-    this.un;
-
-    /** @private */
-    this.boundHandleFeatureChange_ = this.handleFeatureChange_.bind(this);
-
-    /**
-     * @private
-     * @type {import("../events/condition.js").Condition}
-     */
-    this.condition_ = options.condition ? options.condition : primaryAction;
-
-    /**
-     * @private
-     * @param {import("../MapBrowserEvent.js").default} mapBrowserEvent Browser event.
-     * @return {boolean} Combined condition result.
-     */
-    this.defaultDeleteCondition_ = function (mapBrowserEvent) {
-      return altKeyOnly(mapBrowserEvent) && singleClick(mapBrowserEvent);
-    };
-
-    /**
-     * @type {import("../events/condition.js").Condition}
-     * @private
-     */
-    this.deleteCondition_ = options.deleteCondition
-      ? options.deleteCondition
-      : this.defaultDeleteCondition_;
-
-    /**
-     * @type {import("../events/condition.js").Condition}
-     * @private
-     */
-    this.insertVertexCondition_ = options.insertVertexCondition
-      ? options.insertVertexCondition
-      : always;
-
-    /**
-     * Editing vertex.
-     * @type {Feature<Point>}
-     * @private
-     */
-    this.vertexFeature_ = null;
-
-    /**
-     * Segments intersecting {@link this.vertexFeature_} by segment uid.
-     * @type {Object<string, boolean>}
-     * @private
-     */
-    this.vertexSegments_ = null;
-
-    /**
-     * @type {import("../pixel.js").Pixel}
-     * @private
-     */
-    this.lastPixel_ = [0, 0];
-
-    /**
-     * Tracks if the next `singleclick` event should be ignored to prevent
-     * accidental deletion right after vertex creation.
-     * @type {boolean}
-     * @private
-     */
-    this.ignoreNextSingleClick_ = false;
-
-    /**
-     * @type {Collection<Feature>}
-     * @private
-     */
-    this.featuresBeingModified_ = null;
-
-    /**
-     * Segment RTree for each layer
-     * @type {RBush<SegmentData>}
-     * @private
-     */
-    this.rBush_ = new RBush();
-
-    /**
-     * @type {number}
-     * @private
-     */
-    this.pixelTolerance_ =
-      options.pixelTolerance !== undefined ? options.pixelTolerance : 10;
-
-    /**
-     * @type {boolean}
-     * @private
-     */
-    this.snappedToVertex_ = false;
-
-    /**
-     * Indicate whether the interaction is currently changing a feature's
-     * coordinates.
-     * @type {boolean}
-     * @private
-     */
-    this.changingFeature_ = false;
-
-    /**
-     * @type {Array}
-     * @private
-     */
-    this.dragSegments_ = [];
-
-    /**
-     * Draw overlay where sketch features are drawn.
-     * @type {VectorLayer}
-     * @private
-     */
-    this.overlay_ = new VectorLayer({
-      source: new VectorSource({
-        useSpatialIndex: false,
-        wrapX: !!options.wrapX,
-      }),
-      style: options.style ? options.style : getDefaultStyleFunction$1(),
-      updateWhileAnimating: true,
-      updateWhileInteracting: true,
-    });
-
-    /**
-     * @const
-     * @private
-     * @type {!Object<string, function(Feature, import("../geom/Geometry.js").default): void>}
-     */
-    this.SEGMENT_WRITERS_ = {
-      'Point': this.writePointGeometry_.bind(this),
-      'LineString': this.writeLineStringGeometry_.bind(this),
-      'LinearRing': this.writeLineStringGeometry_.bind(this),
-      'Polygon': this.writePolygonGeometry_.bind(this),
-      'MultiPoint': this.writeMultiPointGeometry_.bind(this),
-      'MultiLineString': this.writeMultiLineStringGeometry_.bind(this),
-      'MultiPolygon': this.writeMultiPolygonGeometry_.bind(this),
-      'Circle': this.writeCircleGeometry_.bind(this),
-      'GeometryCollection': this.writeGeometryCollectionGeometry_.bind(this),
-    };
-
-    /**
-     * @type {VectorSource}
-     * @private
-     */
-    this.source_ = null;
-
-    /**
-     * @type {boolean|import("../layer/BaseVector").default}
-     */
-    this.hitDetection_ = null;
-
-    /** @type {Collection<Feature>} */
-    let features;
-    if (options.features) {
-      features = options.features;
-    } else if (options.source) {
-      this.source_ = options.source;
-      features = new Collection(this.source_.getFeatures());
-      this.source_.addEventListener(
-        VectorEventType.ADDFEATURE,
-        this.handleSourceAdd_.bind(this),
-      );
-      this.source_.addEventListener(
-        VectorEventType.REMOVEFEATURE,
-        this.handleSourceRemove_.bind(this),
-      );
-    }
-    if (!features) {
-      throw new Error(
-        'The modify interaction requires features, a source or a layer',
-      );
-    }
-    if (options.hitDetection) {
-      this.hitDetection_ = options.hitDetection;
-    }
-
-    /**
-     * @type {Collection<Feature>}
-     * @private
-     */
-    this.features_ = features;
-
-    this.features_.forEach(this.addFeature_.bind(this));
-    this.features_.addEventListener(
-      CollectionEventType.ADD,
-      this.handleFeatureAdd_.bind(this),
-    );
-    this.features_.addEventListener(
-      CollectionEventType.REMOVE,
-      this.handleFeatureRemove_.bind(this),
-    );
-
-    /**
-     * @type {import("../MapBrowserEvent.js").default}
-     * @private
-     */
-    this.lastPointerEvent_ = null;
-
-    /**
-     * Delta (x, y in map units) between matched rtree vertex and pointer vertex.
-     * @type {Array<number>}
-     */
-    this.delta_ = [0, 0];
-
-    /**
-     * @private
-     */
-    this.snapToPointer_ =
-      options.snapToPointer === undefined
-        ? !this.hitDetection_
-        : options.snapToPointer;
-  }
-
-  /**
-   * @param {Feature} feature Feature.
-   * @private
-   */
-  addFeature_(feature) {
-    const geometry = feature.getGeometry();
-    if (geometry) {
-      const writer = this.SEGMENT_WRITERS_[geometry.getType()];
-      if (writer) {
-        writer(feature, geometry);
-      }
-    }
-    const map = this.getMap();
-    if (map && map.isRendered() && this.getActive()) {
-      this.handlePointerAtPixel_(this.lastPixel_, map);
-    }
-    feature.addEventListener(EventType.CHANGE, this.boundHandleFeatureChange_);
-  }
-
-  /**
-   * @param {import("../MapBrowserEvent.js").default} evt Map browser event.
-   * @param {Array<Array<SegmentData>>} segments The segments subject to modification.
-   * @private
-   */
-  willModifyFeatures_(evt, segments) {
-    if (!this.featuresBeingModified_) {
-      this.featuresBeingModified_ = new Collection();
-      const features = this.featuresBeingModified_.getArray();
-      for (let i = 0, ii = segments.length; i < ii; ++i) {
-        const segment = segments[i];
-        for (let s = 0, ss = segment.length; s < ss; ++s) {
-          const feature = segment[s].feature;
-          if (feature && !features.includes(feature)) {
-            this.featuresBeingModified_.push(feature);
-          }
-        }
-      }
-      if (this.featuresBeingModified_.getLength() === 0) {
-        this.featuresBeingModified_ = null;
-      } else {
-        this.dispatchEvent(
-          new ModifyEvent(
-            ModifyEventType.MODIFYSTART,
-            this.featuresBeingModified_,
-            evt,
-          ),
-        );
-      }
-    }
-  }
-
-  /**
-   * @param {Feature} feature Feature.
-   * @private
-   */
-  removeFeature_(feature) {
-    this.removeFeatureSegmentData_(feature);
-    // Remove the vertex feature if the collection of candidate features is empty.
-    if (this.vertexFeature_ && this.features_.getLength() === 0) {
-      this.overlay_.getSource().removeFeature(this.vertexFeature_);
-      this.vertexFeature_ = null;
-    }
-    feature.removeEventListener(
-      EventType.CHANGE,
-      this.boundHandleFeatureChange_,
-    );
-  }
-
-  /**
-   * @param {Feature} feature Feature.
-   * @private
-   */
-  removeFeatureSegmentData_(feature) {
-    const rBush = this.rBush_;
-    /** @type {Array<SegmentData>} */
-    const nodesToRemove = [];
-    rBush.forEach(
-      /**
-       * @param {SegmentData} node RTree node.
-       */
-      function (node) {
-        if (feature === node.feature) {
-          nodesToRemove.push(node);
-        }
-      },
-    );
-    for (let i = nodesToRemove.length - 1; i >= 0; --i) {
-      const nodeToRemove = nodesToRemove[i];
-      for (let j = this.dragSegments_.length - 1; j >= 0; --j) {
-        if (this.dragSegments_[j][0] === nodeToRemove) {
-          this.dragSegments_.splice(j, 1);
-        }
-      }
-      rBush.remove(nodeToRemove);
-    }
-  }
-
-  /**
-   * Activate or deactivate the interaction.
-   * @param {boolean} active Active.
-   * @observable
-   * @api
-   */
-  setActive(active) {
-    if (this.vertexFeature_ && !active) {
-      this.overlay_.getSource().removeFeature(this.vertexFeature_);
-      this.vertexFeature_ = null;
-    }
-    super.setActive(active);
-  }
-
-  /**
-   * Remove the interaction from its current map and attach it to the new map.
-   * Subclasses may set up event handlers to get notified about changes to
-   * the map here.
-   * @param {import("../Map.js").default} map Map.
-   */
-  setMap(map) {
-    this.overlay_.setMap(map);
-    super.setMap(map);
-  }
-
-  /**
-   * Get the overlay layer that this interaction renders the modification point or vertex to.
-   * @return {VectorLayer} Overlay layer.
-   * @api
-   */
-  getOverlay() {
-    return this.overlay_;
-  }
-
-  /**
-   * @param {import("../source/Vector.js").VectorSourceEvent} event Event.
-   * @private
-   */
-  handleSourceAdd_(event) {
-    if (event.feature) {
-      this.features_.push(event.feature);
-    }
-  }
-
-  /**
-   * @param {import("../source/Vector.js").VectorSourceEvent} event Event.
-   * @private
-   */
-  handleSourceRemove_(event) {
-    if (event.feature) {
-      this.features_.remove(event.feature);
-    }
-  }
-
-  /**
-   * @param {import("../Collection.js").CollectionEvent<Feature>} evt Event.
-   * @private
-   */
-  handleFeatureAdd_(evt) {
-    this.addFeature_(evt.element);
-  }
-
-  /**
-   * @param {import("../events/Event.js").default} evt Event.
-   * @private
-   */
-  handleFeatureChange_(evt) {
-    if (!this.changingFeature_) {
-      const feature = /** @type {Feature} */ (evt.target);
-      this.removeFeature_(feature);
-      this.addFeature_(feature);
-    }
-  }
-
-  /**
-   * @param {import("../Collection.js").CollectionEvent<Feature>} evt Event.
-   * @private
-   */
-  handleFeatureRemove_(evt) {
-    this.removeFeature_(evt.element);
-  }
-
-  /**
-   * @param {Feature} feature Feature
-   * @param {Point} geometry Geometry.
-   * @private
-   */
-  writePointGeometry_(feature, geometry) {
-    const coordinates = geometry.getCoordinates();
-
-    /** @type {SegmentData} */
-    const segmentData = {
-      feature: feature,
-      geometry: geometry,
-      segment: [coordinates, coordinates],
-    };
-
-    this.rBush_.insert(geometry.getExtent(), segmentData);
-  }
-
-  /**
-   * @param {Feature} feature Feature
-   * @param {import("../geom/MultiPoint.js").default} geometry Geometry.
-   * @private
-   */
-  writeMultiPointGeometry_(feature, geometry) {
-    const points = geometry.getCoordinates();
-    for (let i = 0, ii = points.length; i < ii; ++i) {
-      const coordinates = points[i];
-
-      /** @type {SegmentData} */
-      const segmentData = {
-        feature: feature,
-        geometry: geometry,
-        depth: [i],
-        index: i,
-        segment: [coordinates, coordinates],
-      };
-
-      this.rBush_.insert(geometry.getExtent(), segmentData);
-    }
-  }
-
-  /**
-   * @param {Feature} feature Feature
-   * @param {import("../geom/LineString.js").default} geometry Geometry.
-   * @private
-   */
-  writeLineStringGeometry_(feature, geometry) {
-    const coordinates = geometry.getCoordinates();
-    for (let i = 0, ii = coordinates.length - 1; i < ii; ++i) {
-      const segment = coordinates.slice(i, i + 2);
-
-      /** @type {SegmentData} */
-      const segmentData = {
-        feature: feature,
-        geometry: geometry,
-        index: i,
-        segment: segment,
-      };
-
-      this.rBush_.insert(boundingExtent(segment), segmentData);
-    }
-  }
-
-  /**
-   * @param {Feature} feature Feature
-   * @param {import("../geom/MultiLineString.js").default} geometry Geometry.
-   * @private
-   */
-  writeMultiLineStringGeometry_(feature, geometry) {
-    const lines = geometry.getCoordinates();
-    for (let j = 0, jj = lines.length; j < jj; ++j) {
-      const coordinates = lines[j];
-      for (let i = 0, ii = coordinates.length - 1; i < ii; ++i) {
-        const segment = coordinates.slice(i, i + 2);
-
-        /** @type {SegmentData} */
-        const segmentData = {
-          feature: feature,
-          geometry: geometry,
-          depth: [j],
-          index: i,
-          segment: segment,
-        };
-
-        this.rBush_.insert(boundingExtent(segment), segmentData);
-      }
-    }
-  }
-
-  /**
-   * @param {Feature} feature Feature
-   * @param {import("../geom/Polygon.js").default} geometry Geometry.
-   * @private
-   */
-  writePolygonGeometry_(feature, geometry) {
-    const rings = geometry.getCoordinates();
-    for (let j = 0, jj = rings.length; j < jj; ++j) {
-      const coordinates = rings[j];
-      for (let i = 0, ii = coordinates.length - 1; i < ii; ++i) {
-        const segment = coordinates.slice(i, i + 2);
-
-        /** @type {SegmentData} */
-        const segmentData = {
-          feature: feature,
-          geometry: geometry,
-          depth: [j],
-          index: i,
-          segment: segment,
-        };
-
-        this.rBush_.insert(boundingExtent(segment), segmentData);
-      }
-    }
-  }
-
-  /**
-   * @param {Feature} feature Feature
-   * @param {import("../geom/MultiPolygon.js").default} geometry Geometry.
-   * @private
-   */
-  writeMultiPolygonGeometry_(feature, geometry) {
-    const polygons = geometry.getCoordinates();
-    for (let k = 0, kk = polygons.length; k < kk; ++k) {
-      const rings = polygons[k];
-      for (let j = 0, jj = rings.length; j < jj; ++j) {
-        const coordinates = rings[j];
-        for (let i = 0, ii = coordinates.length - 1; i < ii; ++i) {
-          const segment = coordinates.slice(i, i + 2);
-
-          /** @type {SegmentData} */
-          const segmentData = {
-            feature: feature,
-            geometry: geometry,
-            depth: [j, k],
-            index: i,
-            segment: segment,
-          };
-
-          this.rBush_.insert(boundingExtent(segment), segmentData);
-        }
-      }
-    }
-  }
-
-  /**
-   * We convert a circle into two segments.  The segment at index
-   * {@link CIRCLE_CENTER_INDEX} is the
-   * circle's center (a point).  The segment at index
-   * {@link CIRCLE_CIRCUMFERENCE_INDEX} is
-   * the circumference, and is not a line segment.
-   *
-   * @param {Feature} feature Feature.
-   * @param {import("../geom/Circle.js").default} geometry Geometry.
-   * @private
-   */
-  writeCircleGeometry_(feature, geometry) {
-    const coordinates = geometry.getCenter();
-
-    /** @type {SegmentData} */
-    const centerSegmentData = {
-      feature: feature,
-      geometry: geometry,
-      index: CIRCLE_CENTER_INDEX,
-      segment: [coordinates, coordinates],
-    };
-
-    /** @type {SegmentData} */
-    const circumferenceSegmentData = {
-      feature: feature,
-      geometry: geometry,
-      index: CIRCLE_CIRCUMFERENCE_INDEX,
-      segment: [coordinates, coordinates],
-    };
-
-    const featureSegments = [centerSegmentData, circumferenceSegmentData];
-    centerSegmentData.featureSegments = featureSegments;
-    circumferenceSegmentData.featureSegments = featureSegments;
-    this.rBush_.insert(createOrUpdateFromCoordinate(coordinates), centerSegmentData);
-    let circleGeometry = /** @type {import("../geom/Geometry.js").default} */ (
-      geometry
-    );
-    this.rBush_.insert(circleGeometry.getExtent(), circumferenceSegmentData);
-  }
-
-  /**
-   * @param {Feature} feature Feature
-   * @param {import("../geom/GeometryCollection.js").default} geometry Geometry.
-   * @private
-   */
-  writeGeometryCollectionGeometry_(feature, geometry) {
-    const geometries = geometry.getGeometriesArray();
-    for (let i = 0; i < geometries.length; ++i) {
-      const geometry = geometries[i];
-      const writer = this.SEGMENT_WRITERS_[geometry.getType()];
-      writer(feature, geometry);
-    }
-  }
-
-  /**
-   * @param {import("../coordinate.js").Coordinate} coordinates Coordinates.
-   * @param {Array<Feature>} features The features being modified.
-   * @param {Array<import("../geom/SimpleGeometry.js").default>} geometries The geometries being modified.
-   * @return {Feature} Vertex feature.
-   * @private
-   */
-  createOrUpdateVertexFeature_(coordinates, features, geometries) {
-    let vertexFeature = this.vertexFeature_;
-    if (!vertexFeature) {
-      vertexFeature = new Feature(new Point$1(coordinates));
-      this.vertexFeature_ = vertexFeature;
-      this.overlay_.getSource().addFeature(vertexFeature);
-    } else {
-      const geometry = vertexFeature.getGeometry();
-      geometry.setCoordinates(coordinates);
-    }
-    vertexFeature.set('features', features);
-    vertexFeature.set('geometries', geometries);
-    return vertexFeature;
-  }
-
-  /**
-   * Handles the {@link module:ol/MapBrowserEvent~MapBrowserEvent map browser event} and may modify the geometry.
-   * @param {import("../MapBrowserEvent.js").default} mapBrowserEvent Map browser event.
-   * @return {boolean} `false` to stop event propagation.
-   */
-  handleEvent(mapBrowserEvent) {
-    if (!mapBrowserEvent.originalEvent) {
-      return true;
-    }
-    this.lastPointerEvent_ = mapBrowserEvent;
-
-    let handled;
-    if (
-      !mapBrowserEvent.map.getView().getInteracting() &&
-      mapBrowserEvent.type == MapBrowserEventType.POINTERMOVE &&
-      !this.handlingDownUpSequence
-    ) {
-      this.handlePointerMove_(mapBrowserEvent);
-    }
-    if (this.vertexFeature_ && this.deleteCondition_(mapBrowserEvent)) {
-      if (
-        mapBrowserEvent.type != MapBrowserEventType.SINGLECLICK ||
-        !this.ignoreNextSingleClick_
-      ) {
-        handled = this.removePoint();
-      } else {
-        handled = true;
-      }
-    }
-
-    if (mapBrowserEvent.type == MapBrowserEventType.SINGLECLICK) {
-      this.ignoreNextSingleClick_ = false;
-    }
-
-    return super.handleEvent(mapBrowserEvent) && !handled;
-  }
-
-  /**
-   * Handle pointer drag events.
-   * @param {import("../MapBrowserEvent.js").default} evt Event.
-   */
-  handleDragEvent(evt) {
-    this.ignoreNextSingleClick_ = false;
-    this.willModifyFeatures_(evt, this.dragSegments_);
-
-    const vertex = [
-      evt.coordinate[0] + this.delta_[0],
-      evt.coordinate[1] + this.delta_[1],
-    ];
-    const features = [];
-    const geometries = [];
-    for (let i = 0, ii = this.dragSegments_.length; i < ii; ++i) {
-      const dragSegment = this.dragSegments_[i];
-      const segmentData = dragSegment[0];
-      const feature = segmentData.feature;
-      if (!features.includes(feature)) {
-        features.push(feature);
-      }
-      const geometry = segmentData.geometry;
-      if (!geometries.includes(geometry)) {
-        geometries.push(geometry);
-      }
-      const depth = segmentData.depth;
-      let coordinates;
-      const segment = segmentData.segment;
-      const index = dragSegment[1];
-
-      while (vertex.length < geometry.getStride()) {
-        vertex.push(segment[index][vertex.length]);
-      }
-
-      switch (geometry.getType()) {
-        case 'Point':
-          coordinates = vertex;
-          segment[0] = vertex;
-          segment[1] = vertex;
-          break;
-        case 'MultiPoint':
-          coordinates = geometry.getCoordinates();
-          coordinates[segmentData.index] = vertex;
-          segment[0] = vertex;
-          segment[1] = vertex;
-          break;
-        case 'LineString':
-          coordinates = geometry.getCoordinates();
-          coordinates[segmentData.index + index] = vertex;
-          segment[index] = vertex;
-          break;
-        case 'MultiLineString':
-          coordinates = geometry.getCoordinates();
-          coordinates[depth[0]][segmentData.index + index] = vertex;
-          segment[index] = vertex;
-          break;
-        case 'Polygon':
-          coordinates = geometry.getCoordinates();
-          coordinates[depth[0]][segmentData.index + index] = vertex;
-          segment[index] = vertex;
-          break;
-        case 'MultiPolygon':
-          coordinates = geometry.getCoordinates();
-          coordinates[depth[1]][depth[0]][segmentData.index + index] = vertex;
-          segment[index] = vertex;
-          break;
-        case 'Circle':
-          segment[0] = vertex;
-          segment[1] = vertex;
-          if (segmentData.index === CIRCLE_CENTER_INDEX) {
-            this.changingFeature_ = true;
-            geometry.setCenter(vertex);
-            this.changingFeature_ = false;
-          } else {
-            // We're dragging the circle's circumference:
-            this.changingFeature_ = true;
-            evt.map.getView().getProjection();
-            let radius = distance(
-              fromUserCoordinate(geometry.getCenter()),
-              fromUserCoordinate(vertex),
-            );
-            geometry.setRadius(radius);
-            this.changingFeature_ = false;
-          }
-          break;
-        // pass
-      }
-
-      if (coordinates) {
-        this.setGeometryCoordinates_(geometry, coordinates);
-      }
-    }
-    this.createOrUpdateVertexFeature_(vertex, features, geometries);
-  }
-
-  /**
-   * Handle pointer down events.
-   * @param {import("../MapBrowserEvent.js").default} evt Event.
-   * @return {boolean} If the event was consumed.
-   */
-  handleDownEvent(evt) {
-    if (!this.condition_(evt)) {
-      return false;
-    }
-    const pixelCoordinate = evt.coordinate;
-    this.handlePointerAtPixel_(evt.pixel, evt.map, pixelCoordinate);
-    this.dragSegments_.length = 0;
-    this.featuresBeingModified_ = null;
-    const vertexFeature = this.vertexFeature_;
-    if (vertexFeature) {
-      evt.map.getView().getProjection();
-      const insertVertices = [];
-      const vertex = vertexFeature.getGeometry().getCoordinates();
-      const vertexExtent = boundingExtent([vertex]);
-      const segmentDataMatches = this.rBush_.getInExtent(vertexExtent);
-      const componentSegments = {};
-      segmentDataMatches.sort(compareIndexes);
-      for (let i = 0, ii = segmentDataMatches.length; i < ii; ++i) {
-        const segmentDataMatch = segmentDataMatches[i];
-        const segment = segmentDataMatch.segment;
-        let uid = getUid(segmentDataMatch.geometry);
-        const depth = segmentDataMatch.depth;
-        if (depth) {
-          uid += '-' + depth.join('-'); // separate feature components
-        }
-        if (!componentSegments[uid]) {
-          componentSegments[uid] = new Array(2);
-        }
-
-        if (
-          segmentDataMatch.geometry.getType() === 'Circle' &&
-          segmentDataMatch.index === CIRCLE_CIRCUMFERENCE_INDEX
-        ) {
-          const closestVertex = closestOnSegmentData(
-            pixelCoordinate,
-            segmentDataMatch);
-          if (
-            equals$1(closestVertex, vertex) &&
-            !componentSegments[uid][0]
-          ) {
-            this.dragSegments_.push([segmentDataMatch, 0]);
-            componentSegments[uid][0] = segmentDataMatch;
-          }
-          continue;
-        }
-
-        if (
-          equals$1(segment[0], vertex) &&
-          !componentSegments[uid][0]
-        ) {
-          this.dragSegments_.push([segmentDataMatch, 0]);
-          componentSegments[uid][0] = segmentDataMatch;
-          continue;
-        }
-
-        if (
-          equals$1(segment[1], vertex) &&
-          !componentSegments[uid][1]
-        ) {
-          if (
-            componentSegments[uid][0] &&
-            componentSegments[uid][0].index === 0
-          ) {
-            let coordinates = segmentDataMatch.geometry.getCoordinates();
-            switch (segmentDataMatch.geometry.getType()) {
-              // prevent dragging closed linestrings by the connecting node
-              case 'LineString':
-              case 'MultiLineString':
-                continue;
-              // if dragging the first vertex of a polygon, ensure the other segment
-              // belongs to the closing vertex of the linear ring
-              case 'MultiPolygon':
-                coordinates = coordinates[depth[1]];
-              /* falls through */
-              case 'Polygon':
-                if (
-                  segmentDataMatch.index !==
-                  coordinates[depth[0]].length - 2
-                ) {
-                  continue;
-                }
-                break;
-              // pass
-            }
-          }
-
-          this.dragSegments_.push([segmentDataMatch, 1]);
-          componentSegments[uid][1] = segmentDataMatch;
-          continue;
-        }
-
-        if (
-          getUid(segment) in this.vertexSegments_ &&
-          !componentSegments[uid][0] &&
-          !componentSegments[uid][1] &&
-          this.insertVertexCondition_(evt)
-        ) {
-          insertVertices.push(segmentDataMatch);
-        }
-      }
-
-      if (insertVertices.length) {
-        this.willModifyFeatures_(evt, [insertVertices]);
-      }
-
-      for (let j = insertVertices.length - 1; j >= 0; --j) {
-        this.insertVertex_(insertVertices[j], vertex);
-      }
-    }
-    return !!this.vertexFeature_;
-  }
-
-  /**
-   * Handle pointer up events.
-   * @param {import("../MapBrowserEvent.js").default} evt Event.
-   * @return {boolean} If the event was consumed.
-   */
-  handleUpEvent(evt) {
-    for (let i = this.dragSegments_.length - 1; i >= 0; --i) {
-      const segmentData = this.dragSegments_[i][0];
-      const geometry = segmentData.geometry;
-      if (geometry.getType() === 'Circle') {
-        // Update a circle object in the R* bush:
-        const coordinates = geometry.getCenter();
-        const centerSegmentData = segmentData.featureSegments[0];
-        const circumferenceSegmentData = segmentData.featureSegments[1];
-        centerSegmentData.segment[0] = coordinates;
-        centerSegmentData.segment[1] = coordinates;
-        circumferenceSegmentData.segment[0] = coordinates;
-        circumferenceSegmentData.segment[1] = coordinates;
-        this.rBush_.update(createOrUpdateFromCoordinate(coordinates), centerSegmentData);
-        let circleGeometry = geometry;
-        this.rBush_.update(
-          circleGeometry.getExtent(),
-          circumferenceSegmentData,
-        );
-      } else {
-        this.rBush_.update(boundingExtent(segmentData.segment), segmentData);
-      }
-    }
-    if (this.featuresBeingModified_) {
-      this.dispatchEvent(
-        new ModifyEvent(
-          ModifyEventType.MODIFYEND,
-          this.featuresBeingModified_,
-          evt,
-        ),
-      );
-      this.featuresBeingModified_ = null;
-    }
-    return false;
-  }
-
-  /**
-   * @param {import("../MapBrowserEvent.js").default} evt Event.
-   * @private
-   */
-  handlePointerMove_(evt) {
-    this.lastPixel_ = evt.pixel;
-    this.handlePointerAtPixel_(evt.pixel, evt.map, evt.coordinate);
-  }
-
-  /**
-   * @param {import("../pixel.js").Pixel} pixel Pixel
-   * @param {import("../Map.js").default} map Map.
-   * @param {import("../coordinate.js").Coordinate} [coordinate] The pixel Coordinate.
-   * @private
-   */
-  handlePointerAtPixel_(pixel, map, coordinate) {
-    const pixelCoordinate = coordinate || map.getCoordinateFromPixel(pixel);
-    map.getView().getProjection();
-    const sortByDistance = function (a, b) {
-      return (
-        projectedDistanceToSegmentDataSquared(pixelCoordinate, a) -
-        projectedDistanceToSegmentDataSquared(pixelCoordinate, b)
-      );
-    };
-
-    /** @type {Array<SegmentData>|undefined} */
-    let nodes;
-    /** @type {Point|undefined} */
-    let hitPointGeometry;
-    if (this.hitDetection_) {
-      const layerFilter =
-        typeof this.hitDetection_ === 'object'
-          ? (layer) => layer === this.hitDetection_
-          : undefined;
-      map.forEachFeatureAtPixel(
-        pixel,
-        (feature, layer, geometry) => {
-          if (geometry && geometry.getType() === 'Point') {
-            geometry = new Point$1(
-              toUserCoordinate(geometry.getCoordinates()),
-            );
-          }
-          const geom = geometry || feature.getGeometry();
-          if (
-            feature instanceof Feature &&
-            this.features_.getArray().includes(feature)
-          ) {
-            hitPointGeometry = /** @type {Point} */ (geom);
-            const coordinate = /** @type {Point} */ (feature.getGeometry())
-              .getFlatCoordinates()
-              .slice(0, 2);
-            nodes = [
-              {
-                feature,
-                geometry: hitPointGeometry,
-                segment: [coordinate, coordinate],
-              },
-            ];
-          }
-          return true;
-        },
-        {layerFilter},
-      );
-    }
-    if (!nodes) {
-      const viewExtent = fromUserExtent(
-        createOrUpdateFromCoordinate(pixelCoordinate, tempExtent));
-      const buffer = map.getView().getResolution() * this.pixelTolerance_;
-      const box = toUserExtent(
-        buffer$1(viewExtent, buffer, tempExtent));
-      nodes = this.rBush_.getInExtent(box);
-    }
-
-    if (nodes && nodes.length > 0) {
-      const node = nodes.sort(sortByDistance)[0];
-      const closestSegment = node.segment;
-      let vertex = closestOnSegmentData(pixelCoordinate, node);
-      const vertexPixel = map.getPixelFromCoordinate(vertex);
-      let dist = distance(pixel, vertexPixel);
-      if (hitPointGeometry || dist <= this.pixelTolerance_) {
-        /** @type {Object<string, boolean>} */
-        const vertexSegments = {};
-        vertexSegments[getUid(closestSegment)] = true;
-
-        if (!this.snapToPointer_) {
-          this.delta_[0] = vertex[0] - pixelCoordinate[0];
-          this.delta_[1] = vertex[1] - pixelCoordinate[1];
-        }
-        if (
-          node.geometry.getType() === 'Circle' &&
-          node.index === CIRCLE_CIRCUMFERENCE_INDEX
-        ) {
-          this.snappedToVertex_ = true;
-          this.createOrUpdateVertexFeature_(
-            vertex,
-            [node.feature],
-            [node.geometry],
-          );
-        } else {
-          const pixel1 = map.getPixelFromCoordinate(closestSegment[0]);
-          const pixel2 = map.getPixelFromCoordinate(closestSegment[1]);
-          const squaredDist1 = squaredDistance(vertexPixel, pixel1);
-          const squaredDist2 = squaredDistance(vertexPixel, pixel2);
-          dist = Math.sqrt(Math.min(squaredDist1, squaredDist2));
-          this.snappedToVertex_ = dist <= this.pixelTolerance_;
-          if (this.snappedToVertex_) {
-            vertex =
-              squaredDist1 > squaredDist2
-                ? closestSegment[1]
-                : closestSegment[0];
-          }
-          this.createOrUpdateVertexFeature_(
-            vertex,
-            [node.feature],
-            [node.geometry],
-          );
-          const geometries = {};
-          geometries[getUid(node.geometry)] = true;
-          for (let i = 1, ii = nodes.length; i < ii; ++i) {
-            const segment = nodes[i].segment;
-            if (
-              (equals$1(closestSegment[0], segment[0]) &&
-                equals$1(closestSegment[1], segment[1])) ||
-              (equals$1(closestSegment[0], segment[1]) &&
-                equals$1(closestSegment[1], segment[0]))
-            ) {
-              const geometryUid = getUid(nodes[i].geometry);
-              if (!(geometryUid in geometries)) {
-                geometries[geometryUid] = true;
-                vertexSegments[getUid(segment)] = true;
-              }
-            } else {
-              break;
-            }
-          }
-        }
-
-        this.vertexSegments_ = vertexSegments;
-        return;
-      }
-    }
-    if (this.vertexFeature_) {
-      this.overlay_.getSource().removeFeature(this.vertexFeature_);
-      this.vertexFeature_ = null;
-    }
-  }
-
-  /**
-   * @param {SegmentData} segmentData Segment data.
-   * @param {import("../coordinate.js").Coordinate} vertex Vertex.
-   * @private
-   */
-  insertVertex_(segmentData, vertex) {
-    const segment = segmentData.segment;
-    const feature = segmentData.feature;
-    const geometry = segmentData.geometry;
-    const depth = segmentData.depth;
-    const index = segmentData.index;
-    let coordinates;
-
-    while (vertex.length < geometry.getStride()) {
-      vertex.push(0);
-    }
-
-    switch (geometry.getType()) {
-      case 'MultiLineString':
-        coordinates = geometry.getCoordinates();
-        coordinates[depth[0]].splice(index + 1, 0, vertex);
-        break;
-      case 'Polygon':
-        coordinates = geometry.getCoordinates();
-        coordinates[depth[0]].splice(index + 1, 0, vertex);
-        break;
-      case 'MultiPolygon':
-        coordinates = geometry.getCoordinates();
-        coordinates[depth[1]][depth[0]].splice(index + 1, 0, vertex);
-        break;
-      case 'LineString':
-        coordinates = geometry.getCoordinates();
-        coordinates.splice(index + 1, 0, vertex);
-        break;
-      default:
-        return;
-    }
-
-    this.setGeometryCoordinates_(geometry, coordinates);
-    const rTree = this.rBush_;
-    rTree.remove(segmentData);
-    this.updateSegmentIndices_(geometry, index, depth, 1);
-
-    /** @type {SegmentData} */
-    const newSegmentData = {
-      segment: [segment[0], vertex],
-      feature: feature,
-      geometry: geometry,
-      depth: depth,
-      index: index,
-    };
-
-    rTree.insert(boundingExtent(newSegmentData.segment), newSegmentData);
-    this.dragSegments_.push([newSegmentData, 1]);
-
-    /** @type {SegmentData} */
-    const newSegmentData2 = {
-      segment: [vertex, segment[1]],
-      feature: feature,
-      geometry: geometry,
-      depth: depth,
-      index: index + 1,
-    };
-
-    rTree.insert(boundingExtent(newSegmentData2.segment), newSegmentData2);
-    this.dragSegments_.push([newSegmentData2, 0]);
-    this.ignoreNextSingleClick_ = true;
-  }
-
-  /**
-   * Removes the vertex currently being pointed.
-   * @return {boolean} True when a vertex was removed.
-   * @api
-   */
-  removePoint() {
-    if (
-      this.lastPointerEvent_ &&
-      this.lastPointerEvent_.type != MapBrowserEventType.POINTERDRAG
-    ) {
-      const evt = this.lastPointerEvent_;
-      this.willModifyFeatures_(evt, this.dragSegments_);
-      const removed = this.removeVertex_();
-      if (this.featuresBeingModified_) {
-        this.dispatchEvent(
-          new ModifyEvent(
-            ModifyEventType.MODIFYEND,
-            this.featuresBeingModified_,
-            evt,
-          ),
-        );
-      }
-
-      this.featuresBeingModified_ = null;
-      return removed;
-    }
-    return false;
-  }
-
-  /**
-   * Removes a vertex from all matching features.
-   * @return {boolean} True when a vertex was removed.
-   * @private
-   */
-  removeVertex_() {
-    const dragSegments = this.dragSegments_;
-    const segmentsByFeature = {};
-    let deleted = false;
-    let component, coordinates, dragSegment, geometry, i, index, left;
-    let newIndex, right, segmentData, uid;
-    for (i = dragSegments.length - 1; i >= 0; --i) {
-      dragSegment = dragSegments[i];
-      segmentData = dragSegment[0];
-      uid = getUid(segmentData.feature);
-      if (segmentData.depth) {
-        // separate feature components
-        uid += '-' + segmentData.depth.join('-');
-      }
-      if (!(uid in segmentsByFeature)) {
-        segmentsByFeature[uid] = {};
-      }
-      if (dragSegment[1] === 0) {
-        segmentsByFeature[uid].right = segmentData;
-        segmentsByFeature[uid].index = segmentData.index;
-      } else if (dragSegment[1] == 1) {
-        segmentsByFeature[uid].left = segmentData;
-        segmentsByFeature[uid].index = segmentData.index + 1;
-      }
-    }
-    for (uid in segmentsByFeature) {
-      right = segmentsByFeature[uid].right;
-      left = segmentsByFeature[uid].left;
-      index = segmentsByFeature[uid].index;
-      newIndex = index - 1;
-      if (left !== undefined) {
-        segmentData = left;
-      } else {
-        segmentData = right;
-      }
-      if (newIndex < 0) {
-        newIndex = 0;
-      }
-      geometry = segmentData.geometry;
-      coordinates = geometry.getCoordinates();
-      component = coordinates;
-      deleted = false;
-      switch (geometry.getType()) {
-        case 'MultiLineString':
-          if (coordinates[segmentData.depth[0]].length > 2) {
-            coordinates[segmentData.depth[0]].splice(index, 1);
-            deleted = true;
-          }
-          break;
-        case 'LineString':
-          if (coordinates.length > 2) {
-            coordinates.splice(index, 1);
-            deleted = true;
-          }
-          break;
-        case 'MultiPolygon':
-          component = component[segmentData.depth[1]];
-        /* falls through */
-        case 'Polygon':
-          component = component[segmentData.depth[0]];
-          if (component.length > 4) {
-            if (index == component.length - 1) {
-              index = 0;
-            }
-            component.splice(index, 1);
-            deleted = true;
-            if (index === 0) {
-              // close the ring again
-              component.pop();
-              component.push(component[0]);
-              newIndex = component.length - 1;
-            }
-          }
-          break;
-        // pass
-      }
-
-      if (deleted) {
-        this.setGeometryCoordinates_(geometry, coordinates);
-        const segments = [];
-        if (left !== undefined) {
-          this.rBush_.remove(left);
-          segments.push(left.segment[0]);
-        }
-        if (right !== undefined) {
-          this.rBush_.remove(right);
-          segments.push(right.segment[1]);
-        }
-        if (left !== undefined && right !== undefined) {
-          /** @type {SegmentData} */
-          const newSegmentData = {
-            depth: segmentData.depth,
-            feature: segmentData.feature,
-            geometry: segmentData.geometry,
-            index: newIndex,
-            segment: segments,
-          };
-
-          this.rBush_.insert(
-            boundingExtent(newSegmentData.segment),
-            newSegmentData,
-          );
-        }
-        this.updateSegmentIndices_(geometry, index, segmentData.depth, -1);
-        if (this.vertexFeature_) {
-          this.overlay_.getSource().removeFeature(this.vertexFeature_);
-          this.vertexFeature_ = null;
-        }
-        dragSegments.length = 0;
-      }
-    }
-    return deleted;
-  }
-
-  /**
-   * @param {import("../geom/SimpleGeometry.js").default} geometry Geometry.
-   * @param {Array} coordinates Coordinates.
-   * @private
-   */
-  setGeometryCoordinates_(geometry, coordinates) {
-    this.changingFeature_ = true;
-    geometry.setCoordinates(coordinates);
-    this.changingFeature_ = false;
-  }
-
-  /**
-   * @param {import("../geom/SimpleGeometry.js").default} geometry Geometry.
-   * @param {number} index Index.
-   * @param {Array<number>|undefined} depth Depth.
-   * @param {number} delta Delta (1 or -1).
-   * @private
-   */
-  updateSegmentIndices_(geometry, index, depth, delta) {
-    this.rBush_.forEachInExtent(
-      geometry.getExtent(),
-      function (segmentDataMatch) {
-        if (
-          segmentDataMatch.geometry === geometry &&
-          (depth === undefined ||
-            segmentDataMatch.depth === undefined ||
-            equals$3(segmentDataMatch.depth, depth)) &&
-          segmentDataMatch.index > index
-        ) {
-          segmentDataMatch.index += delta;
-        }
-      },
-    );
-  }
-}
-
-/**
- * @param {SegmentData} a The first segment data.
- * @param {SegmentData} b The second segment data.
- * @return {number} The difference in indexes.
- */
-function compareIndexes(a, b) {
-  return a.index - b.index;
-}
-
-/**
- * Returns the distance from a point to a line segment.
- *
- * @param {import("../coordinate.js").Coordinate} pointCoordinates The coordinates of the point from
- *        which to calculate the distance.
- * @param {SegmentData} segmentData The object describing the line
- *        segment we are calculating the distance to.
- * @param {import("../proj/Projection.js").default} projection The view projection.
- * @return {number} The square of the distance between a point and a line segment.
- */
-function projectedDistanceToSegmentDataSquared(
-  pointCoordinates,
-  segmentData,
-  projection,
-) {
-  const geometry = segmentData.geometry;
-
-  if (geometry.getType() === 'Circle') {
-    let circleGeometry = /** @type {import("../geom/Circle.js").default} */ (
-      geometry
-    );
-
-    if (segmentData.index === CIRCLE_CIRCUMFERENCE_INDEX) {
-      const distanceToCenterSquared = squaredDistance(
-        circleGeometry.getCenter(),
-        fromUserCoordinate(pointCoordinates),
-      );
-      const distanceToCircumference =
-        Math.sqrt(distanceToCenterSquared) - circleGeometry.getRadius();
-      return distanceToCircumference * distanceToCircumference;
-    }
-  }
-
-  const coordinate = fromUserCoordinate(pointCoordinates);
-  tempSegment[0] = fromUserCoordinate(segmentData.segment[0]);
-  tempSegment[1] = fromUserCoordinate(segmentData.segment[1]);
-  return squaredDistanceToSegment(coordinate, tempSegment);
-}
-
-/**
- * Returns the point closest to a given line segment.
- *
- * @param {import("../coordinate.js").Coordinate} pointCoordinates The point to which a closest point
- *        should be found.
- * @param {SegmentData} segmentData The object describing the line
- *        segment which should contain the closest point.
- * @param {import("../proj/Projection.js").default} projection The view projection.
- * @return {import("../coordinate.js").Coordinate} The point closest to the specified line segment.
- */
-function closestOnSegmentData(pointCoordinates, segmentData, projection) {
-  const geometry = segmentData.geometry;
-
-  if (
-    geometry.getType() === 'Circle' &&
-    segmentData.index === CIRCLE_CIRCUMFERENCE_INDEX
-  ) {
-    let circleGeometry = /** @type {import("../geom/Circle.js").default} */ (
-      geometry
-    );
-    return toUserCoordinate(
-      circleGeometry.getClosestPoint(
-        fromUserCoordinate(pointCoordinates),
-      ));
-  }
-  const coordinate = fromUserCoordinate(pointCoordinates);
-  tempSegment[0] = fromUserCoordinate(segmentData.segment[0]);
-  tempSegment[1] = fromUserCoordinate(segmentData.segment[1]);
-  return toUserCoordinate(
-    closestOnSegment(coordinate, tempSegment));
-}
-
-/**
- * @return {import("../style/Style.js").StyleFunction} Styles.
- */
-function getDefaultStyleFunction$1() {
-  const style = createEditingStyle();
-  return function (feature, resolution) {
-    return style['Point'];
-  };
-}
-
 /** Allow editing vertices in a VectorLayer and report the updated features. */
 var ModifyInteraction = _ref => {
   var layerId = _ref.layerId,
@@ -71866,583 +72690,6 @@ Popup.propTypes = {
   /** Dash-supplied prop setter; internal, do not set from Python. */
   setProps: PropTypes.func
 };
-
-/**
- * @module ol/interaction/Select
- */
-
-/**
- * @enum {string}
- */
-const SelectEventType = {
-  /**
-   * Triggered when feature(s) has been (de)selected.
-   * @event SelectEvent#select
-   * @api
-   */
-  SELECT: 'select',
-};
-
-/**
- * A function that takes an {@link module:ol/Feature~Feature} and returns `true` if the feature may be
- * selected or `false` otherwise.
- * @typedef {function(import("../Feature.js").default, import("../layer/Layer.js").default<import("../source/Source").default>):boolean} FilterFunction
- */
-
-/**
- * @typedef {Object} Options
- * @property {import("../events/condition.js").Condition} [addCondition] A function
- * that takes an {@link module:ol/MapBrowserEvent~MapBrowserEvent} and returns a
- * boolean to indicate whether that event should be handled.
- * By default, this is {@link module:ol/events/condition.never}. Use this if you
- * want to use different events for add and remove instead of `toggle`.
- * @property {import("../events/condition.js").Condition} [condition] A function that
- * takes an {@link module:ol/MapBrowserEvent~MapBrowserEvent} and returns a
- * boolean to indicate whether that event should be handled. This is the event
- * for the selected features as a whole. By default, this is
- * {@link module:ol/events/condition.singleClick}. Clicking on a feature selects that
- * feature and removes any that were in the selection. Clicking outside any
- * feature removes all from the selection.
- * See `toggle`, `add`, `remove` options for adding/removing extra features to/
- * from the selection.
- * @property {Array<import("../layer/Layer.js").default>|function(import("../layer/Layer.js").default<import("../source/Source").default>): boolean} [layers]
- * A list of layers from which features should be selected. Alternatively, a
- * filter function can be provided. The function will be called for each layer
- * in the map and should return `true` for layers that you want to be
- * selectable. If the option is absent, all visible layers will be considered
- * selectable.
- * @property {import("../style/Style.js").StyleLike|null} [style]
- * Style for the selected features. By default the default edit style is used
- * (see {@link module:ol/style/Style~Style}). Set to `null` if this interaction should not apply
- * any style changes for selected features.
- * If set to a falsey value, the selected feature's style will not change.
- * @property {import("../events/condition.js").Condition} [removeCondition] A function
- * that takes an {@link module:ol/MapBrowserEvent~MapBrowserEvent} and returns a
- * boolean to indicate whether that event should be handled.
- * By default, this is {@link module:ol/events/condition.never}. Use this if you
- * want to use different events for add and remove instead of `toggle`.
- * @property {import("../events/condition.js").Condition} [toggleCondition] A function
- * that takes an {@link module:ol/MapBrowserEvent~MapBrowserEvent} and returns a
- * boolean to indicate whether that event should be handled. This is in addition
- * to the `condition` event. By default,
- * {@link module:ol/events/condition.shiftKeyOnly}, i.e. pressing `shift` as
- * well as the `condition` event, adds that feature to the current selection if
- * it is not currently selected, and removes it if it is. See `add` and `remove`
- * if you want to use different events instead of a toggle.
- * @property {boolean} [multi=false] A boolean that determines if the default
- * behaviour should select only single features or all (overlapping) features at
- * the clicked map position. The default of `false` means single select.
- * @property {Collection<Feature>} [features]
- * Collection where the interaction will place selected features. Optional. If
- * not set the interaction will create a collection. In any case the collection
- * used by the interaction is returned by
- * {@link module:ol/interaction/Select~Select#getFeatures}.
- * @property {FilterFunction} [filter] A function
- * that takes an {@link module:ol/Feature~Feature} and an
- * {@link module:ol/layer/Layer~Layer} and returns `true` if the feature may be
- * selected or `false` otherwise.
- * @property {number} [hitTolerance=0] Hit-detection tolerance. Pixels inside
- * the radius around the given position will be checked for features.
- */
-
-/**
- * @classdesc
- * Events emitted by {@link module:ol/interaction/Select~Select} instances are instances of
- * this type.
- */
-class SelectEvent extends BaseEvent {
-  /**
-   * @param {SelectEventType} type The event type.
-   * @param {Array<import("../Feature.js").default>} selected Selected features.
-   * @param {Array<import("../Feature.js").default>} deselected Deselected features.
-   * @param {import("../MapBrowserEvent.js").default} mapBrowserEvent Associated
-   *     {@link module:ol/MapBrowserEvent~MapBrowserEvent}.
-   */
-  constructor(type, selected, deselected, mapBrowserEvent) {
-    super(type);
-
-    /**
-     * Selected features array.
-     * @type {Array<import("../Feature.js").default>}
-     * @api
-     */
-    this.selected = selected;
-
-    /**
-     * Deselected features array.
-     * @type {Array<import("../Feature.js").default>}
-     * @api
-     */
-    this.deselected = deselected;
-
-    /**
-     * Associated {@link module:ol/MapBrowserEvent~MapBrowserEvent}.
-     * @type {import("../MapBrowserEvent.js").default}
-     * @api
-     */
-    this.mapBrowserEvent = mapBrowserEvent;
-  }
-}
-
-/**
- * Original feature styles to reset to when features are no longer selected.
- * @type {Object<number, import("../style/Style.js").default|Array<import("../style/Style.js").default>|import("../style/Style.js").StyleFunction>}
- */
-const originalFeatureStyles = {};
-
-/***
- * @template Return
- * @typedef {import("../Observable").OnSignature<import("../Observable").EventTypes, import("../events/Event.js").default, Return> &
- *   import("../Observable").OnSignature<import("../ObjectEventType").Types|
- *     'change:active', import("../Object").ObjectEvent, Return> &
- *   import("../Observable").OnSignature<'select', SelectEvent, Return> &
- *   import("../Observable").CombinedOnSignature<import("../Observable").EventTypes|import("../ObjectEventType").Types|
- *     'change:active'|'select', Return>} SelectOnSignature
- */
-
-/**
- * @classdesc
- * Interaction for selecting vector features. By default, selected features are
- * styled differently, so this interaction can be used for visual highlighting,
- * as well as selecting features for other actions, such as modification or
- * output. There are three ways of controlling which features are selected:
- * using the browser event as defined by the `condition` and optionally the
- * `toggle`, `add`/`remove`, and `multi` options; a `layers` filter; and a
- * further feature filter using the `filter` option.
- *
- * @fires SelectEvent
- * @api
- */
-class Select extends Interaction {
-  /**
-   * @param {Options} [options] Options.
-   */
-  constructor(options) {
-    super();
-
-    /***
-     * @type {SelectOnSignature<import("../events").EventsKey>}
-     */
-    this.on;
-
-    /***
-     * @type {SelectOnSignature<import("../events").EventsKey>}
-     */
-    this.once;
-
-    /***
-     * @type {SelectOnSignature<void>}
-     */
-    this.un;
-
-    options = options ? options : {};
-
-    /**
-     * @private
-     */
-    this.boundAddFeature_ = this.addFeature_.bind(this);
-
-    /**
-     * @private
-     */
-    this.boundRemoveFeature_ = this.removeFeature_.bind(this);
-
-    /**
-     * @private
-     * @type {import("../events/condition.js").Condition}
-     */
-    this.condition_ = options.condition ? options.condition : singleClick;
-
-    /**
-     * @private
-     * @type {import("../events/condition.js").Condition}
-     */
-    this.addCondition_ = options.addCondition ? options.addCondition : never;
-
-    /**
-     * @private
-     * @type {import("../events/condition.js").Condition}
-     */
-    this.removeCondition_ = options.removeCondition
-      ? options.removeCondition
-      : never;
-
-    /**
-     * @private
-     * @type {import("../events/condition.js").Condition}
-     */
-    this.toggleCondition_ = options.toggleCondition
-      ? options.toggleCondition
-      : shiftKeyOnly;
-
-    /**
-     * @private
-     * @type {boolean}
-     */
-    this.multi_ = options.multi ? options.multi : false;
-
-    /**
-     * @private
-     * @type {FilterFunction}
-     */
-    this.filter_ = options.filter ? options.filter : TRUE;
-
-    /**
-     * @private
-     * @type {number}
-     */
-    this.hitTolerance_ = options.hitTolerance ? options.hitTolerance : 0;
-
-    /**
-     * @private
-     * @type {import("../style/Style.js").default|Array<import("../style/Style.js").default>|import("../style/Style.js").StyleFunction|null}
-     */
-    this.style_ =
-      options.style !== undefined ? options.style : getDefaultStyleFunction();
-
-    /**
-     * @private
-     * @type {Collection<Feature>}
-     */
-    this.features_ = options.features || new Collection();
-
-    /** @type {function(import("../layer/Layer.js").default<import("../source/Source").default>): boolean} */
-    let layerFilter;
-    if (options.layers) {
-      if (typeof options.layers === 'function') {
-        layerFilter = options.layers;
-      } else {
-        const layers = options.layers;
-        layerFilter = function (layer) {
-          return layers.includes(layer);
-        };
-      }
-    } else {
-      layerFilter = TRUE;
-    }
-
-    /**
-     * @private
-     * @type {function(import("../layer/Layer.js").default<import("../source/Source").default>): boolean}
-     */
-    this.layerFilter_ = layerFilter;
-
-    /**
-     * An association between selected feature (key)
-     * and layer (value)
-     * @private
-     * @type {Object<string, import("../layer/Layer.js").default>}
-     */
-    this.featureLayerAssociation_ = {};
-  }
-
-  /**
-   * @param {import("../Feature.js").default} feature Feature.
-   * @param {import("../layer/Layer.js").default} layer Layer.
-   * @private
-   */
-  addFeatureLayerAssociation_(feature, layer) {
-    this.featureLayerAssociation_[getUid(feature)] = layer;
-  }
-
-  /**
-   * Get the selected features.
-   * @return {Collection<Feature>} Features collection.
-   * @api
-   */
-  getFeatures() {
-    return this.features_;
-  }
-
-  /**
-   * Returns the Hit-detection tolerance.
-   * @return {number} Hit tolerance in pixels.
-   * @api
-   */
-  getHitTolerance() {
-    return this.hitTolerance_;
-  }
-
-  /**
-   * Returns the associated {@link module:ol/layer/Vector~VectorLayer vector layer} of
-   * a selected feature.
-   * @param {import("../Feature.js").default} feature Feature
-   * @return {import('../layer/Vector.js').default} Layer.
-   * @api
-   */
-  getLayer(feature) {
-    return /** @type {import('../layer/Vector.js').default} */ (
-      this.featureLayerAssociation_[getUid(feature)]
-    );
-  }
-
-  /**
-   * Hit-detection tolerance. Pixels inside the radius around the given position
-   * will be checked for features.
-   * @param {number} hitTolerance Hit tolerance in pixels.
-   * @api
-   */
-  setHitTolerance(hitTolerance) {
-    this.hitTolerance_ = hitTolerance;
-  }
-
-  /**
-   * Remove the interaction from its current map, if any,  and attach it to a new
-   * map, if any. Pass `null` to just remove the interaction from the current map.
-   * @param {import("../Map.js").default|null} map Map.
-   * @api
-   */
-  setMap(map) {
-    const currentMap = this.getMap();
-    if (currentMap && this.style_) {
-      this.features_.forEach(this.restorePreviousStyle_.bind(this));
-    }
-    super.setMap(map);
-    if (map) {
-      this.features_.addEventListener(
-        CollectionEventType.ADD,
-        this.boundAddFeature_,
-      );
-      this.features_.addEventListener(
-        CollectionEventType.REMOVE,
-        this.boundRemoveFeature_,
-      );
-
-      if (this.style_) {
-        this.features_.forEach(this.applySelectedStyle_.bind(this));
-      }
-    } else {
-      this.features_.removeEventListener(
-        CollectionEventType.ADD,
-        this.boundAddFeature_,
-      );
-      this.features_.removeEventListener(
-        CollectionEventType.REMOVE,
-        this.boundRemoveFeature_,
-      );
-    }
-  }
-
-  /**
-   * @param {import("../Collection.js").CollectionEvent<Feature>} evt Event.
-   * @private
-   */
-  addFeature_(evt) {
-    const feature = evt.element;
-    if (this.style_) {
-      this.applySelectedStyle_(feature);
-    }
-    if (!this.getLayer(feature)) {
-      const layer = /** @type {VectorLayer} */ (
-        this.getMap()
-          .getAllLayers()
-          .find(function (layer) {
-            if (
-              layer instanceof VectorLayer &&
-              layer.getSource() &&
-              layer.getSource().hasFeature(feature)
-            ) {
-              return layer;
-            }
-          })
-      );
-      if (layer) {
-        this.addFeatureLayerAssociation_(feature, layer);
-      }
-    }
-  }
-
-  /**
-   * @param {import("../Collection.js").CollectionEvent<Feature>} evt Event.
-   * @private
-   */
-  removeFeature_(evt) {
-    if (this.style_) {
-      this.restorePreviousStyle_(evt.element);
-    }
-  }
-
-  /**
-   * @return {import("../style/Style.js").StyleLike|null} Select style.
-   */
-  getStyle() {
-    return this.style_;
-  }
-
-  /**
-   * @param {Feature} feature Feature
-   * @private
-   */
-  applySelectedStyle_(feature) {
-    const key = getUid(feature);
-    if (!(key in originalFeatureStyles)) {
-      originalFeatureStyles[key] = feature.getStyle();
-    }
-    feature.setStyle(this.style_);
-  }
-
-  /**
-   * @param {Feature} feature Feature
-   * @private
-   */
-  restorePreviousStyle_(feature) {
-    const interactions = this.getMap().getInteractions().getArray();
-    for (let i = interactions.length - 1; i >= 0; --i) {
-      const interaction = interactions[i];
-      if (
-        interaction !== this &&
-        interaction instanceof Select &&
-        interaction.getStyle() &&
-        interaction.getFeatures().getArray().lastIndexOf(feature) !== -1
-      ) {
-        feature.setStyle(interaction.getStyle());
-        return;
-      }
-    }
-
-    const key = getUid(feature);
-    feature.setStyle(originalFeatureStyles[key]);
-    delete originalFeatureStyles[key];
-  }
-
-  /**
-   * @param {Feature} feature Feature.
-   * @private
-   */
-  removeFeatureLayerAssociation_(feature) {
-    delete this.featureLayerAssociation_[getUid(feature)];
-  }
-
-  /**
-   * Handles the {@link module:ol/MapBrowserEvent~MapBrowserEvent map browser event} and may change the
-   * selected state of features.
-   * @param {import("../MapBrowserEvent.js").default} mapBrowserEvent Map browser event.
-   * @return {boolean} `false` to stop event propagation.
-   */
-  handleEvent(mapBrowserEvent) {
-    if (!this.condition_(mapBrowserEvent)) {
-      return true;
-    }
-    const add = this.addCondition_(mapBrowserEvent);
-    const remove = this.removeCondition_(mapBrowserEvent);
-    const toggle = this.toggleCondition_(mapBrowserEvent);
-    const set = !add && !remove && !toggle;
-    const map = mapBrowserEvent.map;
-    const features = this.getFeatures();
-
-    /**
-     * @type {Array<Feature>}
-     */
-    const deselected = [];
-
-    /**
-     * @type {Array<Feature>}
-     */
-    const selected = [];
-
-    if (set) {
-      // Replace the currently selected feature(s) with the feature(s) at the
-      // pixel, or clear the selected feature(s) if there is no feature at
-      // the pixel.
-      clear(this.featureLayerAssociation_);
-      map.forEachFeatureAtPixel(
-        mapBrowserEvent.pixel,
-        /**
-         * @param {import("../Feature.js").FeatureLike} feature Feature.
-         * @param {import("../layer/Layer.js").default} layer Layer.
-         * @return {boolean|undefined} Continue to iterate over the features.
-         */
-        (feature, layer) => {
-          if (!(feature instanceof Feature) || !this.filter_(feature, layer)) {
-            return;
-          }
-          this.addFeatureLayerAssociation_(feature, layer);
-          selected.push(feature);
-          return !this.multi_;
-        },
-        {
-          layerFilter: this.layerFilter_,
-          hitTolerance: this.hitTolerance_,
-        },
-      );
-      for (let i = features.getLength() - 1; i >= 0; --i) {
-        const feature = features.item(i);
-        const index = selected.indexOf(feature);
-        if (index > -1) {
-          // feature is already selected
-          selected.splice(index, 1);
-        } else {
-          features.remove(feature);
-          deselected.push(feature);
-        }
-      }
-      if (selected.length !== 0) {
-        features.extend(selected);
-      }
-    } else {
-      // Modify the currently selected feature(s).
-      map.forEachFeatureAtPixel(
-        mapBrowserEvent.pixel,
-        /**
-         * @param {import("../Feature.js").FeatureLike} feature Feature.
-         * @param {import("../layer/Layer.js").default} layer Layer.
-         * @return {boolean|undefined} Continue to iterate over the features.
-         */
-        (feature, layer) => {
-          if (!(feature instanceof Feature) || !this.filter_(feature, layer)) {
-            return;
-          }
-          if ((add || toggle) && !features.getArray().includes(feature)) {
-            this.addFeatureLayerAssociation_(feature, layer);
-            selected.push(feature);
-          } else if (
-            (remove || toggle) &&
-            features.getArray().includes(feature)
-          ) {
-            deselected.push(feature);
-            this.removeFeatureLayerAssociation_(feature);
-          }
-          return !this.multi_;
-        },
-        {
-          layerFilter: this.layerFilter_,
-          hitTolerance: this.hitTolerance_,
-        },
-      );
-      for (let j = deselected.length - 1; j >= 0; --j) {
-        features.remove(deselected[j]);
-      }
-      features.extend(selected);
-    }
-    if (selected.length > 0 || deselected.length > 0) {
-      this.dispatchEvent(
-        new SelectEvent(
-          SelectEventType.SELECT,
-          selected,
-          deselected,
-          mapBrowserEvent,
-        ),
-      );
-    }
-    return true;
-  }
-}
-
-/**
- * @return {import("../style/Style.js").StyleFunction} Styles.
- */
-function getDefaultStyleFunction() {
-  const styles = createEditingStyle();
-  extend$3(styles['Polygon'], styles['LineString']);
-  extend$3(styles['GeometryCollection'], styles['LineString']);
-
-  return function (feature) {
-    if (!feature.getGeometry()) {
-      return null;
-    }
-    return styles[feature.getGeometry().getType()];
-  };
-}
 
 /** Select vector features and report the current selection to Dash. */
 var SelectInteraction = _ref => {

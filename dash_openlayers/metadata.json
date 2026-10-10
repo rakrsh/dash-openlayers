@@ -80,6 +80,24 @@
         "required": false,
         "description": "Active drawing mode; set to null to stop drawing. Bidirectional when changed by toolbar clicks."
       },
+      "editMode": {
+        "type": {
+          "name": "bool"
+        },
+        "required": false,
+        "description": "Whether selection and vertex editing are enabled; toolbar changes are bidirectional."
+      },
+      "deleteSelected": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Increment to delete the currently selected feature or features.",
+        "defaultValue": {
+          "value": "0",
+          "computed": false
+        }
+      },
       "position": {
         "type": {
           "name": "enum",
@@ -147,6 +165,13 @@
         },
         "required": false,
         "description": "Read-only: GeoJSON FeatureCollection of all drawn features, updated after drawing, editing, undo, or removal."
+      },
+      "editedFeature": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Read-only: selected or last modified GeoJSON Feature, or null after deselection or deletion."
       },
       "drawnWKT": {
         "type": {
@@ -256,6 +281,28 @@
           "computed": false
         }
       },
+      "editMode": {
+        "type": {
+          "name": "bool"
+        },
+        "required": false,
+        "description": "Whether to select and modify features created by this interaction.",
+        "defaultValue": {
+          "value": "false",
+          "computed": false
+        }
+      },
+      "deleteSelected": {
+        "type": {
+          "name": "number"
+        },
+        "required": false,
+        "description": "Increment to delete the currently selected feature or features.",
+        "defaultValue": {
+          "value": "0",
+          "computed": false
+        }
+      },
       "drawnGeoJSON": {
         "type": {
           "name": "object"
@@ -269,6 +316,13 @@
         },
         "required": false,
         "description": "Read-only: GeoJSON FeatureCollection containing every currently drawn feature."
+      },
+      "editedFeature": {
+        "type": {
+          "name": "object"
+        },
+        "required": false,
+        "description": "Read-only: selected or last modified GeoJSON Feature, or null after deselection or deletion."
       },
       "drawnWKT": {
         "type": {

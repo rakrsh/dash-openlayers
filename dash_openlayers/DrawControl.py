@@ -38,6 +38,13 @@ Keyword arguments:
     Active drawing mode; set to None to stop drawing. Bidirectional
     when changed by toolbar clicks.
 
+- editMode (boolean; optional):
+    Whether selection and vertex editing are enabled; toolbar changes
+    are bidirectional.
+
+- deleteSelected (number; default 0):
+    Increment to delete the currently selected feature or features.
+
 - position (a value equal to: 'top-left', 'top-right', 'bottom-left', 'bottom-right'; default 'top-left'):
     Corner of the map where the drawing tools are displayed.
 
@@ -54,6 +61,10 @@ Keyword arguments:
 - drawnFeatures (dict; optional):
     Read-only: GeoJSON FeatureCollection of all drawn features,
     updated after drawing, editing, undo, or removal.
+
+- editedFeature (dict; optional):
+    Read-only: selected or last modified GeoJSON Feature, or None
+    after deselection or deletion.
 
 - drawnWKT (string; optional):
     Read-only: WKT geometry emitted only when geometry validation
@@ -86,12 +97,15 @@ Keyword arguments:
         id: typing.Optional[typing.Union[str, dict]] = None,
         geometryTypes: typing.Optional[typing.Sequence[Literal["Point", "LineString", "Polygon", "Circle", "Box"]]] = None,
         activeDrawMode: typing.Optional[Literal[None, "Point", "LineString", "Polygon", "Circle", "Box"]] = None,
+        editMode: typing.Optional[bool] = None,
+        deleteSelected: typing.Optional[NumberType] = None,
         position: typing.Optional[Literal["top-left", "top-right", "bottom-left", "bottom-right"]] = None,
         title: typing.Optional[str] = None,
         style: typing.Optional[typing.Any] = None,
         buttonStyle: typing.Optional[dict] = None,
         drawnGeoJSON: typing.Optional[dict] = None,
         drawnFeatures: typing.Optional[dict] = None,
+        editedFeature: typing.Optional[dict] = None,
         drawnWKT: typing.Optional[str] = None,
         drawnTopoJSON: typing.Optional[dict] = None,
         geometryValidation: typing.Optional[dict] = None,
@@ -100,9 +114,9 @@ Keyword arguments:
         snapTolerance: typing.Optional[NumberType] = None,
         **kwargs
     ):
-        self._prop_names = ['id', 'geometryTypes', 'activeDrawMode', 'position', 'title', 'style', 'buttonStyle', 'drawnGeoJSON', 'drawnFeatures', 'drawnWKT', 'drawnTopoJSON', 'geometryValidation', 'snapToVertex', 'snapToEdge', 'snapTolerance']
+        self._prop_names = ['id', 'geometryTypes', 'activeDrawMode', 'editMode', 'deleteSelected', 'position', 'title', 'style', 'buttonStyle', 'drawnGeoJSON', 'drawnFeatures', 'editedFeature', 'drawnWKT', 'drawnTopoJSON', 'geometryValidation', 'snapToVertex', 'snapToEdge', 'snapTolerance']
         self._valid_wildcard_attributes =            []
-        self.available_properties = ['id', 'geometryTypes', 'activeDrawMode', 'position', 'title', 'style', 'buttonStyle', 'drawnGeoJSON', 'drawnFeatures', 'drawnWKT', 'drawnTopoJSON', 'geometryValidation', 'snapToVertex', 'snapToEdge', 'snapTolerance']
+        self.available_properties = ['id', 'geometryTypes', 'activeDrawMode', 'editMode', 'deleteSelected', 'position', 'title', 'style', 'buttonStyle', 'drawnGeoJSON', 'drawnFeatures', 'editedFeature', 'drawnWKT', 'drawnTopoJSON', 'geometryValidation', 'snapToVertex', 'snapToEdge', 'snapTolerance']
         self.available_wildcard_properties =            []
         _explicit_args = kwargs.pop('_explicit_args')
         _locals = locals()
