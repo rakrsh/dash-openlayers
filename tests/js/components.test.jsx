@@ -1791,7 +1791,7 @@ describe('DrawInteraction', () => {
     const changeFeatureListener = source.on.mock.calls.find(
       ([eventName]) => eventName === 'changefeature',
     )[1];
-    changeFeatureListener();
+    changeFeatureListener({ feature });
     expect(setProps).toHaveBeenLastCalledWith({
       drawnFeatures: {
         type: 'FeatureCollection',
@@ -1830,6 +1830,96 @@ describe('DrawInteraction', () => {
     expect(map.removeInteraction).toHaveBeenCalledWith(draw);
     expect(map.removeLayer).toHaveBeenCalledWith(layer);
     expect(source.clear).toHaveBeenCalled();
+  });
+
+  it('selects, modifies, and deletes drawn features while publishing edited state', () => {
+    const map = makeMap();
+    const setProps = jest.fn();
+    const createGeometry = (name) => ({
+      name,
+      getType: () => 'Polygon',
+      clone: () => createGeometry(`${name}-clone`),
+    });
+    let currentGeometry = createGeometry('before');
+    const feature = {
+      geoJSON: {
+        type: 'Feature',
+        geometry: { type: 'Polygon', coordinates: [] },
+        properties: {},
+      },
+      getGeometry: () => currentGeometry,
+      setGeometry: jest.fn((geometry) => {
+        currentGeometry = geometry;
+      }),
+    };
+
+    const { rerender } = render(
+      <OLContext.Provider value={map}>
+        <DrawInteraction editMode deleteSelected={0} setProps={setProps} />
+      </OLContext.Provider>,
+    );
+
+    const source = VectorSource.mock.instances[0];
+    source.addFeature(feature);
+    const select = Select.mock.instances[0];
+    const modify = Modify.mock.instances[0];
+    const selectedFeatures = select.getFeatures();
+    selectedFeatures.items = [feature];
+    select.listeners.select();
+    expect(setProps).toHaveBeenLastCalledWith({
+      editedFeature: {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [10, 45] },
+        properties: {},
+      },
+    });
+
+    modify.listeners.modifystart({ features: selectedFeatures });
+    currentGeometry = createGeometry('after');
+    const changeFeatureListener = source.on.mock.calls.find(
+      ([eventName]) => eventName === 'changefeature',
+    )[1];
+    changeFeatureListener({ feature });
+    expect(setProps).toHaveBeenLastCalledWith({
+      drawnFeatures: {
+        type: 'FeatureCollection',
+        features: [feature.geoJSON],
+      },
+      editedFeature: {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [10, 45] },
+        properties: {},
+      },
+    });
+    modify.listeners.modifyend({ features: selectedFeatures });
+    expect(setProps).toHaveBeenLastCalledWith({
+      drawnFeatures: {
+        type: 'FeatureCollection',
+        features: [feature.geoJSON],
+      },
+      editedFeature: {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [10, 45] },
+        properties: {},
+      },
+    });
+    expect(getEditHistory(map).getState()).toEqual({ canUndo: true, canRedo: false });
+    getEditHistory(map).undo();
+    expect(feature.setGeometry).toHaveBeenCalled();
+
+    rerender(
+      <OLContext.Provider value={map}>
+        <DrawInteraction editMode deleteSelected={1} setProps={setProps} />
+      </OLContext.Provider>,
+    );
+    expect(source.removeFeature).toHaveBeenCalledWith(feature);
+    expect(setProps).toHaveBeenLastCalledWith({
+      drawnFeatures: { type: 'FeatureCollection', features: [] },
+      editedFeature: null,
+    });
+    expect(map.addInteraction).toHaveBeenCalledWith(select);
+    expect(map.addInteraction).toHaveBeenCalledWith(modify);
+    expect(map.addInteraction).toHaveBeenCalledWith(Snap.mock.instances.at(-1));
   });
 
   it('blocks self-intersecting polygons and reports their crossing coordinates', () => {
@@ -2079,6 +2169,52 @@ describe('DrawControl', () => {
 
     fireEvent.click(controlElement.querySelector('[data-geometry-type="Point"]'));
     expect(setProps).toHaveBeenLastCalledWith({ activeDrawMode: 'Point' });
+  });
+
+  it('selects and deletes drawn features from the edit toolbar', async () => {
+    const map = makeMap();
+    const setProps = jest.fn();
+    render(
+      <OLContext.Provider value={map}>
+        <DrawControl id="editable-drawings" setProps={setProps} />
+      </OLContext.Provider>,
+    );
+
+    const control = map.addControl.mock.calls[0][0];
+    const editButton = control.element.querySelector('[data-edit-mode]');
+    const deleteButton = control.element.querySelector('[data-delete-selected]');
+    fireEvent.click(editButton);
+
+    const source = VectorSource.mock.instances[0];
+    const select = Select.mock.instances[0];
+    const modify = Modify.mock.instances[0];
+    const feature = {
+      geoJSON: {
+        type: 'Feature',
+        geometry: { type: 'Polygon', coordinates: [] },
+        properties: {},
+      },
+    };
+    source.addFeature(feature);
+    select.selectedFeatures.items = [feature];
+    select.listeners.select();
+    expect(deleteButton.disabled).toBe(false);
+    expect(setProps).toHaveBeenLastCalledWith({
+      editedFeature: {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [10, 45] },
+        properties: {},
+      },
+    });
+
+    fireEvent.click(deleteButton);
+    await waitFor(() => expect(source.removeFeature).toHaveBeenCalledWith(feature));
+    expect(setProps).toHaveBeenLastCalledWith({
+      drawnFeatures: { type: 'FeatureCollection', features: [] },
+      editedFeature: null,
+    });
+    expect(select.options.layers).toContain(OpenLayersVectorLayer.mock.instances[0]);
+    expect(modify.options.features).toBe(select.selectedFeatures);
   });
 });
 

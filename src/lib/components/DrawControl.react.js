@@ -13,11 +13,13 @@ const TOOL_LABELS = {
 };
 const DEFAULT_GEOMETRY_TYPES = ['Point', 'LineString', 'Polygon', 'Circle', 'Box'];
 
-/** Add map controls for drawing and serializing spatial study areas. */
+/** Add map controls for drawing, selecting, editing, and deleting spatial features. */
 const DrawControl = ({
   id,
   geometryTypes = DEFAULT_GEOMETRY_TYPES,
   activeDrawMode,
+  editMode,
+  deleteSelected = 0,
   position = 'top-left',
   title = 'Draw',
   style,
@@ -30,19 +32,31 @@ const DrawControl = ({
   const map = useMap();
   const controlElementRef = React.useRef(null);
   const [uncontrolledDrawMode, setUncontrolledDrawMode] = useState(null);
+  const [uncontrolledEditMode, setUncontrolledEditMode] = useState(false);
+  const [deleteRequest, setDeleteRequest] = useState(0);
   const uncontrolledDrawModeRef = React.useRef(null);
+  const uncontrolledEditModeRef = React.useRef(false);
   const activeDrawModeRef = React.useRef(activeDrawMode);
+  const editModeRef = React.useRef(editMode);
   const setPropsRef = React.useRef(setProps);
+  const previousDeleteSelectedRef = React.useRef(deleteSelected);
   const controlled = activeDrawMode !== undefined;
+  const editing = editMode === undefined ? uncontrolledEditMode : editMode;
   const activeGeometryType = controlled ? activeDrawMode : uncontrolledDrawMode;
-  const enabledActiveGeometryType = geometryTypes.includes(activeGeometryType)
-    ? activeGeometryType
-    : null;
+  const enabledActiveGeometryType =
+    !editing && geometryTypes.includes(activeGeometryType) ? activeGeometryType : null;
 
   useEffect(() => {
     activeDrawModeRef.current = activeDrawMode;
+    editModeRef.current = editMode;
     setPropsRef.current = setProps;
-  }, [activeDrawMode, setProps]);
+  }, [activeDrawMode, editMode, setProps]);
+
+  useEffect(() => {
+    if (previousDeleteSelectedRef.current === deleteSelected) return;
+    previousDeleteSelectedRef.current = deleteSelected;
+    setDeleteRequest((request) => request + 1);
+  }, [deleteSelected]);
 
   useEffect(() => {
     if (!map) return undefined;
@@ -105,17 +119,77 @@ const DrawControl = ({
             ? uncontrolledDrawModeRef.current
             : activeDrawModeRef.current;
         const nextMode = currentMode === geometryType ? null : geometryType;
+        if (editModeRef.current === undefined) {
+          uncontrolledEditModeRef.current = false;
+          setUncontrolledEditMode(false);
+        }
+        const changes = {};
+        if (editModeRef.current !== undefined && editModeRef.current) {
+          changes.editMode = false;
+        }
         if (activeDrawModeRef.current === undefined) {
           uncontrolledDrawModeRef.current = nextMode;
           setUncontrolledDrawMode(nextMode);
-        } else if (setPropsRef.current) {
-          setPropsRef.current({ activeDrawMode: nextMode });
+        } else {
+          changes.activeDrawMode = nextMode;
         }
+        if (Object.keys(changes).length && setPropsRef.current) setPropsRef.current(changes);
       };
       button.addEventListener('click', listener);
       buttonListeners.push([button, listener]);
       toolbar.appendChild(button);
     });
+
+    const editButton = document.createElement('button');
+    editButton.type = 'button';
+    editButton.dataset.editMode = 'true';
+    editButton.setAttribute('aria-label', 'Edit drawn features');
+    editButton.setAttribute('aria-pressed', 'false');
+    editButton.textContent = 'Edit';
+    editButton.title = 'Select and edit drawn features';
+    Object.assign(editButton.style, {
+      minHeight: '32px',
+      padding: '4px 8px',
+      color: '#182522',
+      background: '#ffffff',
+      border: '1px solid #778581',
+      borderRadius: '3px',
+      cursor: 'pointer',
+    });
+    const editListener = () => {
+      const currentMode =
+        editModeRef.current === undefined ? uncontrolledEditModeRef.current : editModeRef.current;
+      const nextMode = !currentMode;
+      if (editModeRef.current === undefined) {
+        uncontrolledEditModeRef.current = nextMode;
+        setUncontrolledEditMode(nextMode);
+      } else if (setPropsRef.current) {
+        setPropsRef.current({ editMode: nextMode });
+      }
+    };
+    editButton.addEventListener('click', editListener);
+    buttonListeners.push([editButton, editListener]);
+    toolbar.appendChild(editButton);
+
+    const deleteButton = document.createElement('button');
+    deleteButton.type = 'button';
+    deleteButton.dataset.deleteSelected = 'true';
+    deleteButton.setAttribute('aria-label', 'Delete selected feature');
+    deleteButton.textContent = 'Delete';
+    deleteButton.title = 'Delete selected feature';
+    Object.assign(deleteButton.style, {
+      minHeight: '32px',
+      padding: '4px 8px',
+      color: '#182522',
+      background: '#ffffff',
+      border: '1px solid #778581',
+      borderRadius: '3px',
+      cursor: 'pointer',
+    });
+    const deleteListener = () => setDeleteRequest((request) => request + 1);
+    deleteButton.addEventListener('click', deleteListener);
+    buttonListeners.push([deleteButton, deleteListener]);
+    toolbar.appendChild(deleteButton);
     element.appendChild(toolbar);
 
     const control = new Control({ element });
@@ -139,13 +213,26 @@ const DrawControl = ({
       button.style.color = isActive ? '#ffffff' : '#182522';
       button.style.background = isActive ? '#1f6a5e' : '#ffffff';
     });
-  }, [enabledActiveGeometryType]);
+    const editButton = controlElementRef.current?.querySelector('button[data-edit-mode]');
+    if (editButton) {
+      editButton.setAttribute('aria-pressed', String(editing));
+      editButton.style.color = editing ? '#ffffff' : '#182522';
+      editButton.style.background = editing ? '#1f6a5e' : '#ffffff';
+    }
+    const deleteButton = controlElementRef.current?.querySelector('button[data-delete-selected]');
+    if (deleteButton) {
+      deleteButton.disabled = !editing;
+      deleteButton.style.cursor = editing ? 'pointer' : 'not-allowed';
+    }
+  }, [enabledActiveGeometryType, editing]);
 
   return (
     <>
       <DrawInteraction
         id={id ? `${id}-interaction` : undefined}
         geometryType={enabledActiveGeometryType}
+        editMode={editing}
+        deleteSelected={deleteRequest}
         snapToVertex={snapToVertex}
         snapToEdge={snapToEdge}
         snapTolerance={snapTolerance}
@@ -173,6 +260,10 @@ DrawControl.propTypes = {
   ),
   /** Active drawing mode; set to null to stop drawing. Bidirectional when changed by toolbar clicks. */
   activeDrawMode: PropTypes.oneOf([null, 'Point', 'LineString', 'Polygon', 'Circle', 'Box']),
+  /** Whether selection and vertex editing are enabled; toolbar changes are bidirectional. */
+  editMode: PropTypes.bool,
+  /** Increment to delete the currently selected feature or features. */
+  deleteSelected: PropTypes.number,
   /** Corner of the map where the drawing tools are displayed. */
   position: PropTypes.oneOf(['top-left', 'top-right', 'bottom-left', 'bottom-right']),
   /** Accessible toolbar label and visible heading. */
@@ -191,6 +282,8 @@ DrawControl.propTypes = {
   drawnGeoJSON: PropTypes.object,
   /** Read-only: GeoJSON FeatureCollection of all drawn features, updated after drawing, editing, undo, or removal. */
   drawnFeatures: PropTypes.object,
+  /** Read-only: selected or last modified GeoJSON Feature, or null after deselection or deletion. */
+  editedFeature: PropTypes.object,
   /** Read-only: WKT geometry emitted only when geometry validation succeeds. */
   drawnWKT: PropTypes.string,
   /** Read-only: TopoJSON topology emitted only when geometry validation succeeds. */
