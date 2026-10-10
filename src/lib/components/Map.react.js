@@ -3,17 +3,22 @@ import PropTypes from 'prop-types';
 import 'ol/ol.css';
 import Map from 'ol/Map';
 import View from 'ol/View';
-import { toLonLat } from 'ol/proj';
+import { fromLonLat, toLonLat, transformExtent } from 'ol/proj';
+import { unByKey } from 'ol/Observable';
 import { OLContext } from '../context/OLContext';
 import { registerProjections } from '../utils/projection';
 import { getEditHistory } from '../utils/editHistory';
 
+const DEFAULT_CENTER = [0, 0];
+
 const MapComponent = ({
   id,
   children,
-  center,
-  zoom,
-  projection,
+  center = DEFAULT_CENTER,
+  zoom = 2,
+  bounds = null,
+  debounce = 300,
+  projection = 'EPSG:3857',
   proj4Defs,
   style,
   undo,
@@ -23,7 +28,18 @@ const MapComponent = ({
   const mapElement = useRef(null);
   const undoCommandRef = useRef(undo);
   const redoCommandRef = useRef(redo);
+  const setPropsRef = useRef(setProps);
+  const debounceRef = useRef(debounce);
+  const initialViewOptionsRef = useRef({ center, zoom, projection });
+  const moveTimerRef = useRef(null);
+  const lastReportedCenterRef = useRef(null);
+  const previousBoundsRef = useRef(undefined);
   const [map, setMap] = useState(null);
+
+  useEffect(() => {
+    setPropsRef.current = setProps;
+    debounceRef.current = debounce;
+  }, [debounce, setProps]);
 
   useEffect(() => {
     registerProjections(proj4Defs);
@@ -32,40 +48,65 @@ const MapComponent = ({
   useEffect(() => {
     if (!mapElement.current) return;
 
+    const initialView = initialViewOptionsRef.current;
     const olMap = new Map({
       target: mapElement.current,
       view: new View({
-        projection: projection,
-        center: center,
-        zoom: zoom,
+        projection: initialView.projection,
+        center: fromLonLat(initialView.center, initialView.projection),
+        zoom: initialView.zoom,
       }),
     });
 
-    olMap.on('singleclick', (evt) => {
-      if (setProps) {
-        const lonLat = toLonLat(evt.coordinate, projection);
-        setProps({
-          clickData: {
-            coordinate: evt.coordinate,
-            latLon: [lonLat[1], lonLat[0]],
-          },
-        });
-      }
-    });
+    const listenerKeys = [
+      olMap.on('singleclick', (evt) => {
+        if (setPropsRef.current) {
+          const lonLat = toLonLat(evt.coordinate, olMap.getView().getProjection());
+          setPropsRef.current({
+            clickData: {
+              coordinate: evt.coordinate,
+              latLon: [lonLat[1], lonLat[0]],
+            },
+          });
+        }
+      }),
+      olMap.on('moveend', () => {
+        if (moveTimerRef.current !== null) clearTimeout(moveTimerRef.current);
+        moveTimerRef.current = setTimeout(
+          () => {
+            moveTimerRef.current = null;
+            if (!setPropsRef.current) return;
 
-    olMap.on('moveend', () => {
-      if (setProps) {
-        const view = olMap.getView();
-        setProps({
-          center: view.getCenter(),
-          zoom: view.getZoom(),
-        });
-      }
-    });
+            const view = olMap.getView();
+            const projection = view.getProjection();
+            const centerLonLat = toLonLat(view.getCenter(), projection);
+            lastReportedCenterRef.current = centerLonLat;
+            const extent = transformExtent(
+              view.calculateExtent(olMap.getSize()),
+              projection,
+              'EPSG:4326',
+            );
+            setPropsRef.current({
+              center: centerLonLat,
+              zoom: view.getZoom(),
+              bbox: extent,
+            });
+          },
+          Math.max(0, debounceRef.current),
+        );
+      }),
+    ];
 
     setMap(olMap);
 
-    return () => olMap.setTarget(null);
+    return () => {
+      unByKey(listenerKeys);
+      if (moveTimerRef.current !== null) {
+        clearTimeout(moveTimerRef.current);
+        moveTimerRef.current = null;
+      }
+      olMap.setTarget(null);
+    };
   }, []);
 
   useEffect(() => {
@@ -73,17 +114,40 @@ const MapComponent = ({
 
     const view = map.getView();
     const currentCenter = view.getCenter();
-    if (
+    const projectedCenter = fromLonLat(center, projection);
+    const lastReportedCenter = lastReportedCenterRef.current;
+    const isReportedCenter =
+      lastReportedCenter &&
+      center[0] === lastReportedCenter[0] &&
+      center[1] === lastReportedCenter[1];
+    const centerChanged =
+      !isReportedCenter &&
       center &&
-      (!currentCenter || currentCenter[0] !== center[0] || currentCenter[1] !== center[1])
-    ) {
-      view.setCenter(center);
-    }
+      (!currentCenter ||
+        currentCenter[0] !== projectedCenter[0] ||
+        currentCenter[1] !== projectedCenter[1]);
+    const zoomChanged = zoom !== undefined && zoom !== view.getZoom();
+    const boundsChanged =
+      bounds &&
+      (previousBoundsRef.current === undefined ||
+        !previousBoundsRef.current ||
+        bounds.some((coordinate, index) => coordinate !== previousBoundsRef.current[index]));
 
-    if (zoom !== undefined && zoom !== view.getZoom()) {
-      view.setZoom(zoom);
+    if (boundsChanged) {
+      view.fit(transformExtent(bounds, 'EPSG:4326', projection), {
+        duration: 300,
+        size: map.getSize(),
+      });
+      lastReportedCenterRef.current = null;
+    } else if (centerChanged || zoomChanged) {
+      const animation = { duration: 300 };
+      if (centerChanged) animation.center = projectedCenter;
+      if (zoomChanged) animation.zoom = zoom;
+      view.animate(animation);
+      lastReportedCenterRef.current = null;
     }
-  }, [center, map, zoom]);
+    previousBoundsRef.current = bounds;
+  }, [bounds, center, map, projection, zoom]);
 
   useEffect(() => {
     if (!map) return;
@@ -118,6 +182,8 @@ const MapComponent = ({
 MapComponent.defaultProps = {
   center: [0, 0],
   zoom: 2,
+  bounds: null,
+  debounce: 300,
   projection: 'EPSG:3857',
   proj4Defs: [],
   undo: 0,
@@ -130,13 +196,16 @@ MapComponent.propTypes = {
   /** OpenLayers layer/interaction components (e.g. TileLayer, DrawInteraction) rendered inside this map. */
   children: PropTypes.node,
   /**
-   * Map view center as [x, y] in `projection`'s units (e.g. [lon, lat] for
-   * EPSG:4326, [x, y] in meters for EPSG:3857/projected CRSs). Bidirectional:
-   * updates on `moveend` and can be set from Python.
+   * Map view center as [longitude, latitude] in EPSG:4326. Bidirectional:
+   * updated after debounced viewport movement and animated when set from Python.
    */
   center: PropTypes.arrayOf(PropTypes.number),
-  /** Map zoom level. Bidirectional: updates on `moveend` and can be set from Python. */
+  /** Map zoom level. Bidirectional: updated after debounced viewport movement and animated from Python. */
   zoom: PropTypes.number,
+  /** View extent as [minLongitude, minLatitude, maxLongitude, maxLatitude] in EPSG:4326; animated when set. */
+  bounds: PropTypes.arrayOf(PropTypes.number),
+  /** Debounce delay for viewport callback updates, in milliseconds. */
+  debounce: PropTypes.number,
   /** EPSG code the view is rendered in, e.g. 'EPSG:3857' or a custom code registered via `proj4Defs`. */
   projection: PropTypes.string,
   /** Custom proj4 projection definitions to register before the view is constructed, e.g. [{ code: 'EPSG:27700', def: '+proj=tmerc ...' }]. */
@@ -150,6 +219,8 @@ MapComponent.propTypes = {
   style: PropTypes.object,
   /** Read-only: set on `singleclick` with `{ coordinate: [x, y], latLon: [lat, lon] }`. */
   clickData: PropTypes.object,
+  /** Read-only: current visible extent as [minLongitude, minLatitude, maxLongitude, maxLatitude] in EPSG:4326. */
+  bbox: PropTypes.arrayOf(PropTypes.number),
   /** Increment to undo the latest draw or modify operation on this map. */
   undo: PropTypes.number,
   /** Increment to redo the latest undone draw or modify operation on this map. */

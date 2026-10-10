@@ -14,7 +14,7 @@ def test_draw_interaction(dash_duo):
         [
             dol.Map(
                 id="map",
-                center=[1_113_194.9, 5_621_521.5],
+                center=[10, 45],
                 zoom=5,
                 undo=0,
                 redo=0,
@@ -124,7 +124,7 @@ def test_draw_line_string_emits_geojson(dash_duo):
         [
             dol.Map(
                 id="map",
-                center=[1_113_194.9, 5_621_521.5],
+                center=[10, 45],
                 zoom=5,
                 children=[
                     dol.TileLayer(source="OSM"),
@@ -173,7 +173,7 @@ def test_draw_control_rectangle_emits_geojson(dash_duo):
         [
             dol.Map(
                 id="map",
-                center=[1_113_194.9, 5_621_521.5],
+                center=[10, 45],
                 zoom=5,
                 children=[
                     dol.TileLayer(source="OSM"),

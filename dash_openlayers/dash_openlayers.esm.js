@@ -4652,6 +4652,24 @@ function addCoordinateTransforms(source, destination, forward, inverse) {
 }
 
 /**
+ * Transforms a coordinate from longitude/latitude to a different projection.
+ * @param {import("./coordinate.js").Coordinate} coordinate Coordinate as longitude and latitude, i.e.
+ *     an array with longitude as 1st and latitude as 2nd element.
+ * @param {ProjectionLike} [projection] Target projection. The
+ *     default is Web Mercator, i.e. 'EPSG:3857'.
+ * @return {import("./coordinate.js").Coordinate} Coordinate projected to the target projection.
+ * @api
+ */
+function fromLonLat(coordinate, projection) {
+  disableCoordinateWarning();
+  return transform$1(
+    coordinate,
+    'EPSG:4326',
+    projection !== undefined ? projection : 'EPSG:3857',
+  );
+}
+
+/**
  * Transforms a coordinate to longitude/latitude.
  * @param {import("./coordinate.js").Coordinate} coordinate Projected coordinate.
  * @param {ProjectionLike} [projection] Projection of the coordinate.
@@ -40917,12 +40935,20 @@ var getEditHistory = map => {
   return history;
 };
 
+var DEFAULT_CENTER = [0, 0];
 var MapComponent = _ref => {
   var id = _ref.id,
     children = _ref.children,
-    center = _ref.center,
-    zoom = _ref.zoom,
-    projection = _ref.projection,
+    _ref$center = _ref.center,
+    center = _ref$center === void 0 ? DEFAULT_CENTER : _ref$center,
+    _ref$zoom = _ref.zoom,
+    zoom = _ref$zoom === void 0 ? 2 : _ref$zoom,
+    _ref$bounds = _ref.bounds,
+    bounds = _ref$bounds === void 0 ? null : _ref$bounds,
+    _ref$debounce = _ref.debounce,
+    debounce = _ref$debounce === void 0 ? 300 : _ref$debounce,
+    _ref$projection = _ref.projection,
+    projection = _ref$projection === void 0 ? 'EPSG:3857' : _ref$projection,
     proj4Defs = _ref.proj4Defs,
     style = _ref.style,
     undo = _ref.undo,
@@ -40931,57 +40957,102 @@ var MapComponent = _ref => {
   var mapElement = useRef(null);
   var undoCommandRef = useRef(undo);
   var redoCommandRef = useRef(redo);
+  var setPropsRef = useRef(setProps);
+  var debounceRef = useRef(debounce);
+  var initialViewOptionsRef = useRef({
+    center,
+    zoom,
+    projection
+  });
+  var moveTimerRef = useRef(null);
+  var lastReportedCenterRef = useRef(null);
+  var previousBoundsRef = useRef(undefined);
   var _useState = useState(null),
     _useState2 = _slicedToArray(_useState, 2),
     map = _useState2[0],
     setMap = _useState2[1];
   useEffect(() => {
+    setPropsRef.current = setProps;
+    debounceRef.current = debounce;
+  }, [debounce, setProps]);
+  useEffect(() => {
     registerProjections(proj4Defs);
   }, [proj4Defs]);
   useEffect(() => {
     if (!mapElement.current) return;
+    var initialView = initialViewOptionsRef.current;
     var olMap = new Map$1({
       target: mapElement.current,
       view: new View({
-        projection: projection,
-        center: center,
-        zoom: zoom
+        projection: initialView.projection,
+        center: fromLonLat(initialView.center, initialView.projection),
+        zoom: initialView.zoom
       })
     });
-    olMap.on('singleclick', evt => {
-      if (setProps) {
-        var lonLat = toLonLat(evt.coordinate, projection);
-        setProps({
+    var listenerKeys = [olMap.on('singleclick', evt => {
+      if (setPropsRef.current) {
+        var lonLat = toLonLat(evt.coordinate, olMap.getView().getProjection());
+        setPropsRef.current({
           clickData: {
             coordinate: evt.coordinate,
             latLon: [lonLat[1], lonLat[0]]
           }
         });
       }
-    });
-    olMap.on('moveend', () => {
-      if (setProps) {
+    }), olMap.on('moveend', () => {
+      if (moveTimerRef.current !== null) clearTimeout(moveTimerRef.current);
+      moveTimerRef.current = setTimeout(() => {
+        moveTimerRef.current = null;
+        if (!setPropsRef.current) return;
         var view = olMap.getView();
-        setProps({
-          center: view.getCenter(),
-          zoom: view.getZoom()
+        var projection = view.getProjection();
+        var centerLonLat = toLonLat(view.getCenter(), projection);
+        lastReportedCenterRef.current = centerLonLat;
+        var extent = transformExtent(view.calculateExtent(olMap.getSize()), projection, 'EPSG:4326');
+        setPropsRef.current({
+          center: centerLonLat,
+          zoom: view.getZoom(),
+          bbox: extent
         });
-      }
-    });
+      }, Math.max(0, debounceRef.current));
+    })];
     setMap(olMap);
-    return () => olMap.setTarget(null);
+    return () => {
+      unByKey(listenerKeys);
+      if (moveTimerRef.current !== null) {
+        clearTimeout(moveTimerRef.current);
+        moveTimerRef.current = null;
+      }
+      olMap.setTarget(null);
+    };
   }, []);
   useEffect(() => {
     if (!map) return;
     var view = map.getView();
     var currentCenter = view.getCenter();
-    if (center && (!currentCenter || currentCenter[0] !== center[0] || currentCenter[1] !== center[1])) {
-      view.setCenter(center);
+    var projectedCenter = fromLonLat(center, projection);
+    var lastReportedCenter = lastReportedCenterRef.current;
+    var isReportedCenter = lastReportedCenter && center[0] === lastReportedCenter[0] && center[1] === lastReportedCenter[1];
+    var centerChanged = !isReportedCenter && center && (!currentCenter || currentCenter[0] !== projectedCenter[0] || currentCenter[1] !== projectedCenter[1]);
+    var zoomChanged = zoom !== undefined && zoom !== view.getZoom();
+    var boundsChanged = bounds && (previousBoundsRef.current === undefined || !previousBoundsRef.current || bounds.some((coordinate, index) => coordinate !== previousBoundsRef.current[index]));
+    if (boundsChanged) {
+      view.fit(transformExtent(bounds, 'EPSG:4326', projection), {
+        duration: 300,
+        size: map.getSize()
+      });
+      lastReportedCenterRef.current = null;
+    } else if (centerChanged || zoomChanged) {
+      var animation = {
+        duration: 300
+      };
+      if (centerChanged) animation.center = projectedCenter;
+      if (zoomChanged) animation.zoom = zoom;
+      view.animate(animation);
+      lastReportedCenterRef.current = null;
     }
-    if (zoom !== undefined && zoom !== view.getZoom()) {
-      view.setZoom(zoom);
-    }
-  }, [center, map, zoom]);
+    previousBoundsRef.current = bounds;
+  }, [bounds, center, map, projection, zoom]);
   useEffect(() => {
     if (!map) return;
     var history = getEditHistory(map);
@@ -41018,6 +41089,8 @@ var MapComponent = _ref => {
 MapComponent.defaultProps = {
   center: [0, 0],
   zoom: 2,
+  bounds: null,
+  debounce: 300,
   projection: 'EPSG:3857',
   proj4Defs: [],
   undo: 0,
@@ -41029,13 +41102,16 @@ MapComponent.propTypes = {
   /** OpenLayers layer/interaction components (e.g. TileLayer, DrawInteraction) rendered inside this map. */
   children: PropTypes.node,
   /**
-   * Map view center as [x, y] in `projection`'s units (e.g. [lon, lat] for
-   * EPSG:4326, [x, y] in meters for EPSG:3857/projected CRSs). Bidirectional:
-   * updates on `moveend` and can be set from Python.
+   * Map view center as [longitude, latitude] in EPSG:4326. Bidirectional:
+   * updated after debounced viewport movement and animated when set from Python.
    */
   center: PropTypes.arrayOf(PropTypes.number),
-  /** Map zoom level. Bidirectional: updates on `moveend` and can be set from Python. */
+  /** Map zoom level. Bidirectional: updated after debounced viewport movement and animated from Python. */
   zoom: PropTypes.number,
+  /** View extent as [minLongitude, minLatitude, maxLongitude, maxLatitude] in EPSG:4326; animated when set. */
+  bounds: PropTypes.arrayOf(PropTypes.number),
+  /** Debounce delay for viewport callback updates, in milliseconds. */
+  debounce: PropTypes.number,
   /** EPSG code the view is rendered in, e.g. 'EPSG:3857' or a custom code registered via `proj4Defs`. */
   projection: PropTypes.string,
   /** Custom proj4 projection definitions to register before the view is constructed, e.g. [{ code: 'EPSG:27700', def: '+proj=tmerc ...' }]. */
@@ -41047,6 +41123,8 @@ MapComponent.propTypes = {
   style: PropTypes.object,
   /** Read-only: set on `singleclick` with `{ coordinate: [x, y], latLon: [lat, lon] }`. */
   clickData: PropTypes.object,
+  /** Read-only: current visible extent as [minLongitude, minLatitude, maxLongitude, maxLatitude] in EPSG:4326. */
+  bbox: PropTypes.arrayOf(PropTypes.number),
   /** Increment to undo the latest draw or modify operation on this map. */
   undo: PropTypes.number,
   /** Increment to redo the latest undone draw or modify operation on this map. */

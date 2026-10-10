@@ -21,7 +21,7 @@ app.layout = html.Div(
             id="map",
             projection="EPSG:27700",
             proj4Defs=BNG_PROJ,
-            center=[530000, 180000],
+            center=[-0.128, 51.503],
             zoom=10,
             children=[dol.TileLayer(source="OSM")],
             style={"height": "500px"},

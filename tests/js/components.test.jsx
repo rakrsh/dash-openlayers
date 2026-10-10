@@ -23,7 +23,7 @@ import Snap from 'ol/interaction/Snap';
 import Map from 'ol/Map';
 import Overlay from 'ol/Overlay';
 import View from 'ol/View';
-import { toLonLat } from 'ol/proj';
+import { fromLonLat, toLonLat, transformExtent } from 'ol/proj';
 import { registerProjections } from '../../src/lib/utils/projection';
 import Draw, { createBox } from 'ol/interaction/Draw';
 import { fromCircle } from 'ol/geom/Polygon';
@@ -69,6 +69,7 @@ jest.mock('ol/Map', () => ({
     this.listeners = {};
     this.on = jest.fn((event, listener) => {
       this.listeners[event] = listener;
+      return { event, listener };
     });
     this.setTarget = jest.fn();
     this.addLayer = jest.fn();
@@ -78,6 +79,7 @@ jest.mock('ol/Map', () => ({
     this.addControl = jest.fn();
     this.removeControl = jest.fn();
     this.getView = jest.fn(() => options.view);
+    this.getSize = jest.fn(() => [800, 600]);
   }),
 }));
 
@@ -103,7 +105,9 @@ jest.mock('ol/View', () => ({
   default: jest.fn().mockImplementation(function MockView(options) {
     this.center = options.center;
     this.zoom = options.zoom;
+    this.projection = options.projection;
     this.getCenter = jest.fn(() => this.center);
+    this.getProjection = jest.fn(() => this.projection);
     this.setCenter = jest.fn((center) => {
       this.center = center;
     });
@@ -111,11 +115,19 @@ jest.mock('ol/View', () => ({
     this.setZoom = jest.fn((zoom) => {
       this.zoom = zoom;
     });
+    this.animate = jest.fn((options) => {
+      if (options.center) this.center = options.center;
+      if (options.zoom !== undefined) this.zoom = options.zoom;
+    });
+    this.fit = jest.fn();
+    this.calculateExtent = jest.fn(() => [-10, -5, 10, 5]);
   }),
 }));
 
 jest.mock('ol/proj', () => ({
+  fromLonLat: jest.fn((coordinate) => coordinate),
   toLonLat: jest.fn((coordinate) => [coordinate[0] + 1, coordinate[1] + 2]),
+  transformExtent: jest.fn((extent) => extent),
 }));
 
 jest.mock('../../src/lib/utils/projection', () => ({
@@ -437,6 +449,7 @@ const originalFetch = global.fetch;
 afterEach(() => {
   cleanup();
   jest.clearAllMocks();
+  jest.useRealTimers();
   if (originalFetch === undefined) {
     delete global.fetch;
   } else {
@@ -528,20 +541,65 @@ describe('Map', () => {
     expect(map.setTarget).toHaveBeenCalledWith(null);
   });
 
-  it('applies center and zoom prop changes and reports moveend state', () => {
+  it('animates center and zoom prop changes and reports debounced geographic viewport state', () => {
+    jest.useFakeTimers();
     const setProps = jest.fn();
     const { rerender } = render(
-      <MapComponent id="map" center={[0, 0]} zoom={2} setProps={setProps} />,
+      <MapComponent id="map" center={[0, 0]} zoom={2} debounce={300} setProps={setProps} />,
     );
     const map = Map.mock.instances[0];
     const view = View.mock.instances[0];
+    setProps.mockClear();
 
-    rerender(<MapComponent id="map" center={[10, 20]} zoom={4} setProps={setProps} />);
-    expect(view.setCenter).toHaveBeenCalledWith([10, 20]);
-    expect(view.setZoom).toHaveBeenCalledWith(4);
+    rerender(
+      <MapComponent id="map" center={[10, 20]} zoom={4} debounce={300} setProps={setProps} />,
+    );
+    expect(view.animate).toHaveBeenCalledWith({ duration: 300, center: [10, 20], zoom: 4 });
 
     map.listeners.moveend();
-    expect(setProps).toHaveBeenCalledWith({ center: [10, 20], zoom: 4 });
+    expect(setProps).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(299);
+    expect(setProps).not.toHaveBeenCalled();
+    jest.advanceTimersByTime(1);
+    expect(setProps).toHaveBeenCalledWith({
+      center: [11, 22],
+      zoom: 4,
+      bbox: [-10, -5, 10, 5],
+    });
+    expect(transformExtent).toHaveBeenCalledWith([-10, -5, 10, 5], 'EPSG:3857', 'EPSG:4326');
+  });
+
+  it('debounces repeated viewport events and animates geographic bounds from Dash', () => {
+    jest.useFakeTimers();
+    const setProps = jest.fn();
+    const { rerender } = render(
+      <MapComponent id="map" center={[0, 0]} zoom={2} debounce={500} setProps={setProps} />,
+    );
+    const map = Map.mock.instances[0];
+    const view = View.mock.instances[0];
+    setProps.mockClear();
+
+    map.listeners.moveend();
+    jest.advanceTimersByTime(300);
+    map.listeners.moveend();
+    jest.advanceTimersByTime(300);
+    expect(setProps).not.toHaveBeenCalledWith(expect.objectContaining({ bbox: expect.any(Array) }));
+    jest.advanceTimersByTime(200);
+    expect(setProps).toHaveBeenCalledTimes(1);
+
+    const bounds = [-2, 48, 2, 52];
+    rerender(
+      <MapComponent
+        id="map"
+        center={[0, 0]}
+        zoom={2}
+        bounds={bounds}
+        debounce={500}
+        setProps={setProps}
+      />,
+    );
+    expect(transformExtent).toHaveBeenCalledWith(bounds, 'EPSG:4326', 'EPSG:3857');
+    expect(view.fit).toHaveBeenCalledWith(bounds, { duration: 300, size: [800, 600] });
   });
 
   it('transforms click coordinates and emits clickData', () => {
