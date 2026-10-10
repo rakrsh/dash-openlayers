@@ -68225,6 +68225,8 @@ var publishDrawnFeatures = (source, map, setPropsRef, selectedFeatures, changedF
   }
   setPropsRef.current(props);
 };
+
+/** Draw, validate, select, and edit spatial features. */
 var DrawInteraction = _ref => {
   var id = _ref.id,
     geometryType = _ref.geometryType,
@@ -68538,7 +68540,7 @@ var TOOL_LABELS = {
 };
 var DEFAULT_GEOMETRY_TYPES = ['Point', 'LineString', 'Polygon', 'Circle', 'Box'];
 
-/** Add map controls for drawing and serializing spatial study areas. */
+/** Add map controls for drawing, selecting, editing, and deleting spatial features. */
 var DrawControl = _ref => {
   var id = _ref.id,
     _ref$geometryTypes = _ref.geometryTypes,

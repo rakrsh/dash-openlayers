@@ -55,6 +55,7 @@ const publishDrawnFeatures = (
   setPropsRef.current(props);
 };
 
+/** Draw, validate, select, and edit spatial features. */
 const DrawInteraction = ({
   id,
   geometryType,

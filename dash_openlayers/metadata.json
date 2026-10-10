@@ -1,6 +1,6 @@
 {
   "src/lib/components/DrawControl.react.js": {
-    "description": "Provide interactive map tools for drawing and serializing spatial study areas.",
+    "description": "Add map controls for drawing, selecting, editing, and deleting spatial features.",
     "displayName": "DrawControl",
     "methods": [],
     "props": {
@@ -237,7 +237,7 @@
     }
   },
   "src/lib/components/DrawInteraction.react.js": {
-    "description": "Draw and validate OpenLayers features, then publish their serialized geometry to Dash.",
+    "description": "Draw, validate, select, and edit spatial features.",
     "displayName": "DrawInteraction",
     "methods": [],
     "props": {

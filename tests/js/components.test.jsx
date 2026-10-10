@@ -1835,12 +1835,12 @@ describe('DrawInteraction', () => {
   it('selects, modifies, and deletes drawn features while publishing edited state', () => {
     const map = makeMap();
     const setProps = jest.fn();
-    const initialGeometry = {
-      name: 'before',
+    const createGeometry = (name) => ({
+      name,
       getType: () => 'Polygon',
-      clone: jest.fn(() => ({ name: 'before-clone', getType: () => 'Polygon', clone: () => ({}) })),
-    };
-    let currentGeometry = initialGeometry;
+      clone: () => createGeometry(`${name}-clone`),
+    });
+    let currentGeometry = createGeometry('before');
     const feature = {
       geoJSON: {
         type: 'Feature',
@@ -1875,11 +1875,22 @@ describe('DrawInteraction', () => {
     });
 
     modify.listeners.modifystart({ features: selectedFeatures });
-    currentGeometry = {
-      name: 'after',
-      getType: () => 'Polygon',
-      clone: jest.fn(() => ({ name: 'after-clone', getType: () => 'Polygon', clone: () => ({}) })),
-    };
+    currentGeometry = createGeometry('after');
+    const changeFeatureListener = source.on.mock.calls.find(
+      ([eventName]) => eventName === 'changefeature',
+    )[1];
+    changeFeatureListener({ feature });
+    expect(setProps).toHaveBeenLastCalledWith({
+      drawnFeatures: {
+        type: 'FeatureCollection',
+        features: [feature.geoJSON],
+      },
+      editedFeature: {
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [10, 45] },
+        properties: {},
+      },
+    });
     modify.listeners.modifyend({ features: selectedFeatures });
     expect(setProps).toHaveBeenLastCalledWith({
       drawnFeatures: {
@@ -1892,6 +1903,9 @@ describe('DrawInteraction', () => {
         properties: {},
       },
     });
+    expect(getEditHistory(map).getState()).toEqual({ canUndo: true, canRedo: false });
+    getEditHistory(map).undo();
+    expect(feature.setGeometry).toHaveBeenCalled();
 
     rerender(
       <OLContext.Provider value={map}>

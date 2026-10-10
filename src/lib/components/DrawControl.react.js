@@ -13,7 +13,7 @@ const TOOL_LABELS = {
 };
 const DEFAULT_GEOMETRY_TYPES = ['Point', 'LineString', 'Polygon', 'Circle', 'Box'];
 
-/** Add map controls for drawing and serializing spatial study areas. */
+/** Add map controls for drawing, selecting, editing, and deleting spatial features. */
 const DrawControl = ({
   id,
   geometryTypes = DEFAULT_GEOMETRY_TYPES,

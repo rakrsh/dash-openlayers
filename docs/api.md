@@ -5,7 +5,7 @@ For runnable examples, see the [usage guide](usage.md).
 
 ## `DrawControl`
 
-Provide interactive map tools for drawing and serializing spatial study areas.
+Add map controls for drawing, selecting, editing, and deleting spatial features.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -30,7 +30,7 @@ Provide interactive map tools for drawing and serializing spatial study areas.
 
 ## `DrawInteraction`
 
-Draw and validate OpenLayers features, then publish their serialized geometry to Dash.
+Draw, validate, select, and edit spatial features.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |

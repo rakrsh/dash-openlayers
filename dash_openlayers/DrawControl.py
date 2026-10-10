@@ -22,7 +22,7 @@ ComponentType = typing.Union[
 
 class DrawControl(Component):
     """A DrawControl component.
-Provide interactive map tools for drawing and serializing spatial study areas.
+Add map controls for drawing, selecting, editing, and deleting spatial features.
 
 Keyword arguments:
 

@@ -22,7 +22,7 @@ ComponentType = typing.Union[
 
 class DrawInteraction(Component):
     """A DrawInteraction component.
-Draw and validate OpenLayers features, then publish their serialized geometry to Dash.
+Draw, validate, select, and edit spatial features.
 
 Keyword arguments:
 

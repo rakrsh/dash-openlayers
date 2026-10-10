@@ -34,6 +34,7 @@ def test_components_exported():
         (dol.TileLayer, "url", "URL template for a custom XYZ tile source"),
         (dol.VectorLayer, "data", "GeoJSON Feature or FeatureCollection"),
         (dol.DrawInteraction, "geometryType", "Box (an axis-aligned rectangle)"),
+        (dol.DrawControl, "editMode", "selection and vertex editing are enabled"),
     ],
 )
 def test_component_help_includes_prop_descriptions_and_type_hints(
