@@ -803,6 +803,23 @@ templates:</p>
     style={&quot;height&quot;: &quot;500px&quot;},
 )
 </code></pre>
+<p><code>Map.center</code> and <code>Map.bbox</code> use EPSG:4326 coordinates regardless of the view
+projection. The map reports viewport changes after <code>debounce</code> milliseconds
+(300 by default); <code>bounds</code> accepts <code>[min_lon, min_lat, max_lon, max_lat]</code> and
+animates the view to that extent:</p>
+<pre><code class="language-python">dol.Map(
+    id=&quot;region-map&quot;,
+    center=[-0.1276, 51.5072],
+    zoom=10,
+    debounce=300,
+    children=[dol.TileLayer(source=&quot;OSM&quot;)],
+)
+
+
+@app.callback(Output(&quot;features&quot;, &quot;data&quot;), Input(&quot;region-map&quot;, &quot;bbox&quot;))
+def load_visible_features(bbox):
+    return fetch_features_in_bbox(bbox) if bbox else []
+</code></pre>
 <p>Add a <code>SelectInteraction</code> to a map to select vector features on click. Its
 read-only <code>selectedFeature</code> prop contains the first selected GeoJSON Feature,
 including its properties and geometry in EPSG:4326; it becomes <code>None</code> when
@@ -1328,7 +1345,7 @@ app.layout = html.Div(
             id=&quot;map&quot;,
             projection=&quot;EPSG:27700&quot;,
             proj4Defs=BNG_PROJ,
-            center=[530000, 180000],
+            center=[-0.128, 51.503],
             zoom=10,
             children=[
                 dol.TileLayer(source=&quot;OSM&quot;),

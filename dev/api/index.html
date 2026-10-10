@@ -1346,13 +1346,25 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>center</code></td>
 <td><code>list[number]</code></td>
 <td><code>[0, 0]</code></td>
-<td>Map view center as [x, y] in projection's units (e.g. [lon, lat] for EPSG:4326, [x, y] in meters for EPSG:3857/projected CRSs). Bidirectional: updates on moveend and can be set from Python.</td>
+<td>Map view center as [longitude, latitude] in EPSG:4326. Bidirectional: updated after debounced viewport movement and animated when set from Python.</td>
 </tr>
 <tr>
 <td><code>zoom</code></td>
 <td><code>number</code></td>
 <td><code>2</code></td>
-<td>Map zoom level. Bidirectional: updates on moveend and can be set from Python.</td>
+<td>Map zoom level. Bidirectional: updated after debounced viewport movement and animated from Python.</td>
+</tr>
+<tr>
+<td><code>bounds</code></td>
+<td><code>list[number]</code></td>
+<td><code>null</code></td>
+<td>View extent as [minLongitude, minLatitude, maxLongitude, maxLatitude] in EPSG:4326; animated when set.</td>
+</tr>
+<tr>
+<td><code>debounce</code></td>
+<td><code>number</code></td>
+<td><code>300</code></td>
+<td>Debounce delay for viewport callback updates, in milliseconds.</td>
 </tr>
 <tr>
 <td><code>projection</code></td>
@@ -1377,6 +1389,12 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>dict</code></td>
 <td>—</td>
 <td>Read-only: set on <code>singleclick</code> with <code>{ coordinate: [x, y], latLon: [lat, lon] }</code>.</td>
+</tr>
+<tr>
+<td><code>bbox</code></td>
+<td><code>list[number]</code></td>
+<td>—</td>
+<td>Read-only: current visible extent as [minLongitude, minLatitude, maxLongitude, maxLatitude] in EPSG:4326.</td>
 </tr>
 <tr>
 <td><code>undo</code></td>
