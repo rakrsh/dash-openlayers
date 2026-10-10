@@ -11,6 +11,17 @@ import { getEditHistory } from '../utils/editHistory';
 
 const DEFAULT_CENTER = [0, 0];
 
+const getFeatureInfoAtPixel = (map, pixel) => {
+  let featureInfo = null;
+  map.forEachFeatureAtPixel(pixel, (feature) => {
+    const hitFeature = feature.get('features')?.[0] ?? feature;
+    featureInfo = { ...hitFeature.getProperties() };
+    delete featureInfo.geometry;
+    return true;
+  });
+  return featureInfo;
+};
+
 const MapComponent = ({
   id,
   children,
@@ -64,11 +75,39 @@ const MapComponent = ({
           const lonLat = toLonLat(evt.coordinate, olMap.getView().getProjection());
           setPropsRef.current({
             clickData: {
-              coordinate: evt.coordinate,
-              latLon: [lonLat[1], lonLat[0]],
+              lat: lonLat[1],
+              lon: lonLat[0],
+              pixelCoordinate: evt.pixel,
+              featureInfo: getFeatureInfoAtPixel(olMap, evt.pixel),
             },
           });
         }
+      }),
+      olMap.on('dblclick', (evt) => {
+        if (setPropsRef.current) {
+          const lonLat = toLonLat(evt.coordinate, olMap.getView().getProjection());
+          setPropsRef.current({
+            doubleClickData: {
+              lat: lonLat[1],
+              lon: lonLat[0],
+              pixelCoordinate: evt.pixel,
+              featureInfo: getFeatureInfoAtPixel(olMap, evt.pixel),
+            },
+          });
+        }
+      }),
+      olMap.on('pointermove', (evt) => {
+        if (evt.dragging || !setPropsRef.current) return;
+
+        const lonLat = toLonLat(evt.coordinate, olMap.getView().getProjection());
+        setPropsRef.current({
+          hoverData: {
+            lat: lonLat[1],
+            lon: lonLat[0],
+            pixelCoordinate: evt.pixel,
+            featureInfo: getFeatureInfoAtPixel(olMap, evt.pixel),
+          },
+        });
       }),
       olMap.on('moveend', () => {
         if (moveTimerRef.current !== null) clearTimeout(moveTimerRef.current);
@@ -217,8 +256,12 @@ MapComponent.propTypes = {
   ),
   /** Inline CSS style object applied to the map container div. */
   style: PropTypes.object,
-  /** Read-only: set on `singleclick` with `{ coordinate: [x, y], latLon: [lat, lon] }`. */
+  /** Read-only: { lat, lon, pixelCoordinate: [x, y], featureInfo } from the last single click; featureInfo is null on background or the hit feature's GeoJSON properties. */
   clickData: PropTypes.object,
+  /** Read-only: { lat, lon, pixelCoordinate: [x, y], featureInfo } from the last double click; featureInfo is null on background or the hit feature's GeoJSON properties. */
+  doubleClickData: PropTypes.object,
+  /** Read-only: { lat, lon, pixelCoordinate: [x, y], featureInfo } under the pointer; featureInfo is null on background or the hit feature's GeoJSON properties. */
+  hoverData: PropTypes.object,
   /** Read-only: current visible extent as [minLongitude, minLatitude, maxLongitude, maxLatitude] in EPSG:4326. */
   bbox: PropTypes.arrayOf(PropTypes.number),
   /** Increment to undo the latest draw or modify operation on this map. */

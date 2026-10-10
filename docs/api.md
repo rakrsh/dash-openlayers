@@ -71,7 +71,7 @@ Layer visibility, opacity, and stacking-order controls for map layers.
 
 ## `Map`
 
-Create an OpenLayers map and synchronize its view and click events with Dash.
+Create an OpenLayers map and synchronize its view and pointer events with Dash.
 
 | Prop | Type | Default | Description |
 | --- | --- | --- | --- |
@@ -84,7 +84,9 @@ Create an OpenLayers map and synchronize its view and click events with Dash.
 | `projection` | `string` | `'EPSG:3857'` | EPSG code the view is rendered in, e.g. 'EPSG:3857' or a custom code registered via `proj4Defs`. |
 | `proj4Defs` | `list[dict]` | `[]` | Custom proj4 projection definitions to register before the view is constructed, e.g. [{ code: 'EPSG:27700', def: '+proj=tmerc ...' }]. |
 | `style` | `dict` | — | Inline CSS style object applied to the map container div. |
-| `clickData` | `dict` | — | Read-only: set on `singleclick` with `{ coordinate: [x, y], latLon: [lat, lon] }`. |
+| `clickData` | `dict` | — | Read-only: geographic click payload with lat, lon, pixelCoordinate [x, y], and featureInfo; featureInfo is null on the map background or contains the hit feature's GeoJSON properties. |
+| `doubleClickData` | `dict` | — | Read-only: geographic double-click payload with lat, lon, pixelCoordinate [x, y], and featureInfo; featureInfo is null on the map background or contains the hit feature's GeoJSON properties. |
+| `hoverData` | `dict` | — | Read-only: geographic pointer-move payload with lat, lon, pixelCoordinate [x, y], and featureInfo; featureInfo is null on the map background or contains the hit feature's GeoJSON properties. |
 | `bbox` | `list[number]` | — | Read-only: current visible extent as [minLongitude, minLatitude, maxLongitude, maxLatitude] in EPSG:4326. |
 | `undo` | `number` | `0` | Increment to undo the latest draw or modify operation on this map. |
 | `redo` | `number` | `0` | Increment to redo the latest undone draw or modify operation on this map. |

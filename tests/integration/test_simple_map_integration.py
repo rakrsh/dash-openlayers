@@ -45,11 +45,12 @@ def test_simple_map_starts(dash_duo):
         lambda driver: len(driver.find_elements(By.CSS_SELECTOR, "#map .ol-layer")) == 1
     )
     dash_duo.find_element("#map .ol-viewport").click()
-    dash_duo.wait_for_contains_text("#click-output", '"latLon"', timeout=10)
+    dash_duo.wait_for_contains_text("#click-output", '"featureInfo"', timeout=10)
 
     click_data = json.loads(dash_duo.find_element("#click-output").text)
-    assert len(click_data["coordinate"]) == 2
-    assert len(click_data["latLon"]) == 2
+    assert set(click_data) == {"lat", "lon", "pixelCoordinate", "featureInfo"}
+    assert len(click_data["pixelCoordinate"]) == 2
+    assert click_data["featureInfo"] is None
     assert dash_duo.get_logs() == []
 
 
@@ -77,6 +78,7 @@ def test_select_interaction_reports_selected_feature_geojson(dash_duo):
                 style={"height": "400px", "width": "600px"},
             ),
             html.Pre(id="feature-output"),
+            html.Pre(id="map-click-output"),
         ]
     )
 
@@ -84,17 +86,24 @@ def test_select_interaction_reports_selected_feature_geojson(dash_duo):
     def show_selected_feature(selected_feature):
         return json.dumps(selected_feature) if selected_feature else ""
 
+    @app.callback(Output("map-click-output", "children"), Input("map", "clickData"))
+    def show_map_click(click_data):
+        return json.dumps(click_data) if click_data else ""
+
     dash_duo.start_server(app)
     viewport = dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
     dash_duo.wait_for_element("#map canvas", timeout=15)
     viewport.click()
     dash_duo.wait_for_contains_text("#feature-output", "Station A", timeout=10)
+    dash_duo.wait_for_contains_text("#map-click-output", '"featureInfo"', timeout=10)
 
     selected_feature = json.loads(dash_duo.find_element("#feature-output").text)
+    click_data = json.loads(dash_duo.find_element("#map-click-output").text)
     assert selected_feature["type"] == "Feature"
     assert selected_feature["geometry"]["type"] == "Point"
     assert selected_feature["properties"] == {"name": "Station A", "kind": "station"}
     assert selected_feature["geometry"]["coordinates"] == [0, 0]
+    assert click_data["featureInfo"] == {"name": "Station A", "kind": "station"}
     assert dash_duo.get_logs() == []
 
 
@@ -820,7 +829,6 @@ def test_map_center_zoom_syncs_both_directions(dash_duo):
 
     WebDriverWait(dash_duo.driver, 15).until(view_matches_target)
     settled_state = json.loads(dash_duo.find_element("#view-state").text)
-    settled_state = json.loads(dash_duo.find_element("#view-state").text)
     assert all(
         abs(actual - expected) < 1e-5
         for actual, expected in zip(settled_state["center"], target_center)
@@ -838,10 +846,10 @@ def test_map_center_zoom_syncs_both_directions(dash_duo):
     )
 
     viewport.click()
-    dash_duo.wait_for_contains_text("#click-state", '"coordinate"', timeout=10)
+    dash_duo.wait_for_contains_text("#click-state", '"pixelCoordinate"', timeout=10)
     click_data = json.loads(dash_duo.find_element("#click-state").text)
-    assert settled_state["bbox"][0] <= click_data["latLon"][1] <= settled_state["bbox"][2]
-    assert settled_state["bbox"][1] <= click_data["latLon"][0] <= settled_state["bbox"][3]
+    assert settled_state["bbox"][0] <= click_data["lon"] <= settled_state["bbox"][2]
+    assert settled_state["bbox"][1] <= click_data["lat"] <= settled_state["bbox"][3]
 
     (
         ActionChains(dash_duo.driver)
@@ -905,10 +913,10 @@ def test_map_registers_custom_projection(dash_duo):
     dash_duo.start_server(app)
     viewport = dash_duo.wait_for_element("#map .ol-viewport", timeout=15)
     viewport.click()
-    dash_duo.wait_for_contains_text("#click-state", '"latLon"', timeout=10)
+    dash_duo.wait_for_contains_text("#click-state", '"lat"', timeout=10)
 
     click_data = json.loads(dash_duo.find_element("#click-state").text)
-    latitude, longitude = click_data["latLon"]
-    assert abs(latitude - 51.5) < 0.1
-    assert abs(longitude - (-0.13)) < 0.1
+    assert abs(click_data["lat"] - 51.5) < 0.1
+    assert abs(click_data["lon"] - (-0.13)) < 0.1
+    assert click_data["featureInfo"] is None
     assert dash_duo.get_logs() == []
