@@ -1284,6 +1284,24 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>null</code></td>
 <td>WMS server type used for vendor-specific HiDPI request parameters.</td>
 </tr>
+<tr>
+<td><code>visible</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether this layer is rendered; updates the OpenLayers layer immediately.</td>
+</tr>
+<tr>
+<td><code>opacity</code></td>
+<td><code>number</code></td>
+<td><code>1</code></td>
+<td>Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.</td>
+</tr>
+<tr>
+<td><code>zIndex</code></td>
+<td><code>number</code></td>
+<td>—</td>
+<td>Integer stacking order; omitted values preserve OpenLayers layer ordering.</td>
+</tr>
 </tbody>
 </table>
 <h2 id="layercontrol"><code>LayerControl</code></h2>
@@ -1688,6 +1706,24 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>null</code></td>
 <td>URL template for a custom XYZ tile source, e.g. 'https://tiles.example.com/{z}/{x}/{y}.png'.</td>
 </tr>
+<tr>
+<td><code>visible</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether this layer is rendered; updates the OpenLayers layer immediately.</td>
+</tr>
+<tr>
+<td><code>opacity</code></td>
+<td><code>number</code></td>
+<td><code>1</code></td>
+<td>Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.</td>
+</tr>
+<tr>
+<td><code>zIndex</code></td>
+<td><code>number</code></td>
+<td>—</td>
+<td>Integer stacking order; omitted values preserve OpenLayers layer ordering.</td>
+</tr>
 </tbody>
 </table>
 <h2 id="tilewms"><code>TileWMS</code></h2>
@@ -1725,6 +1761,24 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>'carmentaserver' \| 'geoserver' \| 'mapserver' \| 'qgis'</code></td>
 <td><code>null</code></td>
 <td>WMS server type used for vendor-specific HiDPI request parameters.</td>
+</tr>
+<tr>
+<td><code>visible</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether this layer is rendered; updates the OpenLayers layer immediately.</td>
+</tr>
+<tr>
+<td><code>opacity</code></td>
+<td><code>number</code></td>
+<td><code>1</code></td>
+<td>Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.</td>
+</tr>
+<tr>
+<td><code>zIndex</code></td>
+<td><code>number</code></td>
+<td>—</td>
+<td>Integer stacking order; omitted values preserve OpenLayers layer ordering.</td>
 </tr>
 </tbody>
 </table>
@@ -1819,6 +1873,24 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td>Enable label decluttering, or provide a shared group name to declutter with other layers.</td>
 </tr>
 <tr>
+<td><code>visible</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether this layer is rendered; updates the OpenLayers layer immediately.</td>
+</tr>
+<tr>
+<td><code>opacity</code></td>
+<td><code>number</code></td>
+<td><code>1</code></td>
+<td>Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.</td>
+</tr>
+<tr>
+<td><code>zIndex</code></td>
+<td><code>number</code></td>
+<td>—</td>
+<td>Integer stacking order; omitted values preserve OpenLayers layer ordering.</td>
+</tr>
+<tr>
 <td><code>hoveredFeature</code></td>
 <td><code>dict</code></td>
 <td>—</td>
@@ -1905,6 +1977,24 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td>Vector source key within mapboxStyle; inferred when that document contains one vector source.</td>
 </tr>
 <tr>
+<td><code>visible</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether this layer is rendered; updates the OpenLayers layer immediately.</td>
+</tr>
+<tr>
+<td><code>opacity</code></td>
+<td><code>number</code></td>
+<td><code>1</code></td>
+<td>Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.</td>
+</tr>
+<tr>
+<td><code>zIndex</code></td>
+<td><code>number</code></td>
+<td>—</td>
+<td>Integer stacking order; omitted values preserve OpenLayers layer ordering.</td>
+</tr>
+<tr>
 <td><code>clickedFeature</code></td>
 <td><code>dict</code></td>
 <td>—</td>
@@ -1971,6 +2061,24 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>dict</code></td>
 <td><code>{}</code></td>
 <td>Additional GetFeature query parameters, such as count, bbox, or CQL_FILTER.</td>
+</tr>
+<tr>
+<td><code>visible</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether this layer is rendered; updates the OpenLayers layer immediately.</td>
+</tr>
+<tr>
+<td><code>opacity</code></td>
+<td><code>number</code></td>
+<td><code>1</code></td>
+<td>Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.</td>
+</tr>
+<tr>
+<td><code>zIndex</code></td>
+<td><code>number</code></td>
+<td>—</td>
+<td>Integer stacking order; omitted values preserve OpenLayers layer ordering.</td>
 </tr>
 <tr>
 <td><code>featureCount</code></td>
@@ -2058,6 +2166,24 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>null</code></td>
 <td>Attribution text or a list of attribution strings for the tile provider.</td>
 </tr>
+<tr>
+<td><code>visible</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether this layer is rendered; updates the OpenLayers layer immediately.</td>
+</tr>
+<tr>
+<td><code>opacity</code></td>
+<td><code>number</code></td>
+<td><code>1</code></td>
+<td>Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.</td>
+</tr>
+<tr>
+<td><code>zIndex</code></td>
+<td><code>number</code></td>
+<td>—</td>
+<td>Integer stacking order; omitted values preserve OpenLayers layer ordering.</td>
+</tr>
 </tbody>
 </table>
 <h2 id="webglpointslayer"><code>WebGLPointsLayer</code></h2>
@@ -2095,6 +2221,24 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>bool</code></td>
 <td><code>false</code></td>
 <td>Disable WebGL feature hit detection for a small rendering performance gain.</td>
+</tr>
+<tr>
+<td><code>visible</code></td>
+<td><code>bool</code></td>
+<td><code>true</code></td>
+<td>Whether this layer is rendered; updates the OpenLayers layer immediately.</td>
+</tr>
+<tr>
+<td><code>opacity</code></td>
+<td><code>number</code></td>
+<td><code>1</code></td>
+<td>Layer opacity from 0 (transparent) to 1 (opaque); updates immediately.</td>
+</tr>
+<tr>
+<td><code>zIndex</code></td>
+<td><code>number</code></td>
+<td>—</td>
+<td>Integer stacking order; omitted values preserve OpenLayers layer ordering.</td>
 </tr>
 </tbody>
 </table>
