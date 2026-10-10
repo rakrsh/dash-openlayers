@@ -627,6 +627,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#measurecontrol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MeasureControl
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#modifyinteraction" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -873,6 +884,17 @@
     <span class="md-ellipsis">
       
         Map
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#measurecontrol" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MeasureControl
       
     </span>
   </a>
@@ -1343,6 +1365,56 @@ For runnable examples, see the <a href="../usage/">usage guide</a>.</p>
 <td><code>bool</code></td>
 <td>—</td>
 <td>Read-only: whether this map's edit history has an operation to redo.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="measurecontrol"><code>MeasureControl</code></h2>
+<p>Draw lines and polygons with live geodesic length and area measurements.</p>
+<table>
+<thead>
+<tr>
+<th>Prop</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td><code>string</code></td>
+<td>—</td>
+<td>Component ID used to identify this measurement control in Dash.</td>
+</tr>
+<tr>
+<td><code>units</code></td>
+<td><code>'metric' \| 'imperial'</code></td>
+<td><code>'metric'</code></td>
+<td>Measurement units: metric uses meters, kilometers, and hectares; imperial uses feet, miles, and acres.</td>
+</tr>
+<tr>
+<td><code>clearMeasurements</code></td>
+<td><code>number</code></td>
+<td><code>0</code></td>
+<td>Increment to clear all completed and in-progress measurements.</td>
+</tr>
+<tr>
+<td><code>position</code></td>
+<td><code>'top-left' \| 'top-right' \| 'bottom-left' \| 'bottom-right'</code></td>
+<td><code>'top-left'</code></td>
+<td>Corner of the map where the measurement toolbar is displayed.</td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td><code>string</code></td>
+<td><code>'Measure'</code></td>
+<td>Accessible toolbar label and visible heading.</td>
+</tr>
+<tr>
+<td><code>style</code></td>
+<td><code>dict</code></td>
+<td>—</td>
+<td>Inline styles applied to the toolbar control container.</td>
 </tr>
 </tbody>
 </table>
