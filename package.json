@@ -29,7 +29,7 @@
     "topojson-server": "^3.0.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.22.1",
+    "@babel/core": "^8.0.7",
     "@babel/plugin-transform-react-jsx": "^7.22.1",
     "@babel/preset-env": "^7.29.7",
     "@babel/preset-react": "^7.29.7",
