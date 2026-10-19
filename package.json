@@ -23,7 +23,7 @@
     "ol-mapbox-style": "^13.7.1",
     "proj4": "^2.8.0",
     "prop-types": "^15.8.1",
-    "react": "^19.3.0",
+    "react": "^19.3.1",
     "react-docgen": "5.4.3",
     "react-dom": "^19.0.0",
     "topojson-server": "^3.0.1"
