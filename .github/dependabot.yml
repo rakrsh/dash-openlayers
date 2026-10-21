@@ -6,7 +6,8 @@ updates:
     schedule:
       interval: "daily"
       time: "02:00"
-    open-pull-requests-limit: 10
+    # Keep the ecosystem enabled for native security updates only.
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
       - "security"
@@ -20,7 +21,8 @@ updates:
     schedule:
       interval: "daily"
       time: "02:00"
-    open-pull-requests-limit: 10
+    # Keep the ecosystem enabled for native security updates only.
+    open-pull-requests-limit: 0
     labels:
       - "dependencies"
       - "security"

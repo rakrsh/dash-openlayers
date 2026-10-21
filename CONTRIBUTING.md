@@ -109,6 +109,19 @@ uv sync
 uv run pre-commit install
 ```
 
+## Dependency updates
+
+The daily [prechecked dependency update workflow](.github/workflows/dependency-precheck.yml)
+updates npm and Python dependencies separately. It runs the build, tests, lint,
+documentation build, and dependency audits before creating or updating a PR.
+Dependabot's version-update PRs are disabled; native Dependabot security-update
+PRs remain enabled.
+
+After opening a PR, the workflow explicitly dispatches the regular CI, AI
+quality-gate, and security workflows. This is needed because PRs created with
+the repository's `GITHUB_TOKEN` do not automatically trigger other workflows.
+The precheck can also be started manually from the Actions tab.
+
 ## Component metadata and generated files
 
 When adding or changing a React component, update its export in `src/index.js`
