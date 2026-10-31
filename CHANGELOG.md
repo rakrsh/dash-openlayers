@@ -2,6 +2,16 @@
 
 Notable changes for each release are recorded here.
 
+## 0.1.1 - 2026-10-31
+
+### Fixed
+
+- Updated JavaScript and Python dependencies with available security fixes.
+
+### Changed
+
+- Limited the `pre-commit` development dependency to Python 3.11+; Python 3.10 runtime support is unchanged.
+
 ## 0.1.0 - 2026-10-10
 
 ### Added
