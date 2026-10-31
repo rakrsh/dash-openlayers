@@ -6,9 +6,9 @@ its own README and can be run independently.
 
 ## Installation
 
-Use Python 3.10 or newer. From a source checkout, install the library in
-editable mode and then install the requirements for the example you want to
-run:
+Requires Python 3.10 or newer; the CI test matrix covers Python 3.10–3.15.
+From a source checkout, install the library in editable mode and then install
+the requirements for the example you want to run:
 
 ```bash
 python -m pip install -e .

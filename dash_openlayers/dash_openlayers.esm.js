@@ -94842,7 +94842,8 @@ License: https://raw.githubusercontent.com/openlayers/ol-mapbox-style/master/LIC
  * @typedef {Object} SpriteImage
  * @property {HTMLImageElement|HTMLCanvasElement} image Image
  * @property {Array<number>} size Size
- * @property {boolean} [unSDFed] Image has been unSDFed
+ * @property {HTMLCanvasElement} [unSDFedImage] Image with SDF icons drawn in
+ * white, created on first use. Non-SDF icons and patterns use `image`.
  */
 
 /** @typedef {Object<string, SpriteImage>} SpriteImages */
@@ -95158,6 +95159,8 @@ function getSpriteImageForIcon(icon, spriteImages) {
 
 const styleFunctionArgs = {};
 
+let patternKeyCounter = 0;
+
 /**
  * **Caution**: This is a low level API, which is only useful for advanced use cases.
  * If you want to crete a map or layer group from an entire Mapbox/MapLibre style, use
@@ -95342,6 +95345,7 @@ function stylefunction(
 
   const iconImageCache = {};
   const patternCache = {};
+  const patternKeyPrefix = `ol-mapbox-style:${++patternKeyCounter}:`;
   const functionCache = getFunctionCache(glStyle);
   const filterCache = getFilterCache(glStyle);
 
@@ -95498,9 +95502,15 @@ function stylefunction(
                 }
                 fill = style.getFill();
                 style.setZIndex(index);
-                const icon_cache_key = icon + '.' + opacity;
-                let pattern = patternCache[icon_cache_key];
-                if (!pattern) {
+                // Rounded, so zoom dependent opacity does not create a pattern
+                // for every fractional zoom level.
+                const patternOpacity = Math.round(opacity * 100) / 100;
+                const patternKey =
+                  patternKeyPrefix + icon + '.' + patternOpacity;
+                // The pattern is registered in the shared icon image cache, where
+                // `src` of a pattern descriptor is looked up. The cache may have
+                // expired it, in which case it is registered again.
+                if (!shared.get(patternKey, null)) {
                   const spriteImageData = spriteData[icon];
                   const canvas = createCanvas(
                     spriteImageData.width,
@@ -95509,7 +95519,7 @@ function stylefunction(
                   const ctx = /** @type {CanvasRenderingContext2D} */ (
                     canvas.getContext('2d')
                   );
-                  ctx.globalAlpha = opacity;
+                  ctx.globalAlpha = patternOpacity;
                   ctx.drawImage(
                     spriteImage.image,
                     spriteImageData.x,
@@ -95521,10 +95531,26 @@ function stylefunction(
                     spriteImageData.width,
                     spriteImageData.height,
                   );
-                  pattern = ctx.createPattern(canvas, 'repeat');
-                  patternCache[icon_cache_key] = pattern;
+                  get$2(
+                    canvas,
+                    patternKey,
+                    undefined,
+                    ImageState.LOADED,
+                    null,
+                    true,
+                  );
                 }
-                fill.setColor(pattern);
+                let pattern = patternCache[patternKey];
+                if (!pattern) {
+                  pattern = {
+                    src: patternKey,
+                    scale: 1 / spriteData[icon].pixelRatio,
+                  };
+                  patternCache[patternKey] = pattern;
+                }
+                if (fill.getColor() !== pattern) {
+                  fill.setColor(pattern);
+                }
               }
             }
           } else {
@@ -95946,8 +95972,8 @@ function stylefunction(
                         }
                       } else {
                         if (spriteImageData.sdf) {
-                          if (!spriteImage.unSDFed) {
-                            const spriteImageUnSDFed = drawSDF(
+                          if (!spriteImage.unSDFedImage) {
+                            spriteImage.unSDFedImage = drawSDF(
                               spriteImage.image,
                               {
                                 x: 0,
@@ -95957,11 +95983,11 @@ function stylefunction(
                               },
                               {r: 1, g: 1, b: 1},
                             );
-                            spriteImage.image = spriteImageUnSDFed;
-                            spriteImage.unSDFed = true;
                           }
+                          img = spriteImage.unSDFedImage;
+                        } else {
+                          img = spriteImage.image;
                         }
-                        img = spriteImage.image;
                         size = [spriteImageData.width, spriteImageData.height];
                         offset = [spriteImageData.x, spriteImageData.y];
                       }

@@ -288,7 +288,7 @@ node scripts/check-ai-invariants.js
 
 | CI job | Runs | Coverage flags |
 |---|---|---|
-| `test` (matrix: ubuntu + windows, Python 3.10–3.14) | `tests/unit` then `tests/integration` | `--cov` then `--cov-append` |
+| `test` (matrix: ubuntu + windows, Python 3.10–3.15) | `tests/unit` then `tests/integration` | `--cov` then `--cov-append` |
 | Linux integration | wrapped in `xvfb-run -s "-screen 0 1280x1024x24"` | same |
 | Windows integration | plain `pwsh` | same |
 
