@@ -100,11 +100,11 @@ wheels = [
 
 [[package]]
 name = "certifi"
-version = "2026.7.22"
+version = "2026.10.23"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a3/c2/24167ea9858356b47a87a50d39908bfdb72ceeefe0041586e704e5376b3a/certifi-2026.7.22.tar.gz", hash = "sha256:741e2c3b351ddf169a738da9f2c048608ff7f2c5cc02f1ebc6b118bb090d5d55", size = 138112, upload-time = "2026-07-22T03:35:12.644Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/fd/11/b524cbd9bbdaca58608e4cf4053fd463417549e1959fa8d3aa18319f9555/certifi-2026.10.23.tar.gz", hash = "sha256:a9895e6e2758b371e0545e321a3a8fd1fcfd9829ada8824a936dfb16aaaf36cd", size = 136225, upload-time = "2026-10-23T11:36:16.478Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0b/a7/71ac2cff56fec219ed242bb11b8efb69fcc4bec75db06fb7bfe35de520e6/certifi-2026.7.22-py3-none-any.whl", hash = "sha256:62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775", size = 136983, upload-time = "2026-07-22T03:35:11.276Z" },
+    { url = "https://files.pythonhosted.org/packages/32/d1/a3652fe2c19134d0d15922177821d863cbd7e842d53a21bbe7e8e3a1b5ac/certifi-2026.10.23-py3-none-any.whl", hash = "sha256:e9b54de76e530bb6cf0ccd036787103acb58fd42ba930ea8bf948ddbaa2f61d1", size = 135082, upload-time = "2026-10-23T11:36:14.763Z" },
 ]
 
 [[package]]
@@ -676,7 +676,7 @@ dev = [
     { name = "chromedriver-autoinstaller" },
     { name = "coverage" },
     { name = "dash", extra = ["testing"] },
-    { name = "pre-commit" },
+    { name = "pre-commit", marker = "python_full_version >= '3.11'" },
     { name = "pytest" },
     { name = "pytest-cov" },
     { name = "pyyaml" },
@@ -691,7 +691,7 @@ docs = [
     { name = "pymdown-extensions" },
 ]
 lint = [
-    { name = "pre-commit" },
+    { name = "pre-commit", marker = "python_full_version >= '3.11'" },
     { name = "ruff" },
 ]
 test = [
@@ -716,7 +716,7 @@ dev = [
     { name = "chromedriver-autoinstaller", specifier = ">=0.6.4" },
     { name = "coverage", specifier = ">=7.6.10" },
     { name = "dash", extras = ["testing"], specifier = ">=4.5.0rc0" },
-    { name = "pre-commit", marker = "python_full_version >= '3.9'", specifier = ">=4.0.0" },
+    { name = "pre-commit", marker = "python_full_version >= '3.11'", specifier = ">=4.0.0" },
     { name = "pytest", specifier = ">=8.3.4" },
     { name = "pytest-cov", specifier = ">=6.1.0" },
     { name = "pyyaml", specifier = ">=6.0.2" },
@@ -731,7 +731,7 @@ docs = [
     { name = "pymdown-extensions", specifier = ">=10.12.0" },
 ]
 lint = [
-    { name = "pre-commit", marker = "python_full_version >= '3.9'", specifier = ">=4.0.0" },
+    { name = "pre-commit", marker = "python_full_version >= '3.11'", specifier = ">=4.0.0" },
     { name = "ruff", specifier = ">=0.8.0" },
 ]
 test = [
@@ -793,11 +793,11 @@ wheels = [
 
 [[package]]
 name = "filelock"
-version = "4.0.3"
+version = "4.2.5"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/4f/b8/9ba8f569df649beb7058db5eb392a5f779bdbc3b82cf3942f0be439fb99e/filelock-4.0.3.tar.gz", hash = "sha256:87296d60478e14204fd9406e79831400fef76693bae2895deec236c98e87a8aa", size = 244309, upload-time = "2026-09-23T23:40:22.569Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/aa/4b/2320d9fa03b65b4beb43b521fe1b12b7f87ab91ee42de3a286075016d205/filelock-4.2.5.tar.gz", hash = "sha256:37d8fa4f8b5e9233612e68ab23bf64cae41771322c8797361088ae2895b12894", size = 659943, upload-time = "2026-10-30T19:27:22.237Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/7a/6d/db8b86e168fef0cf904737e275bccb683558088ef971e92d3b41ce980699/filelock-4.0.3-py3-none-any.whl", hash = "sha256:30cd166e2aee2c7534ce2c33c6367c4cd051b8368e20e2c4eb0c34f699bacfab", size = 108444, upload-time = "2026-09-23T23:40:20.819Z" },
+    { url = "https://files.pythonhosted.org/packages/14/2d/2cf36eca330b7a97c0e9076e8fc4272127c29398fa2bb7b24d4321b8b476/filelock-4.2.5-py3-none-any.whl", hash = "sha256:46ce42d27e5cdde09ee7197349663e97cb106679bd9e75db3a09679fbc7aa1a8", size = 163877, upload-time = "2026-10-30T19:27:20.409Z" },
 ]
 
 [[package]]
@@ -1567,11 +1567,11 @@ name = "pre-commit"
 version = "4.6.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "cfgv" },
-    { name = "identify" },
-    { name = "nodeenv" },
-    { name = "pyyaml" },
-    { name = "virtualenv" },
+    { name = "cfgv", marker = "python_full_version >= '3.11'" },
+    { name = "identify", marker = "python_full_version >= '3.11'" },
+    { name = "nodeenv", marker = "python_full_version >= '3.11'" },
+    { name = "pyyaml", marker = "python_full_version >= '3.11'" },
+    { name = "virtualenv", marker = "python_full_version >= '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/74/89/1f3e8e1fc3e97de0fa963495832f581f025f29471602a309e48808244292/pre_commit-4.6.2.tar.gz", hash = "sha256:8f5d7bfb021ecdbcd9d49d89847082dd24172ccde534390081a679ad046e2441", size = 198670, upload-time = "2026-08-10T22:07:18.421Z" }
 wheels = [
@@ -1845,7 +1845,7 @@ name = "python-discovery"
 version = "1.6.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "filelock" },
+    { name = "filelock", marker = "python_full_version >= '3.11'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/0c/57/250bd238b966cece44328235eb85290045d059265fdaf7527a3a958123db/python_discovery-1.6.1.tar.gz", hash = "sha256:cf87d3627dfb4412437fdd5b13eae402607722998d21567993aedbc59b23c15e", size = 84338, upload-time = "2026-09-18T01:31:53.971Z" }
 wheels = [
@@ -2009,11 +2009,11 @@ wheels = [
 
 [[package]]
 name = "setuptools"
-version = "84.0.0"
+version = "84.2.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/6d/44/f5da03a8ef95d369145c5bb53050e7877c9f3d312e128605fd9504829143/setuptools-84.0.0.tar.gz", hash = "sha256:f4695c21257f0d9b537ec2692c941d02ee143b7cc1276941349a546573b2ef73", size = 1168449, upload-time = "2026-08-08T18:27:58.365Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/70/b3/c19426f783614d625699a4b247faf628ea9ab1db228674491767b417f9e1/setuptools-84.2.1.tar.gz", hash = "sha256:3ff8b3b5492a0aa66960f4419365a86b84e013070d4313e4d4a6894f5d64d6bc", size = 1230289, upload-time = "2026-10-20T19:01:37.742Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/95/9c/c510029fc6ef33a6275cd2c5d3cecd6613dfd6aa401d57c54f1c18852ccf/setuptools-84.0.0-py3-none-any.whl", hash = "sha256:51a52592b3b99e102b609654876bd65f19f999935166d1352678931132b0c670", size = 818216, upload-time = "2026-08-08T18:27:56.719Z" },
+    { url = "https://files.pythonhosted.org/packages/ef/55/6dc6d6bb953bdfc52519a0059592c52b6e3b8ad51cf8256dffceb55b0610/setuptools-84.2.1-py3-none-any.whl", hash = "sha256:ca140b45d5325a9478f880e351484f62fef15f336462e449ca0c03c873d589c2", size = 876263, upload-time = "2026-10-20T19:01:35.678Z" },
 ]
 
 [[package]]
@@ -2194,18 +2194,18 @@ wheels = [
 
 [[package]]
 name = "virtualenv"
-version = "21.12.1"
+version = "21.15.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "distlib" },
-    { name = "filelock" },
-    { name = "platformdirs" },
-    { name = "python-discovery" },
-    { name = "typing-extensions", marker = "python_full_version < '3.11'" },
+    { name = "distlib", marker = "python_full_version >= '3.11'" },
+    { name = "filelock", marker = "python_full_version >= '3.11'" },
+    { name = "packaging", marker = "python_full_version >= '3.11'" },
+    { name = "platformdirs", marker = "python_full_version >= '3.11'" },
+    { name = "python-discovery", marker = "python_full_version >= '3.11'" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/ad/3b/02608bb39c6b6f7d59ca62b04d704cf61e85361a7123b6394bca275661e1/virtualenv-21.12.1.tar.gz", hash = "sha256:be5a0a62cb2d1529ff6999652e2e7826f95bf7faa9b96b88cc39847c023d90a0", size = 5397187, upload-time = "2026-09-24T19:03:48.546Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/38/9e/40c7098240cedd3a2f32e42a74b35c4563c617fdd7e41ae6268d4fdd8915/virtualenv-21.15.2.tar.gz", hash = "sha256:dbd886e6e5689eb4dde6a9bbc478ad14b4fc8ed0852690d8273ccfb8c467f635", size = 5520597, upload-time = "2026-10-30T19:18:04.759Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/f5/8c/692cf235722ee45c612630d2b49b3d1765892f7e440055365ea1b59c659e/virtualenv-21.12.1-py3-none-any.whl", hash = "sha256:878db9e963d0ef0b38561a344a4f9b12dc5c7741b6245d7ed10e9291cfea28bc", size = 5486096, upload-time = "2026-09-24T19:03:45.985Z" },
+    { url = "https://files.pythonhosted.org/packages/f7/d8/09c9d6df253b2016312dd5ccbb962dfa86a5202f2452604b52e0a9844661/virtualenv-21.15.2-py3-none-any.whl", hash = "sha256:fb8c62c7c328e0238061c721068f06b7bc6bd10f7a0f5987195cef1008837ee6", size = 5559530, upload-time = "2026-10-30T19:18:01.134Z" },
 ]
 
 [[package]]
