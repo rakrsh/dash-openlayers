@@ -20,12 +20,12 @@
     "@turf/boolean-valid": "^7.4.0",
     "@turf/kinks": "^7.4.0",
     "ol": "^10.11.0",
-    "ol-mapbox-style": "^13.7.1",
+    "ol-mapbox-style": "^13.8.0",
     "proj4": "^2.8.0",
     "prop-types": "^15.8.1",
-    "react": "^19.3.0",
-    "react-docgen": "5.4.3",
-    "react-dom": "^19.0.0",
+    "react": "^19.3.1",
+    "react-docgen": "8.0.4",
+    "react-dom": "^19.3.1",
     "topojson-server": "^3.0.1"
   },
   "devDependencies": {
@@ -39,7 +39,7 @@
     "@rollup/plugin-commonjs": "^29.0.3",
     "@rollup/plugin-node-resolve": "^16.0.3",
     "@rollup/plugin-replace": "^6.0.3",
-    "@rollup/plugin-terser": "^1.0.0",
+    "@rollup/plugin-terser": "^1.0.2",
     "@testing-library/jest-dom": "^7.0.1",
     "@testing-library/react": "^16.3.3",
     "babel-jest": "^30.5.2",
@@ -47,12 +47,12 @@
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^7.1.1",
-    "globals": "^17.12.0",
+    "globals": "^17.13.0",
     "jest": "^30.5.2",
     "jest-environment-jsdom": "^30.5.2",
-    "postcss": "^8.5.30",
+    "postcss": "^8.5.32",
     "prettier": "^3.9.10",
-    "rollup": "^4.63.5",
+    "rollup": "^4.67.2",
     "rollup-plugin-postcss": "^4.0.2"
   }
 }
