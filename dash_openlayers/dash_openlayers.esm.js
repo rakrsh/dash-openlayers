@@ -117,15 +117,15 @@ function _objectWithoutPropertiesLoose(r, e) {
 function _slicedToArray(r, e) {
   return _arrayWithHoles(r) || _iterableToArrayLimit(r, e) || _unsupportedIterableToArray(r, e) || _nonIterableRest();
 }
-function _toPrimitive(t, r) {
+function _toPrimitive(t, e) {
   if ("object" != typeof t || !t) return t;
-  var e = t[Symbol.toPrimitive];
-  if (void 0 !== e) {
-    var i = e.call(t, r);
+  var r;
+  if ("undefined" != typeof Symbol && void 0 !== (r = t[Symbol.toPrimitive])) {
+    var i = r.call(t, e);
     if ("object" != typeof i) return i;
     throw new TypeError("@@toPrimitive must return a primitive value.");
   }
-  return ("string" === r ? String : Number)(t);
+  return ("string" === e ? String : Number)(t);
 }
 function _toPropertyKey(t) {
   var i = _toPrimitive(t, "string");
@@ -31357,6 +31357,11 @@ function transformPROJJSON(projjson, result = {}) {
     }
   });
 
+  // Geographic and geodetic CRSs have no base_crs, so use their own id as datumCode
+  if (!result.datumCode && (projjson.type === 'GeographicCRS' || projjson.type === 'GeodeticCRS') && projjson.id) {
+    result.datumCode = projjson.id.authority + '_' + projjson.id.code;
+  }
+
   // Additional calculated properties
   if (result.latitude_of_false_origin !== undefined) {
     result.lat0 = result.latitude_of_false_origin; // Already in radians
@@ -62387,6 +62392,112 @@ function orient2d$1(ax, ay, bx, by, cx, cy) {
     return -orient2dadapt$1(ax, ay, bx, by, cx, cy, detsum);
 }
 
+vec$1(4);
+vec$1(4);
+vec$1(4);
+vec$1(4);
+vec$1(4);
+vec$1(4);
+vec$1(4);
+vec$1(4);
+vec$1(4);
+vec$1(8);
+vec$1(8);
+vec$1(8);
+vec$1(4);
+
+vec$1(8);
+vec$1(8);
+vec$1(16);
+vec$1(12);
+
+vec$1(192);
+vec$1(192);
+
+vec$1(4);
+vec$1(4);
+vec$1(4);
+vec$1(4);
+vec$1(4);
+vec$1(4);
+vec$1(4);
+vec$1(4);
+vec$1(8);
+vec$1(8);
+vec$1(8);
+vec$1(8);
+vec$1(8);
+vec$1(8);
+vec$1(8);
+vec$1(8);
+vec$1(8);
+vec$1(4);
+vec$1(4);
+vec$1(4);
+
+vec$1(8);
+vec$1(16);
+vec$1(16);
+vec$1(16);
+vec$1(32);
+vec$1(32);
+vec$1(48);
+vec$1(64);
+
+vec$1(1152);
+vec$1(1152);
+
+vec$1(4);
+vec$1(4);
+vec$1(4);
+vec$1(4);
+vec$1(4);
+vec$1(4);
+vec$1(4);
+vec$1(4);
+vec$1(4);
+vec$1(4);
+
+vec$1(24);
+vec$1(24);
+vec$1(24);
+vec$1(24);
+vec$1(24);
+vec$1(24);
+vec$1(24);
+vec$1(24);
+vec$1(24);
+vec$1(24);
+
+vec$1(1152);
+vec$1(1152);
+vec$1(1152);
+vec$1(1152);
+vec$1(1152);
+vec$1(2304);
+vec$1(2304);
+vec$1(3456);
+vec$1(5760);
+
+vec$1(8);
+vec$1(8);
+vec$1(8);
+vec$1(16);
+vec$1(24);
+vec$1(48);
+vec$1(48);
+vec$1(96);
+vec$1(192);
+vec$1(384);
+vec$1(384);
+vec$1(384);
+vec$1(768);
+
+vec$1(96);
+vec$1(96);
+vec$1(96);
+vec$1(1152);
+
 function pointInPolygon(p, polygon) {
     var i;
     var ii;
@@ -62816,6 +62927,112 @@ function orient2d(ax, ay, bx, by, cx, cy) {
 
     return -orient2dadapt(ax, ay, bx, by, cx, cy, detsum);
 }
+
+vec(4);
+vec(4);
+vec(4);
+vec(4);
+vec(4);
+vec(4);
+vec(4);
+vec(4);
+vec(4);
+vec(8);
+vec(8);
+vec(8);
+vec(4);
+
+vec(8);
+vec(8);
+vec(8);
+vec(12);
+
+vec(192);
+vec(192);
+
+vec(4);
+vec(4);
+vec(4);
+vec(4);
+vec(4);
+vec(4);
+vec(4);
+vec(4);
+vec(8);
+vec(8);
+vec(8);
+vec(8);
+vec(8);
+vec(8);
+vec(8);
+vec(8);
+vec(8);
+vec(4);
+vec(4);
+vec(4);
+
+vec(8);
+vec(16);
+vec(16);
+vec(16);
+vec(32);
+vec(32);
+vec(48);
+vec(64);
+
+vec(1152);
+vec(1152);
+
+vec(4);
+vec(4);
+vec(4);
+vec(4);
+vec(4);
+vec(4);
+vec(4);
+vec(4);
+vec(4);
+vec(4);
+
+vec(24);
+vec(24);
+vec(24);
+vec(24);
+vec(24);
+vec(24);
+vec(24);
+vec(24);
+vec(24);
+vec(24);
+
+vec(1152);
+vec(1152);
+vec(1152);
+vec(1152);
+vec(1152);
+vec(2304);
+vec(2304);
+vec(3456);
+vec(5760);
+
+vec(8);
+vec(8);
+vec(8);
+vec(16);
+vec(24);
+vec(48);
+vec(48);
+vec(96);
+vec(192);
+vec(384);
+vec(384);
+vec(384);
+vec(768);
+
+vec(96);
+vec(96);
+vec(96);
+vec(1152);
 
 // index.ts
 function sweeplineIntersections(geojson, ignoreSelfIntersections) {
@@ -86354,7 +86571,7 @@ function defaultLoadFunction(tile, url) {
   );
 }
 
-//#region src/reference/v8.json
+// src/reference/v8.json
 var v8_default = {
 	$version: 8,
 	$root: {
@@ -87837,6 +88054,21 @@ var v8_default = {
 			},
 			"property-type": "data-constant"
 		},
+		"fill-layer-blend": {
+			"type": "enum",
+			"values": {
+				"normal": {},
+				"multiply": {},
+				"color": {},
+				"luminosity": {},
+				"plus-lighter": {},
+				"screen": {},
+				"overlay": {}
+			},
+			"default": "normal",
+			"property-type": "constant",
+			"transition": false
+		},
 		"fill-color": {
 			"type": "color",
 			"default": "#000000",
@@ -87925,7 +88157,8 @@ var v8_default = {
 				"parameters": [
 					"zoom",
 					"feature",
-					"feature-state"
+					"feature-state",
+					"elevation"
 				]
 			},
 			"property-type": "data-driven"
@@ -88036,6 +88269,21 @@ var v8_default = {
 				"parameters": ["zoom", "global-state"]
 			},
 			"property-type": "data-constant"
+		},
+		"line-layer-blend": {
+			"type": "enum",
+			"values": {
+				"normal": {},
+				"multiply": {},
+				"color": {},
+				"luminosity": {},
+				"plus-lighter": {},
+				"screen": {},
+				"overlay": {}
+			},
+			"default": "normal",
+			"property-type": "constant",
+			"transition": false
 		},
 		"line-color": {
 			"type": "color",
@@ -89019,10 +89267,10 @@ var v8_default = {
 	}
 };
 
-//#region src/reference/latest.ts
+// src/reference/latest.ts
 const latest = v8_default;
 
-//#region src/util/ref_properties.ts
+// src/util/ref_properties.ts
 const refProperties = [
 	"type",
 	"source",
@@ -89033,7 +89281,7 @@ const refProperties = [
 	"layout"
 ];
 
-//#region src/deref.ts
+// src/deref.ts
 function deref(layer, parent) {
 	const result = {};
 	for (const k in layer) if (k !== "ref") result[k] = layer[k];
@@ -89060,7 +89308,7 @@ function derefLayers(layers) {
 	return layers;
 }
 
-//#region src/expression/types.ts
+// src/expression/types.ts
 const NullType = { kind: "null" };
 const NumberType = { kind: "number" };
 const StringType = { kind: "string" };
@@ -89156,7 +89404,7 @@ function verifyType(provided, sample) {
 	return provided.kind === sample.kind;
 }
 
-//#region src/expression/types/color_spaces.ts
+// src/expression/types/color_spaces.ts
 const Xn = .96422;
 const Yn = 1;
 const Zn = .82521;
@@ -89251,7 +89499,7 @@ function hslToRgb([h, s, l, alpha]) {
 	];
 }
 
-//#region src/util/get_own.ts
+// src/util/get_own.ts
 const hasOwnProperty = Object.hasOwn || function hasOwnProperty(object, key) {
 	return Object.prototype.hasOwnProperty.call(object, key);
 };
@@ -89259,7 +89507,7 @@ function getOwn(object, key) {
 	return hasOwnProperty(object, key) ? object[key] : void 0;
 }
 
-//#region src/expression/types/parse_css_color.ts
+// src/expression/types/parse_css_color.ts
 /**
 * CSS color parser compliant with CSS Color 4 Specification.
 * Supports: named colors, `transparent` keyword, all rgb hex notations,
@@ -90137,7 +90385,7 @@ const namedColors = {
 	]
 };
 
-//#region src/util/interpolate-primitives.ts
+// src/util/interpolate-primitives.ts
 function interpolateNumber(from, to, t) {
 	return from + t * (to - from);
 }
@@ -90320,7 +90568,7 @@ var Color = class Color {
 	}
 };
 
-//#region src/expression/types/formatted.ts
+// src/expression/types/formatted.ts
 const VERTICAL_ALIGN_OPTIONS = [
 	"bottom",
 	"center",
@@ -90357,7 +90605,7 @@ var Formatted = class Formatted {
 	}
 };
 
-//#region src/expression/types/padding.ts
+// src/expression/types/padding.ts
 /**
 * A set of four numbers representing padding around a box. Create instances from
 * bare arrays or numeric values using the static method `Padding.parse`.
@@ -90417,7 +90665,7 @@ var Padding = class Padding {
 	}
 };
 
-//#region src/expression/types/number_array.ts
+// src/expression/types/number_array.ts
 /**
 * An array of numbers. Create instances from
 * bare arrays or numeric values using the static method `NumberArray.parse`.
@@ -90447,7 +90695,7 @@ var NumberArray = class NumberArray {
 	}
 };
 
-//#region src/expression/types/color_array.ts
+// src/expression/types/color_array.ts
 /**
 * An array of colors. Create instances from
 * bare arrays or strings using the static method `ColorArray.parse`.
@@ -90490,7 +90738,7 @@ var ColorArray = class ColorArray {
 	}
 };
 
-//#region src/expression/runtime_error.ts
+// src/expression/runtime_error.ts
 var RuntimeError = class extends Error {
 	constructor(message, path) {
 		super(message);
@@ -90502,7 +90750,7 @@ var RuntimeError = class extends Error {
 	}
 };
 
-//#region src/expression/types/variable_anchor_offset_collection.ts
+// src/expression/types/variable_anchor_offset_collection.ts
 /** Set of valid anchor positions, as a set for validation */
 const anchors = /* @__PURE__ */ new Set([
 	"center",
@@ -90554,7 +90802,7 @@ var VariableAnchorOffsetCollection = class VariableAnchorOffsetCollection {
 	}
 };
 
-//#region src/expression/types/resolved_image.ts
+// src/expression/types/resolved_image.ts
 var ResolvedImage = class ResolvedImage {
 	constructor(options) {
 		this.name = options.name;
@@ -90572,7 +90820,7 @@ var ResolvedImage = class ResolvedImage {
 	}
 };
 
-//#region src/expression/types/projection_definition.ts
+// src/expression/types/projection_definition.ts
 var ProjectionDefinition = class ProjectionDefinition {
 	constructor(from, to, transition) {
 		this.from = from;
@@ -90598,7 +90846,7 @@ var ProjectionDefinition = class ProjectionDefinition {
 	}
 };
 
-//#region src/expression/types/collator.ts
+// src/expression/types/collator.ts
 var Collator = class {
 	constructor(caseSensitive, diacriticSensitive, locale) {
 		if (caseSensitive) this.sensitivity = diacriticSensitive ? "variant" : "case";
@@ -90617,7 +90865,7 @@ var Collator = class {
 	}
 };
 
-//#region src/expression/values.ts
+// src/expression/values.ts
 function validateRGBA(r, g, b, a) {
 	if (!(typeof r === "number" && r >= 0 && r <= 255 && typeof g === "number" && g >= 0 && g <= 255 && typeof b === "number" && b >= 0 && b <= 255)) return `Invalid rgba value [${(typeof a === "number" ? [
 		r,
@@ -90684,7 +90932,7 @@ function valueToString(value) {
 	else return JSON.stringify(value);
 }
 
-//#region src/expression/definitions/literal.ts
+// src/expression/definitions/literal.ts
 var Literal = class Literal {
 	constructor(type, value) {
 		this.type = type;
@@ -90708,7 +90956,7 @@ var Literal = class Literal {
 	}
 };
 
-//#region src/expression/evaluation_context.ts
+// src/expression/evaluation_context.ts
 const geometryTypes = [
 	"Unknown",
 	"Point",
@@ -90750,7 +90998,7 @@ var EvaluationContext = class {
 	}
 };
 
-//#region src/expression/stops.ts
+// src/expression/stops.ts
 /**
 * Returns the index of the last stop <= input, or 0 if it doesn't exist.
 * @private
@@ -90774,7 +91022,7 @@ function findStopLessThanOrEqualTo(stops, input, key) {
 	return 0;
 }
 
-//#region src/expression/definitions/step.ts
+// src/expression/definitions/step.ts
 var Step = class Step {
 	constructor(type, input, stops, key) {
 		this.type = type;
@@ -90828,7 +91076,7 @@ var Step = class Step {
 	}
 };
 
-//#region node_modules/@mapbox/unitbezier/index.js
+// node_modules/@mapbox/unitbezier/index.js
 function unitBezier(p1x, p1y, p2x, p2y) {
 	const cx = 3 * p1x;
 	const bx = 3 * (p2x - p1x) - cx;
@@ -90861,7 +91109,7 @@ function unitBezier(p1x, p1y, p2x, p2y) {
 	};
 }
 
-//#region src/expression/definitions/interpolate.ts
+// src/expression/definitions/interpolate.ts
 var Interpolate = class Interpolate {
 	constructor(type, operator, interpolation, input, stops, key) {
 		this.type = type;
@@ -91014,7 +91262,7 @@ function exponentialInterpolation(input, base, lowerValue, upperValue) {
 	else return (Math.pow(base, progress) - 1) / (Math.pow(base, difference) - 1);
 }
 
-//#region src/expression/definitions/format.ts
+// src/expression/definitions/format.ts
 var FormatExpression = class FormatExpression {
 	constructor(sections) {
 		this.type = FormattedType;
@@ -91095,7 +91343,7 @@ var FormatExpression = class FormatExpression {
 	}
 };
 
-//#region src/util/classify_rings.ts
+// src/util/classify_rings.ts
 /**
 * Classifies an array of rings into polygons with outer rings and holes
 * @param rings - the rings to classify
@@ -91138,7 +91386,7 @@ function calculateSignedArea(ring) {
 	return sum;
 }
 
-//#region src/expression/definitions/assertion.ts
+// src/expression/definitions/assertion.ts
 const types$2 = {
 	string: StringType,
 	number: NumberType,
@@ -91199,7 +91447,7 @@ var Assertion = class Assertion {
 	}
 };
 
-//#region src/expression/definitions/coercion.ts
+// src/expression/definitions/coercion.ts
 const types$1 = {
 	"to-boolean": BooleanType,
 	"to-color": ColorType,
@@ -91319,7 +91567,7 @@ var Coercion = class Coercion {
 	}
 };
 
-//#region src/expression/definitions/let.ts
+// src/expression/definitions/let.ts
 var Let = class Let {
 	constructor(bindings, result) {
 		this.type = result.type;
@@ -91353,7 +91601,7 @@ var Let = class Let {
 	}
 };
 
-//#region src/expression/definitions/var.ts
+// src/expression/definitions/var.ts
 var Var = class Var {
 	constructor(name, boundExpression) {
 		this.type = boundExpression.type;
@@ -91375,7 +91623,7 @@ var Var = class Var {
 	}
 };
 
-//#region src/expression/definitions/at.ts
+// src/expression/definitions/at.ts
 var At = class At {
 	constructor(type, index, input, key) {
 		this.type = type;
@@ -91408,7 +91656,7 @@ var At = class At {
 	}
 };
 
-//#region src/expression/definitions/in.ts
+// src/expression/definitions/in.ts
 var In = class In {
 	constructor(needle, haystack, key) {
 		this.needle = needle;
@@ -91452,7 +91700,7 @@ var In = class In {
 	}
 };
 
-//#region src/expression/definitions/index_of.ts
+// src/expression/definitions/index_of.ts
 var IndexOf = class IndexOf {
 	constructor(needle, haystack, key, fromIndex) {
 		this.needle = needle;
@@ -91507,7 +91755,7 @@ var IndexOf = class IndexOf {
 	}
 };
 
-//#region src/expression/definitions/match.ts
+// src/expression/definitions/match.ts
 var Match = class Match {
 	constructor(inputType, outputType, input, cases, outputs, otherwise) {
 		this.inputType = inputType;
@@ -91566,7 +91814,7 @@ var Match = class Match {
 	}
 };
 
-//#region src/expression/definitions/case.ts
+// src/expression/definitions/case.ts
 var Case = class Case {
 	constructor(type, branches, otherwise) {
 		this.type = type;
@@ -91608,7 +91856,7 @@ var Case = class Case {
 	}
 };
 
-//#region src/expression/definitions/slice.ts
+// src/expression/definitions/slice.ts
 var Slice = class Slice {
 	constructor(type, input, beginIndex, key, endIndex) {
 		this.type = type;
@@ -91652,7 +91900,7 @@ var Slice = class Slice {
 	}
 };
 
-//#region src/expression/definitions/coalesce.ts
+// src/expression/definitions/coalesce.ts
 var Coalesce = class Coalesce {
 	constructor(type, args) {
 		this.type = type;
@@ -91697,7 +91945,7 @@ var Coalesce = class Coalesce {
 	}
 };
 
-//#region src/expression/definitions/comparison.ts
+// src/expression/definitions/comparison.ts
 function isComparableType(op, type) {
 	if (op === "==" || op === "!=") return type.kind === "boolean" || type.kind === "string" || type.kind === "number" || type.kind === "null" || type.kind === "value";
 	else return type.kind === "string" || type.kind === "number" || type.kind === "value";
@@ -91820,7 +92068,7 @@ const GreaterThan = makeComparison(">", gt, gtCollate);
 const LessThanOrEqual = makeComparison("<=", lteq, lteqCollate);
 const GreaterThanOrEqual = makeComparison(">=", gteq, gteqCollate);
 
-//#region src/expression/definitions/collator.ts
+// src/expression/definitions/collator.ts
 var CollatorExpression = class CollatorExpression {
 	constructor(caseSensitive, diacriticSensitive, locale) {
 		this.type = CollatorType;
@@ -91856,7 +92104,7 @@ var CollatorExpression = class CollatorExpression {
 	}
 };
 
-//#region src/expression/definitions/number_format.ts
+// src/expression/definitions/number_format.ts
 var NumberFormat = class NumberFormat {
 	constructor(number, locale, currency, unit, minFractionDigits, maxFractionDigits) {
 		this.type = StringType;
@@ -91923,7 +92171,7 @@ var NumberFormat = class NumberFormat {
 	}
 };
 
-//#region src/expression/definitions/image.ts
+// src/expression/definitions/image.ts
 var ImageExpression = class ImageExpression {
 	constructor(input) {
 		this.type = ResolvedImageType;
@@ -91949,7 +92197,7 @@ var ImageExpression = class ImageExpression {
 	}
 };
 
-//#region src/expression/definitions/length.ts
+// src/expression/definitions/length.ts
 var Length = class Length {
 	constructor(input, key) {
 		this.input = input;
@@ -91977,7 +92225,7 @@ var Length = class Length {
 	}
 };
 
-//#region src/util/geometry_util.ts
+// src/util/geometry_util.ts
 const EXTENT = 8192;
 function getTileCoordinates(p, canonical) {
 	const x = mercatorXfromLng(p[0]);
@@ -92073,7 +92321,7 @@ function twoSided(p1, p2, q1, q2) {
 	return false;
 }
 
-//#region src/expression/definitions/within.ts
+// src/expression/definitions/within.ts
 function getTilePolygon(coordinates, bbox, canonical) {
 	const polygon = [];
 	for (let i = 0; i < coordinates.length; i++) {
@@ -92235,7 +92483,7 @@ var Within = class Within {
 	}
 };
 
-//#region node_modules/tinyqueue/index.js
+// node_modules/tinyqueue/index.js
 var TinyQueue = class {
 	constructor(data = [], compare = (a, b) => a < b ? -1 : a > b ? 1 : 0) {
 		this.data = data;
@@ -92288,7 +92536,7 @@ var TinyQueue = class {
 	}
 };
 
-//#region src/util/cheap_ruler.ts
+// src/util/cheap_ruler.ts
 const RE = 6378.137;
 const E2 = .0066943799901413165;
 const RAD = Math.PI / 180;
@@ -92371,7 +92619,7 @@ var CheapRuler = class {
 	}
 };
 
-//#region src/expression/definitions/distance.ts
+// src/expression/definitions/distance.ts
 const MinPointsSize = 100;
 const MinLinePointsSize = 50;
 function compareDistPair(a, b) {
@@ -92739,7 +92987,7 @@ var Distance = class Distance {
 	}
 };
 
-//#region src/expression/definitions/semiliteral.ts
+// src/expression/definitions/semiliteral.ts
 var Semiliteral = class Semiliteral {
 	constructor(arr) {
 		let elementType = null;
@@ -92780,7 +93028,7 @@ var Semiliteral = class Semiliteral {
 	}
 };
 
-//#region src/expression/definitions/global_state.ts
+// src/expression/definitions/global_state.ts
 var GlobalState = class GlobalState {
 	constructor(key) {
 		this.key = key;
@@ -92804,7 +93052,7 @@ var GlobalState = class GlobalState {
 	}
 };
 
-//#region src/expression/definitions/index.ts
+// src/expression/definitions/index.ts
 const expressions = {
 	"==": Equals,
 	"!=": NotEquals,
@@ -92846,7 +93094,7 @@ const expressions = {
 	"global-state": GlobalState
 };
 
-//#region src/expression/parsing_error.ts
+// src/expression/parsing_error.ts
 var ExpressionParsingError = class extends Error {
 	constructor(key, message) {
 		super(message);
@@ -92855,7 +93103,7 @@ var ExpressionParsingError = class extends Error {
 	}
 };
 
-//#region src/expression/scope.ts
+// src/expression/scope.ts
 /**
 * Tracks `let` bindings during expression parsing.
 * @private
@@ -92880,7 +93128,7 @@ var Scope = class Scope {
 	}
 };
 
-//#region src/expression/parsing_context.ts
+// src/expression/parsing_context.ts
 /**
 * State associated parsing at a given point in an expression tree.
 * @private
@@ -93002,7 +93250,7 @@ var ParsingContext = class ParsingContext {
 	}
 };
 
-//#region src/expression/compound_expression.ts
+// src/expression/compound_expression.ts
 var CompoundExpression = class CompoundExpression {
 	constructor(name, type, evaluate, args, key) {
 		this.name = name;
@@ -93577,7 +93825,7 @@ function isGlobalPropertyConstant(e, properties) {
 	return result;
 }
 
-//#region src/util/properties.ts
+// src/util/properties.ts
 function supportsPropertyExpression(spec) {
 	return spec["property-type"] === "data-driven" || spec["property-type"] === "cross-faded-data-driven";
 }
@@ -93588,12 +93836,12 @@ function supportsInterpolation(spec) {
 	return !!spec.expression && spec.expression.interpolated;
 }
 
-//#region src/function/index.ts
+// src/function/index.ts
 function isFunction(value) {
 	return typeof value === "object" && value !== null && !Array.isArray(value) && typeOf(value) === ObjectType;
 }
 
-//#region src/util/result.ts
+// src/util/result.ts
 function success(value) {
 	return {
 		result: "success",
@@ -93607,7 +93855,7 @@ function error(value) {
 	};
 }
 
-//#region src/expression/index.ts
+// src/expression/index.ts
 var StyleExpression = class {
 	constructor(expression, rootKey, propertySpec, globalState) {
 		this.expression = expression;
@@ -93750,21 +93998,26 @@ function createPropertyExpression(expressionInput, rootKey, propertySpec, global
 	const interpolationType = zoomCurve instanceof Interpolate ? zoomCurve.interpolation : void 0;
 	return success(isFeatureConstantResult ? new ZoomDependentExpression("camera", expression.value, zoomCurve.labels, interpolationType, globalState) : new ZoomDependentExpression("composite", expression.value, zoomCurve.labels, interpolationType, globalState));
 }
-function findZoomCurve(expression) {
+function findZoomCurve(expression, seen = /* @__PURE__ */ new Map()) {
+	if (seen.has(expression)) return seen.get(expression);
 	let result = null;
-	if (expression instanceof Let) result = findZoomCurve(expression.result);
+	if (expression instanceof Let) result = findZoomCurve(expression.result, seen);
 	else if (expression instanceof Coalesce) for (const arg of expression.args) {
-		result = findZoomCurve(arg);
+		result = findZoomCurve(arg, seen);
 		if (result) break;
 	}
 	else if ((expression instanceof Step || expression instanceof Interpolate) && expression.input instanceof CompoundExpression && expression.input.name === "zoom") result = expression;
-	if (result instanceof ExpressionParsingError) return result;
+	if (result instanceof ExpressionParsingError) {
+		seen.set(expression, result);
+		return result;
+	}
 	expression.eachChild((child) => {
-		const childResult = findZoomCurve(child);
+		const childResult = findZoomCurve(child, seen);
 		if (childResult instanceof ExpressionParsingError) result = childResult;
 		else if (!result && childResult) result = new ExpressionParsingError("", "\"zoom\" expression may only be used as input to a top-level \"step\" or \"interpolate\" expression.");
 		else if (result && childResult && result !== childResult) result = new ExpressionParsingError("", "Only one zoom-based \"step\" or \"interpolate\" subexpression may be used in an expression.");
 	});
+	seen.set(expression, result);
 	return result;
 }
 function findGlobalStateRefs(expression, results = /* @__PURE__ */ new Set()) {
@@ -93817,7 +94070,7 @@ function addGlobalState(globals, globalState) {
 	};
 }
 
-//#region src/feature_filter/index.ts
+// src/feature_filter/index.ts
 function classifyChildren(children) {
 	let sawLegacy = false;
 	for (const child of children) {
@@ -94030,7 +94283,7 @@ function convertNegation(filter) {
 	return ["!", filter];
 }
 
-//#region src/function/convert.ts
+// src/function/convert.ts
 function convertLiteral(value) {
 	return typeof value === "object" ? ["literal", value] : value;
 }
@@ -94411,6 +94664,23 @@ const fontWeights = {
 };
 const sp = ' ';
 const italicRE = /(italic|oblique)$/i;
+const snakeCaseRE = /_/g;
+const wordStartRE = /(^| )[a-z]/g;
+
+/**
+ * @param {string} font Font name, e.g. `'noto_sans_bold'` or `'Noto Sans Bold'`.
+ * @return {string} Font name with words separated by spaces, e.g. `'Noto Sans Bold'`.
+ */
+function toWords(font) {
+  if (font.indexOf('_') === -1) {
+    return font;
+  }
+  // Snake case names, e.g. from VersaTiles styles, are all lower case.
+  // Capitalized words match the family names that font services use.
+  return font
+    .replace(snakeCaseRE, sp)
+    .replace(wordStartRE, (wordStart) => wordStart.toUpperCase());
+}
 
 const fontCache = {};
 
@@ -94431,7 +94701,7 @@ function mb2css (fonts, size, lineHeight) {
     const fontFamilies = [];
     let haveWeight, haveStyle;
     for (let i = 0, ii = fonts.length; i < ii; ++i) {
-      const font = fonts[i];
+      const font = toWords(fonts[i]);
       const parts = font.split(' ');
       let maybeWeight = parts[parts.length - 1].toLowerCase();
       if (
@@ -94842,7 +95112,8 @@ License: https://raw.githubusercontent.com/openlayers/ol-mapbox-style/master/LIC
  * @typedef {Object} SpriteImage
  * @property {HTMLImageElement|HTMLCanvasElement} image Image
  * @property {Array<number>} size Size
- * @property {boolean} [unSDFed] Image has been unSDFed
+ * @property {HTMLCanvasElement} [unSDFedImage] Image with SDF icons drawn in
+ * white, created on first use. Non-SDF icons and patterns use `image`.
  */
 
 /** @typedef {Object<string, SpriteImage>} SpriteImages */
@@ -95158,6 +95429,8 @@ function getSpriteImageForIcon(icon, spriteImages) {
 
 const styleFunctionArgs = {};
 
+let patternKeyCounter = 0;
+
 /**
  * **Caution**: This is a low level API, which is only useful for advanced use cases.
  * If you want to crete a map or layer group from an entire Mapbox/MapLibre style, use
@@ -95342,6 +95615,7 @@ function stylefunction(
 
   const iconImageCache = {};
   const patternCache = {};
+  const patternKeyPrefix = `ol-mapbox-style:${++patternKeyCounter}:`;
   const functionCache = getFunctionCache(glStyle);
   const filterCache = getFilterCache(glStyle);
 
@@ -95498,9 +95772,15 @@ function stylefunction(
                 }
                 fill = style.getFill();
                 style.setZIndex(index);
-                const icon_cache_key = icon + '.' + opacity;
-                let pattern = patternCache[icon_cache_key];
-                if (!pattern) {
+                // Rounded, so zoom dependent opacity does not create a pattern
+                // for every fractional zoom level.
+                const patternOpacity = Math.round(opacity * 100) / 100;
+                const patternKey =
+                  patternKeyPrefix + icon + '.' + patternOpacity;
+                // The pattern is registered in the shared icon image cache, where
+                // `src` of a pattern descriptor is looked up. The cache may have
+                // expired it, in which case it is registered again.
+                if (!shared.get(patternKey, null)) {
                   const spriteImageData = spriteData[icon];
                   const canvas = createCanvas(
                     spriteImageData.width,
@@ -95509,7 +95789,7 @@ function stylefunction(
                   const ctx = /** @type {CanvasRenderingContext2D} */ (
                     canvas.getContext('2d')
                   );
-                  ctx.globalAlpha = opacity;
+                  ctx.globalAlpha = patternOpacity;
                   ctx.drawImage(
                     spriteImage.image,
                     spriteImageData.x,
@@ -95521,10 +95801,26 @@ function stylefunction(
                     spriteImageData.width,
                     spriteImageData.height,
                   );
-                  pattern = ctx.createPattern(canvas, 'repeat');
-                  patternCache[icon_cache_key] = pattern;
+                  get$2(
+                    canvas,
+                    patternKey,
+                    undefined,
+                    ImageState.LOADED,
+                    null,
+                    true,
+                  );
                 }
-                fill.setColor(pattern);
+                let pattern = patternCache[patternKey];
+                if (!pattern) {
+                  pattern = {
+                    src: patternKey,
+                    scale: 1 / spriteData[icon].pixelRatio,
+                  };
+                  patternCache[patternKey] = pattern;
+                }
+                if (fill.getColor() !== pattern) {
+                  fill.setColor(pattern);
+                }
               }
             }
           } else {
@@ -95607,6 +95903,28 @@ function stylefunction(
               }
               style.setZIndex(index);
             }
+          }
+          if (fill && typeof fill.setDisplacement === 'function') {
+            fill.setDisplacement(
+              getValue(
+                layer,
+                'paint',
+                `${/** @type {'fill'|'fill-extrusion'} */ (layer.type)}-translate`,
+                f,
+                functionCache,
+                featureState,
+              ),
+            );
+            fill.setDisplacementAnchor(
+              getValue(
+                layer,
+                'paint',
+                `${/** @type {'fill'|'fill-extrusion'} */ (layer.type)}-translate-anchor`,
+                f,
+                functionCache,
+                featureState,
+              ),
+            );
           }
         }
         if (type != 1 && layer.type == 'line') {
@@ -95946,8 +96264,8 @@ function stylefunction(
                         }
                       } else {
                         if (spriteImageData.sdf) {
-                          if (!spriteImage.unSDFed) {
-                            const spriteImageUnSDFed = drawSDF(
+                          if (!spriteImage.unSDFedImage) {
+                            spriteImage.unSDFedImage = drawSDF(
                               spriteImage.image,
                               {
                                 x: 0,
@@ -95957,11 +96275,11 @@ function stylefunction(
                               },
                               {r: 1, g: 1, b: 1},
                             );
-                            spriteImage.image = spriteImageUnSDFed;
-                            spriteImage.unSDFed = true;
                           }
+                          img = spriteImage.unSDFedImage;
+                        } else {
+                          img = spriteImage.image;
                         }
-                        img = spriteImage.image;
                         size = [spriteImageData.width, spriteImageData.height];
                         offset = [spriteImageData.x, spriteImageData.y];
                       }
