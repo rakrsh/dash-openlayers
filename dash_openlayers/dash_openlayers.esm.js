@@ -6404,20 +6404,6 @@ function fromUserExtent(extent, destProjection) {
 }
 
 /**
- * Return the resolution in user projection units per pixel. If no user projection
- * is set, or source or user projection are missing units, the original resolution
- * is returned.
- * @param {number} resolution Resolution in input projection units per pixel.
- * @param {ProjectionLike} sourceProjection The input projection.
- * @return {number} Resolution in user projection units per pixel.
- */
-function toUserResolution(resolution, sourceProjection) {
-  {
-    return resolution;
-  }
-}
-
-/**
  * Creates a safe coordinate transform function from a coordinate transform function.
  * "Safe" means that it can handle wrapping of x-coordinates for global projections,
  * and that coordinates exceeding the source projection validity extent's range will be
@@ -11780,14 +11766,7 @@ class View extends BaseObject {
       geometry = fromExtent(extent);
       geometry.rotate(this.getRotation(), getCenter(extent));
     } else {
-      const userProjection = getUserProjection();
-      if (userProjection) {
-        geometry = /** @type {import("./geom/SimpleGeometry.js").default} */ (
-          geometryOrExtent
-            .clone()
-            .transform(userProjection, this.getProjection())
-        );
-      } else {
+      {
         geometry = geometryOrExtent;
       }
     }
@@ -29062,7 +29041,7 @@ let Map$1 = class Map extends BaseObject {
       this.getView().getProjection(),
     );
     if (options?.wrapX && coordinate) {
-      const projection = getUserProjection() || this.getView().getProjection();
+      const projection = this.getView().getProjection();
       wrapX$1(coordinate, projection);
     }
     return coordinate;
@@ -51865,7 +51844,6 @@ class CanvasVectorLayerRenderer extends CanvasLayerRenderer {
             startX -= worldWidth;
           }
         }
-        const userProjection = getUserProjection();
         this.hitDetectionImageData_ = createHitDetectionImageData(
           size,
           transforms,
@@ -51877,11 +51855,7 @@ class CanvasVectorLayerRenderer extends CanvasLayerRenderer {
           resolution,
           rotation,
           getSquaredTolerance(resolution, this.renderedPixelRatio_),
-          userProjection
-            ? /** @type {import("../../proj/Projection.js").default} */ (
-                projection
-              )
-            : /** @type {import("../../proj/Projection.js").default|undefined} */ (
+          /** @type {import("../../proj/Projection.js").default|undefined} */ (
                 /** @type {unknown} */ (null)
               ),
         );
@@ -52130,25 +52104,9 @@ class CanvasVectorLayerRenderer extends CanvasLayerRenderer {
       resolution,
       pixelRatio,
     );
-
-    const userProjection = getUserProjection();
     /** @type {import("../../proj.js").TransformFunction|undefined} */
     let userTransform;
-    if (userProjection) {
-      for (let i = 0, ii = loadExtents.length; i < ii; ++i) {
-        const extent = loadExtents[i];
-        const userExtent = toUserExtent(extent);
-        vectorSource.loadFeatures(
-          userExtent,
-          toUserResolution(resolution),
-          userProjection,
-        );
-      }
-      userTransform =
-        /** @type {import("../../proj.js").TransformFunction|undefined} */ (
-          getTransformFromProjections(userProjection, projection)
-        );
-    } else {
+    {
       for (let i = 0, ii = loadExtents.length; i < ii; ++i) {
         vectorSource.loadFeatures(loadExtents[i], resolution, projection);
       }
@@ -55929,10 +55887,6 @@ class Draw extends PointerInteraction {
               Math.sqrt(squaredLength),
               this.geometryLayout_,
             );
-            const userProjection = getUserProjection();
-            if (userProjection) {
-              circle.transform(projection, userProjection);
-            }
             return circle;
           }
         );
@@ -57190,10 +57144,6 @@ function createBox() {
     } else {
       geometry = new Polygon(boxCoordinates);
     }
-    const userProjection = getUserProjection();
-    if (userProjection) {
-      geometry.transform(projection, userProjection);
-    }
     return geometry;
   };
 }
@@ -58218,20 +58168,6 @@ class Modify extends PointerInteraction {
     let circleGeometry = /** @type {import("../geom/Geometry.js").default} */ (
       geometry
     );
-    const userProjection = getUserProjection();
-    if (userProjection && this.getMap()) {
-      const projection = /** @type {import("../Map.js").default} */ (
-        this.getMap()
-      )
-        .getView()
-        .getProjection();
-      circleGeometry = circleGeometry
-        .clone()
-        .transform(userProjection, projection);
-      circleGeometry = fromCircle(
-        /** @type {import("../geom/Circle.js").default} */ (circleGeometry),
-      ).transform(projection, userProjection);
-    }
     this.rBush_.insert(circleGeometry.getExtent(), circumferenceSegmentData);
   }
 
@@ -58329,7 +58265,7 @@ class Modify extends PointerInteraction {
       return;
     }
 
-    const projection = /** @type {import("../Map.js").default} */ (
+    /** @type {import("../Map.js").default} */ (
       this.getMap()
     )
       .getView()
@@ -58362,9 +58298,7 @@ class Modify extends PointerInteraction {
       ) {
         const closestVertex = closestOnSegmentData(
           pixelCoordinate,
-          segmentDataMatch,
-          projection,
-        );
+          segmentDataMatch);
         if (
           this.coordinatesEqual_(closestVertex, vertex) &&
           !componentSegments[uid][0]
@@ -58952,7 +58886,7 @@ class Modify extends PointerInteraction {
         } else {
           // We're dragging the circle's circumference:
           this.changingFeature_ = true;
-          const projection = /** @type {import("../Map.js").default} */ (
+          /** @type {import("../Map.js").default} */ (
             this.getMap()
           )
             .getView()
@@ -58961,16 +58895,6 @@ class Modify extends PointerInteraction {
             fromUserCoordinate(circle.getCenter()),
             fromUserCoordinate(vertex),
           );
-          const userProjection = getUserProjection();
-          if (userProjection) {
-            const circleGeometry = circle
-              .clone()
-              .transform(userProjection, projection);
-            circleGeometry.setRadius(radius);
-            radius = circleGeometry
-              .transform(projection, userProjection)
-              .getRadius();
-          }
           circle.setRadius(radius);
           this.changingFeature_ = false;
         }
@@ -59124,17 +59048,6 @@ class Modify extends PointerInteraction {
         this.rBush_.update(createOrUpdateFromCoordinate(coordinates), centerSegmentData);
         /** @type {import("../geom/Circle.js").default | import("../geom/Polygon.js").default} */
         let circleGeometry = circle;
-        const userProjection = getUserProjection();
-        if (userProjection) {
-          const projection = evt.map.getView().getProjection();
-          circleGeometry = circleGeometry
-            .clone()
-            .transform(userProjection, projection);
-          circleGeometry = fromCircle(circleGeometry).transform(
-            projection,
-            userProjection,
-          );
-        }
         this.rBush_.update(
           circleGeometry.getExtent(),
           circumferenceSegmentData,
@@ -59181,14 +59094,14 @@ class Modify extends PointerInteraction {
   handlePointerAtPixel_(pixelCoordinate) {
     const map = /** @type {import("../Map.js").default} */ (this.getMap());
     const pixel = map.getPixelFromCoordinate(pixelCoordinate);
-    const projection = map.getView().getProjection();
+    map.getView().getProjection();
     const sortByDistance = (
       /** @type {SegmentData} */ a,
       /** @type {SegmentData} */ b,
     ) => {
       return (
-        projectedDistanceToSegmentDataSquared(pixelCoordinate, a, projection) -
-        projectedDistanceToSegmentDataSquared(pixelCoordinate, b, projection)
+        projectedDistanceToSegmentDataSquared(pixelCoordinate, a) -
+        projectedDistanceToSegmentDataSquared(pixelCoordinate, b)
       );
     };
 
@@ -59252,7 +59165,7 @@ class Modify extends PointerInteraction {
     if (nodes && nodes.length > 0) {
       const node = nodes.sort(sortByDistance)[0];
       const closestSegment = node.segment;
-      let vertex = closestOnSegmentData(pixelCoordinate, node, projection);
+      let vertex = closestOnSegmentData(pixelCoordinate, node);
       const vertexPixel = map.getPixelFromCoordinate(vertex);
       let dist = distance(pixel, vertexPixel);
       if (hitPointGeometry || dist <= this.pixelTolerance_) {
@@ -59897,12 +59810,6 @@ function projectedDistanceToSegmentDataSquared(
     );
 
     if (segmentData.index === CIRCLE_CIRCUMFERENCE_INDEX) {
-      const userProjection = getUserProjection();
-      if (userProjection) {
-        circleGeometry = circleGeometry
-          .clone()
-          .transform(userProjection, projection);
-      }
       const distanceToCenterSquared = squaredDistance(
         circleGeometry.getCenter(),
         fromUserCoordinate(pointCoordinates),
@@ -59939,12 +59846,6 @@ function closestOnSegmentData(pointCoordinates, segmentData, projection) {
     let circleGeometry = /** @type {import("../geom/Circle.js").default} */ (
       geometry
     );
-    const userProjection = getUserProjection();
-    if (userProjection) {
-      circleGeometry = circleGeometry
-        .clone()
-        .transform(userProjection, projection);
-    }
     return toUserCoordinate(
       circleGeometry.getClosestPoint(
         fromUserCoordinate(pointCoordinates),
@@ -64182,16 +64083,7 @@ const GEOMETRY_SEGMENTERS = /** @type {Object<string, Segmenter>} */ (
      */
     Circle(geometry, projection) {
       let circleGeometry = geometry;
-      const userProjection = getUserProjection();
-      if (userProjection) {
-        circleGeometry = circleGeometry
-          .clone()
-          .transform(userProjection, projection);
-      }
       const polygon = fromCircle(circleGeometry);
-      if (userProjection) {
-        polygon.transform(projection, userProjection);
-      }
       return GEOMETRY_SEGMENTERS.Polygon(polygon);
     },
 
@@ -64861,7 +64753,7 @@ class Snap extends PointerInteraction {
    * @return {SnappedInfo|null} Snap result
    */
   snapTo(pixel, pixelCoordinate, map) {
-    const projection = map.getView().getProjection();
+    map.getView().getProjection();
     const projectedCoordinate = fromUserCoordinate(pixelCoordinate);
     const resolution = map.getView().getResolution();
     if (resolution === undefined) {
@@ -64942,12 +64834,6 @@ class Snap extends PointerInteraction {
         const segmentGeometry = segmentData.feature.getGeometry();
         if (segmentGeometry && segmentGeometry.getType() === 'Circle') {
           let circleGeometry = segmentGeometry;
-          const userProjection = getUserProjection();
-          if (userProjection) {
-            circleGeometry = circleGeometry
-              .clone()
-              .transform(userProjection, projection);
-          }
           vertex = closestOnCircle(
             projectedCoordinate,
             /** @type {import("../geom/Circle.js").default} */ (circleGeometry),
@@ -103340,8 +103226,6 @@ class WebGLPointsLayerRenderer extends WebGLLayerRenderer {
     const projectionTransform = create$2();
     this.helper.makeProjectionTransform(frameState, projectionTransform);
 
-    const userProjection = getUserProjection();
-
     const baseInstructionLength = this.hitDetectionEnabled_ ? 5 : 2; // see below
     const singleInstructionLength =
       baseInstructionLength + this.customAttributes.length;
@@ -103361,10 +103245,7 @@ class WebGLPointsLayerRenderer extends WebGLLayerRenderer {
     frameState.viewState.projection;
     for (const featureUid in this.featureCache_) {
       const featureCache = this.featureCache_[featureUid];
-      if (userProjection) {
-        tmpCoords = fromUserCoordinate(
-          featureCache.flatCoordinates);
-      } else {
+      {
         tmpCoords[0] = featureCache.flatCoordinates[0];
         tmpCoords[1] = featureCache.flatCoordinates[1];
       }
